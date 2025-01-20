@@ -35,7 +35,7 @@ func (c *Client) newPageLoader() *PageLoader {
 func (pl *PageLoader) LoadMessagesPage() error {
 	messagesDefinition := routing.RequestStoreDefinition[routing.LinkedInMessagingBaseURL]
 	headers := pl.client.buildHeaders(messagesDefinition.HeaderOpts)
-	_, respBody, err := pl.client.MakeRequest(string(routing.LinkedInMessagingBaseURL), string(messagesDefinition.Method), headers, nil, "")
+	_, respBody, err := pl.client.MakeRequest(string(routing.LinkedInMessagingBaseURL), messagesDefinition.Method, headers, nil, "")
 	if err != nil {
 		return err
 	}

@@ -20,7 +20,7 @@ type LinkedInLogin struct {
 }
 
 var (
-	LoginUrlRegex    = regexp.MustCompile(`https?:\\/\\/(www\\.)?([\\w-]+\\.)*linkedin\\.com(\\/[^\\s]*)?`)
+	LoginURLRegex    = regexp.MustCompile(`https?:\\/\\/(www\\.)?([\\w-]+\\.)*linkedin\\.com(\\/[^\\s]*)?`)
 	ValidCookieRegex = regexp.MustCompile(`\bJSESSIONID=[^;]+`)
 )
 
@@ -52,7 +52,7 @@ func (l *LinkedInLogin) Start(_ context.Context) (*bridgev2.LoginStep, error) {
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeCookies,
 		StepID:       LoginStepIDCookies,
-		Instructions: "Open the Login URL in an Incognito/Private browsing mode. Then, extract the Cookie header as a string/cURL command copied from the Network tab of your browser's DevTools. After that, close the browser **before** pasting the header.",
+		Instructions: "Enter a JSON object with your cookies, or a cURL command copied from browser devtools. It is recommended that you use a tab opened in Incognito/Private browsing mode and close the browser **before** pasting the cookies.",
 		CookiesParams: &bridgev2.LoginCookiesParams{
 			URL:       "https://linkedin.com/login",
 			UserAgent: "",
@@ -61,7 +61,7 @@ func (l *LinkedInLogin) Start(_ context.Context) (*bridgev2.LoginStep, error) {
 					ID:       "cookie",
 					Required: true,
 					Sources: []bridgev2.LoginCookieFieldSource{
-						{Type: bridgev2.LoginCookieTypeRequestHeader, Name: "Cookie", RequestURLRegex: LoginUrlRegex.String()},
+						{Type: bridgev2.LoginCookieTypeRequestHeader, Name: "Cookie", RequestURLRegex: LoginURLRegex.String()},
 					},
 					Pattern: ValidCookieRegex.String(),
 				},
@@ -86,12 +86,12 @@ func (l *LinkedInLogin) SubmitCookies(ctx context.Context, cookies map[string]st
 
 	err := client.LoadMessagesPage()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load messages page after submitting cookies")
+		return nil, fmt.Errorf("failed to load messages page after submitting cookies: %w", err)
 	}
 
 	profile, err := client.GetCurrentUserProfile()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get current user profile")
+		return nil, fmt.Errorf("failed to get current user profile: %w", err)
 	}
 
 	id := networkid.UserLoginID(client.GetCurrentUserID())
@@ -112,12 +112,14 @@ func (l *LinkedInLogin) SubmitCookies(ctx context.Context, cookies map[string]st
 		return nil, err
 	}
 
-	ul.Client.Connect(ctx)
+	if err = ul.Client.Connect(ctx); err != nil {
+		return nil, err
+	}
 
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeComplete,
 		StepID:       LoginStepIDComplete,
-		Instructions: fmt.Sprintf("Successfully logged into @%s", ul.UserLogin.RemoteName),
+		Instructions: fmt.Sprintf("Successfully logged into @%s", ul.RemoteName),
 		CompleteParams: &bridgev2.LoginCompleteParams{
 			UserLoginID: ul.ID,
 			UserLogin:   ul,
