@@ -10,8 +10,8 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/event"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/event"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
 )
 
 func (lc *LinkedInClient) HandleLinkedInEvent(rawEvt any) {

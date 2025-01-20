@@ -1,6 +1,6 @@
-# linkedin-matrix
+# mautrix-linkedin
 
-[![Lint, Build, and Deploy](https://github.com/beeper/linkedin/actions/workflows/deploy.yaml/badge.svg)](https://github.com/beeper/linkedin/actions/workflows/deploy.yaml)
+[![Lint, Build, and Deploy](https://github.com/mautrix/linkedin/actions/workflows/deploy.yaml/badge.svg)](https://github.com/mautrix/linkedin/actions/workflows/deploy.yaml)
 [![Matrix Chat](https://img.shields.io/matrix/linkedin-matrix:nevarro.space?server_fqdn=matrix.nevarro.space)](https://matrix.to/#/#linkedin-matrix:nevarro.space?via=nevarro.space&via=sumnerevans.com)
 [![Apache 2.0](https://img.shields.io/pypi/l/linkedin-matrix)](LICENSE)
 

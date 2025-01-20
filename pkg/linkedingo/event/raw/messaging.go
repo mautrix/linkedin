@@ -1,6 +1,6 @@
 package raw
 
-import "github.com/beeper/linkedin/pkg/linkedingo/event"
+import "go.mau.fi/mautrix-linkedin/pkg/linkedingo/event"
 
 func (p *DecoratedEventData) ToMessageEvent() event.MessageEvent {
 	return event.MessageEvent{

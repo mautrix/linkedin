@@ -13,7 +13,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
 
-	"github.com/beeper/linkedin/pkg/connector"
+	"go.mau.fi/mautrix-linkedin/pkg/connector"
 )
 
 var levelsToNames = map[bridgeconfig.Permissions]string{

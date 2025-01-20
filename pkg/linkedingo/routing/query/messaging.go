@@ -1,7 +1,7 @@
 package query
 
 import (
-	"github.com/beeper/linkedin/pkg/linkedingo/methods"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/methods"
 )
 
 type Action string

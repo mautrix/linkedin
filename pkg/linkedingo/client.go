@@ -12,10 +12,10 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/net/proxy"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/cookies"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing"
-	queryData "github.com/beeper/linkedin/pkg/linkedingo/routing/query"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/cookies"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing"
+	queryData "go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/query"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type EventHandler func(evt any)

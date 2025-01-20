@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/routing"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 const MaxHTTPRetries = 5

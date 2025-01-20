@@ -12,8 +12,8 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/query"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/query"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
 )
 
 func (lc *LinkedInClient) syncChannels(ctx context.Context) {

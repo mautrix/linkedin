@@ -3,9 +3,9 @@ package response
 import (
 	"encoding/json"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/payload"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/query"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/payload"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/query"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type Metadata struct {

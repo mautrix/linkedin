@@ -1,8 +1,8 @@
 package linkedingo
 
 import (
-	"github.com/beeper/linkedin/pkg/linkedingo/cookies"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/cookies"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 
 	"log"
 	"net/http"

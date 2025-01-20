@@ -13,10 +13,10 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	bridgeEvt "maunium.net/go/mautrix/event"
 
-	"github.com/beeper/linkedin/pkg/linkedingo"
-	"github.com/beeper/linkedin/pkg/linkedingo/cookies"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/response"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/cookies"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type LinkedInClient struct {

@@ -5,8 +5,8 @@ ENV UID=1337 \
 
 RUN apk add --no-cache ffmpeg su-exec ca-certificates bash jq curl yq-go
 
-ARG EXECUTABLE=./cmd/linkedin-matrix
-COPY $EXECUTABLE /usr/bin/linkedin-matrix
+ARG EXECUTABLE=./cmd/mautrix-linkedin
+COPY $EXECUTABLE /usr/bin/mautrix-linkedin
 COPY ./docker-run.sh /docker-run.sh
 ENV BRIDGEV2=1
 VOLUME /data

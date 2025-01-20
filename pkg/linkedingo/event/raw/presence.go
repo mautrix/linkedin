@@ -1,7 +1,7 @@
 package raw
 
 import (
-	"github.com/beeper/linkedin/pkg/linkedingo/event"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/event"
 
 	"time"
 )

@@ -3,7 +3,7 @@ package payload
 import (
 	"encoding/json"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type SendMessagePayload struct {

@@ -3,7 +3,7 @@ package query
 import (
 	"fmt"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type GraphQLQuery struct {

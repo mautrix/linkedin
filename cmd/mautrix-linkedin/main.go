@@ -6,7 +6,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
 	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
 
-	"github.com/beeper/linkedin/pkg/connector"
+	"go.mau.fi/mautrix-linkedin/pkg/connector"
 )
 
 // Information to find out exactly which commit the bridge was built from.
@@ -18,8 +18,8 @@ var (
 )
 
 var m = mxmain.BridgeMain{
-	Name:        "linkedin-matrix",
-	URL:         "https://github.com/beeper/linkedin",
+	Name:        "mautrix-linkedin",
+	URL:         "https://github.com/mautrix/linkedin",
 	Description: "A Matrix-LinkedIn puppeting bridge.",
 	Version:     "0.6.0",
 	Connector:   &connector.LinkedInConnector{},

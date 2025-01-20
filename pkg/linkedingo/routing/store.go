@@ -3,8 +3,8 @@ package routing
 import (
 	"net/http"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/response"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type PayloadDataInterface interface {

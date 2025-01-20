@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/routing"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/payload"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/query"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/response"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/payload"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/query"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 func (c *Client) UploadMedia(mediaUploadType payload.MediaUploadType, fileName string, mediaBytes []byte, contentType types.ContentType) (*response.MediaMetadata, error) {

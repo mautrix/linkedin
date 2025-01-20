@@ -1,4 +1,4 @@
-module github.com/beeper/linkedin
+module go.mau.fi/mautrix-linkedin
 
 go 1.22.0
 

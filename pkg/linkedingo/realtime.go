@@ -10,11 +10,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/event"
-	"github.com/beeper/linkedin/pkg/linkedingo/event/raw"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/response"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/event"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/event/raw"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 
 	"github.com/google/uuid"
 )

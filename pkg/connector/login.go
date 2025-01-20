@@ -9,8 +9,8 @@ import (
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
-	"github.com/beeper/linkedin/pkg/linkedingo"
-	linCookies "github.com/beeper/linkedin/pkg/linkedingo/cookies"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
+	linCookies "go.mau.fi/mautrix-linkedin/pkg/linkedingo/cookies"
 )
 
 type LinkedInLogin struct {

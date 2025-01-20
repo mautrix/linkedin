@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/beeper/linkedin/pkg/linkedingo"
-	"github.com/beeper/linkedin/pkg/linkedingo/cookies"
-	"github.com/beeper/linkedin/pkg/linkedingo/debug"
-	"github.com/beeper/linkedin/pkg/linkedingo/event"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/cookies"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/debug"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/event"
 )
 
 var cli *linkedingo.Client

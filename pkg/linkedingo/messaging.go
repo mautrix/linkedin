@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/methods"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/methods"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
 
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/payload"
-	"github.com/beeper/linkedin/pkg/linkedingo/routing/query"
-	"github.com/beeper/linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/payload"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/query"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 
 	"github.com/google/uuid"
 )
