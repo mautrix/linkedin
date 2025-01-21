@@ -112,9 +112,7 @@ func (l *LinkedInLogin) SubmitCookies(ctx context.Context, cookies map[string]st
 		return nil, err
 	}
 
-	if err = ul.Client.Connect(ctx); err != nil {
-		return nil, err
-	}
+	ul.Client.Connect(ctx)
 
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeComplete,

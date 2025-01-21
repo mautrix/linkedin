@@ -1,5 +1,5 @@
-/linkedin-matrix
-/linkedin-matrix.sha256sum
+/mautrix-linkedin
+/mautrix-linkedin.sha256sum
 logs/
 *.db*
 *.yaml

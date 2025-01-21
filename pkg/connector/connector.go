@@ -33,10 +33,6 @@ func (lc *LinkedInConnector) GetName() bridgev2.BridgeName {
 	}
 }
 
-func (lc *LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
-	return &bridgev2.NetworkGeneralCapabilities{}
-}
-
 func (lc *LinkedInConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLogin) error {
 	twitClient := NewLinkedInClient(ctx, lc, login)
 

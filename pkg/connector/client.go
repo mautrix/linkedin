@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridge/status"
@@ -55,23 +54,26 @@ func NewLinkedInClient(ctx context.Context, tc *LinkedInConnector, login *bridge
 	return linClient
 }
 
-func (lc *LinkedInClient) Connect(ctx context.Context) error {
+func (lc *LinkedInClient) Connect(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
 	if lc.client == nil {
 		lc.userLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      "linkedin-not-logged-in",
 		})
-		return nil
+		return
 	}
 
 	err := lc.client.LoadMessagesPage()
 	if err != nil {
-		return fmt.Errorf("failed to load messages page")
+		log.Err(err).Msg("failed to load messages page")
+		return
 	}
 
 	profile, err := lc.client.GetCurrentUserProfile()
 	if err != nil {
-		return fmt.Errorf("failed to get current user profile")
+		log.Err(err).Msg("failed to get current user profile")
+		return
 	}
 
 	lc.userLogin.RemoteName = fmt.Sprintf("%s %s", profile.MiniProfile.FirstName, profile.MiniProfile.LastName)
@@ -79,12 +81,12 @@ func (lc *LinkedInClient) Connect(ctx context.Context) error {
 
 	err = lc.client.Connect()
 	if err != nil {
-		return fmt.Errorf("failed to connect to linkedin client: %w", err)
+		log.Err(err).Msg("failed to connect to LinkedIn client")
+		return
 	}
 	lc.userLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 
 	go lc.syncChannels(ctx)
-	return nil
 }
 
 func (lc *LinkedInClient) Disconnect() {
@@ -126,22 +128,6 @@ func (lc *LinkedInClient) GetUserInfo(_ context.Context, ghost *bridgev2.Ghost) 
 		return nil, fmt.Errorf("failed to find user info in cache by id: %s", ghost.ID)
 	}
 	return userInfo, nil
-}
-
-func (lc *LinkedInClient) GetCapabilities(_ context.Context, _ *bridgev2.Portal) *bridgev2.NetworkRoomCapabilities {
-	return &bridgev2.NetworkRoomCapabilities{ // todo update
-		FormattedText: false,
-		UserMentions:  true,
-		RoomMentions:  false,
-
-		Edits:         true,
-		EditMaxCount:  10,
-		EditMaxAge:    15 * time.Minute,
-		Captions:      true,
-		Replies:       true,
-		Reactions:     true,
-		ReactionCount: 1,
-	}
 }
 
 func (lc *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message, data *response.MessageElement) (*bridgev2.ConvertedEdit, error) {
