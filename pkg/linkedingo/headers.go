@@ -54,15 +54,15 @@ func (c *Client) buildHeaders(opts types.HeaderOpts) http.Header {
 	}
 
 	if opts.WithXLiPageInstance {
-		opts.Extra["x-li-page-instance"] = c.pageLoader.XLiPageInstance
+		opts.Extra["x-li-page-instance"] = c.PageLoader.XLiPageInstance
 	}
 
 	if opts.WithXLiLang {
-		opts.Extra["x-li-lang"] = c.pageLoader.XLiLang
+		opts.Extra["x-li-lang"] = c.PageLoader.XLiLang
 	}
 
 	if opts.WithXLiTrack {
-		xLiTrack, err := c.pageLoader.XLiDeviceTrack.Encode()
+		xLiTrack, err := c.PageLoader.XLiDeviceTrack.Encode()
 		if err != nil {
 			log.Fatalf("failed to encode x-li-track header to json bytes: %s", err.Error())
 		}

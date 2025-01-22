@@ -14,30 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package connector
+package types2
 
-import (
-	"context"
-	"fmt"
-
-	"maunium.net/go/mautrix/bridgev2"
+const (
+	ContentTypeJSON                   = "application/json"
+	ContentTypeJSONPlaintextUTF8      = "application/json; charset=UTF-8"
+	ContentTypeJSONLinkedInNormalized = "application/vnd.linkedin.normalized+json+2.1"
+	ContentTypeGraphQL                = "application/graphql"
+	ContentTypeTextEventStream        = "text/event-stream"
+	ContentTypePlaintextUTF8          = "text/plain;charset=UTF-8"
 )
-
-const FlowIDCookies = "cookies"
-
-func (lc *LinkedInConnector) GetLoginFlows() []bridgev2.LoginFlow {
-	return []bridgev2.LoginFlow{
-		{
-			Name:        "Cookies",
-			Description: "Log in with your LinkedIn account using your cookies",
-			ID:          FlowIDCookies,
-		},
-	}
-}
-
-func (l *LinkedInConnector) CreateLogin(ctx context.Context, user *bridgev2.User, flowID string) (bridgev2.LoginProcess, error) {
-	if flowID != FlowIDCookies {
-		return nil, fmt.Errorf("unknown login flow ID: %s", flowID)
-	}
-	return &CookieLogin{user: user, main: l}, nil
-}

@@ -1,3 +1,19 @@
+// mautrix-linkedin - A Matrix-LinkedIn puppeting bridge.
+// Copyright (C) 2025 Sumner Evans
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 package connector
 
 import (
@@ -7,18 +23,22 @@ import (
 )
 
 type LinkedInConnector struct {
-	br *bridgev2.Bridge
-
-	Config Config
+	Bridge *bridgev2.Bridge
+	Config LinkedInConfig
 }
 
 var _ bridgev2.NetworkConnector = (*LinkedInConnector)(nil)
 
-func (lc *LinkedInConnector) Init(bridge *bridgev2.Bridge) {
-	lc.br = bridge
+func (l *LinkedInConnector) Init(bridge *bridgev2.Bridge) {
+	l.Bridge = bridge
 }
 
-func (lc *LinkedInConnector) Start(_ context.Context) error {
+func (l *LinkedInConnector) Start(ctx context.Context) error {
+	return nil
+}
+
+func (l *LinkedInConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLogin) error {
+	login.Client = NewLinkedInClient(ctx, l, login)
 	return nil
 }
 
@@ -31,12 +51,4 @@ func (lc *LinkedInConnector) GetName() bridgev2.BridgeName {
 		BeeperBridgeType: "linkedin",
 		DefaultPort:      29327,
 	}
-}
-
-func (lc *LinkedInConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLogin) error {
-	twitClient := NewLinkedInClient(ctx, lc, login)
-
-	login.Client = twitClient
-
-	return nil
 }

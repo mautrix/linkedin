@@ -14,30 +14,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package connector
+package linkedingo2
 
 import (
-	"context"
-	"fmt"
+	"encoding/json"
+	"net/http"
 
-	"maunium.net/go/mautrix/bridgev2"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2/types2"
 )
 
-const FlowIDCookies = "cookies"
-
-func (lc *LinkedInConnector) GetLoginFlows() []bridgev2.LoginFlow {
-	return []bridgev2.LoginFlow{
-		{
-			Name:        "Cookies",
-			Description: "Log in with your LinkedIn account using your cookies",
-			ID:          FlowIDCookies,
-		},
+func (c *Client) GetCurrentUserProfile() (*types2.UserProfile, error) {
+	req, err := http.NewRequest(http.MethodGet, LinkedInVoyagerCommonMeURL, nil)
+	if err != nil {
+		return nil, err
 	}
-}
+	req.Header.Add("csrf-token", c.csrfToken)
 
-func (l *LinkedInConnector) CreateLogin(ctx context.Context, user *bridgev2.User, flowID string) (bridgev2.LoginProcess, error) {
-	if flowID != FlowIDCookies {
-		return nil, fmt.Errorf("unknown login flow ID: %s", flowID)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
 	}
-	return &CookieLogin{user: user, main: l}, nil
+
+	var profile types2.UserProfile
+	return &profile, json.NewDecoder(resp.Body).Decode(&profile)
 }

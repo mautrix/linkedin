@@ -1,197 +1,100 @@
+// mautrix-linkedin - A Matrix-LinkedIn puppeting bridge.
+// Copyright (C) 2025 Sumner Evans
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 package connector
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 
-	"github.com/rs/zerolog"
-	"maunium.net/go/mautrix/bridge/status"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2"
+	"go.mau.fi/util/exerrors"
 	"maunium.net/go/mautrix/bridgev2"
-	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
-	bridgeEvt "maunium.net/go/mautrix/event"
-
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/cookies"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type LinkedInClient struct {
-	connector *LinkedInConnector
-	client    *linkedingo.Client
-
+	main      *LinkedInConnector
+	userID    networkid.UserID
 	userLogin *bridgev2.UserLogin
-
-	userCache   map[string]types.Member
-	threadCache map[string]response.ThreadElement
+	client    *linkedingo2.Client
 }
 
 var (
 	_ bridgev2.NetworkAPI = (*LinkedInClient)(nil)
+	// _ bridgev2.EditHandlingNetworkAPI          = (*LinkedInClient)(nil)
+	// _ bridgev2.ReactionHandlingNetworkAPI      = (*LinkedInClient)(nil)
+	// _ bridgev2.RedactionHandlingNetworkAPI     = (*LinkedInClient)(nil)
+	// _ bridgev2.ReadReceiptHandlingNetworkAPI   = (*LinkedInClient)(nil)
+	// _ bridgev2.TypingHandlingNetworkAPI        = (*LinkedInClient)(nil)
+	// _ bridgev2.BackfillingNetworkAPI           = (*LinkedInClient)(nil)
+	// _ bridgev2.BackfillingNetworkAPIWithLimits = (*LinkedInClient)(nil)
+	// _ bridgev2.IdentifierResolvingNetworkAPI   = (*LinkedInClient)(nil)
+	// _ bridgev2.ContactListingNetworkAPI        = (*LinkedInClient)(nil)
+	// _ bridgev2.UserSearchingNetworkAPI         = (*LinkedInClient)(nil)
+	// _ bridgev2.GroupCreatingNetworkAPI         = (*LinkedInClient)(nil)
+	// _ bridgev2.MuteHandlingNetworkAPI          = (*LinkedInClient)(nil)
+	// _ bridgev2.TagHandlingNetworkAPI           = (*LinkedInClient)(nil)
 )
 
-func NewLinkedInClient(ctx context.Context, tc *LinkedInConnector, login *bridgev2.UserLogin) *LinkedInClient {
-	log := zerolog.Ctx(ctx).With().
-		Str("component", "linkedin_client").
-		Str("user_login_id", string(login.ID)).
-		Logger()
-
-	meta := login.Metadata.(*UserLoginMetadata)
-	clientOpts := &linkedingo.ClientOpts{
-		Cookies: cookies.NewCookiesFromString(meta.Cookies),
+func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridgev2.UserLogin) *LinkedInClient {
+	userID := networkid.UserID(login.ID)
+	client := linkedingo2.NewClient(ctx, login.Metadata.(*UserLoginMetadata).Cookies)
+	return &LinkedInClient{
+		main:      lc,
+		userID:    userID,
+		userLogin: login,
+		client:    client,
 	}
-	linClient := &LinkedInClient{
-		client:      linkedingo.NewClient(clientOpts, log),
-		userLogin:   login,
-		userCache:   make(map[string]types.Member),
-		threadCache: make(map[string]response.ThreadElement),
-	}
-
-	linClient.client.SetEventHandler(linClient.HandleLinkedInEvent)
-	linClient.connector = tc
-	return linClient
 }
 
-func (lc *LinkedInClient) Connect(ctx context.Context) {
-	log := zerolog.Ctx(ctx)
-	if lc.client == nil {
-		lc.userLogin.BridgeState.Send(status.BridgeState{
-			StateEvent: status.StateBadCredentials,
-			Error:      "linkedin-not-logged-in",
-		})
-		return
-	}
-
-	err := lc.client.LoadMessagesPage()
+func (l *LinkedInClient) Connect(ctx context.Context) {
+	profile, err := l.client.GetCurrentUserProfile()
 	if err != nil {
-		log.Err(err).Msg("failed to load messages page")
-		return
+		fmt.Printf("%+v\n", err)
+		panic("failed to get profile")
 	}
-
-	profile, err := lc.client.GetCurrentUserProfile()
-	if err != nil {
-		log.Err(err).Msg("failed to get current user profile")
-		return
-	}
-
-	lc.userLogin.RemoteName = fmt.Sprintf("%s %s", profile.MiniProfile.FirstName, profile.MiniProfile.LastName)
-	lc.userLogin.Save(ctx)
-
-	err = lc.client.Connect()
-	if err != nil {
-		log.Err(err).Msg("failed to connect to LinkedIn client")
-		return
-	}
-	lc.userLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
-
-	go lc.syncChannels(ctx)
+	fmt.Printf("%s\n", exerrors.Must(json.Marshal(profile)))
 }
 
-func (lc *LinkedInClient) Disconnect() {
-	err := lc.client.Disconnect()
-	if err != nil {
-		lc.userLogin.Log.Error().Err(err).Msg("failed to disconnect, err:")
-	}
+func (l *LinkedInClient) Disconnect() {
+	panic("unimplemented")
 }
 
-func (lc *LinkedInClient) IsLoggedIn() bool {
-	return ValidCookieRegex.MatchString(lc.userLogin.Metadata.(*UserLoginMetadata).Cookies)
+func (l *LinkedInClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfo, error) {
+	panic("unimplemented")
 }
 
-func (lc *LinkedInClient) LogoutRemote(ctx context.Context) {
-	log := zerolog.Ctx(ctx)
-	err := lc.client.Logout()
-	if err != nil {
-		log.Error().Err(err).Msg("error logging out")
-	}
+func (l *LinkedInClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost) (*bridgev2.UserInfo, error) {
+	panic("unimplemented")
 }
 
-func (lc *LinkedInClient) IsThisUser(_ context.Context, userID networkid.UserID) bool {
-	return networkid.UserID(lc.client.GetCurrentUserID()) == userID
+func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (message *bridgev2.MatrixMessageResponse, err error) {
+	panic("unimplemented")
 }
 
-func (lc *LinkedInClient) GetCurrentUser() (user *types.UserLoginProfile, err error) {
-	user, err = lc.client.GetCurrentUserProfile()
-	return
+func (l *LinkedInClient) IsLoggedIn() bool {
+	panic("unimplemented")
 }
 
-func (lc *LinkedInClient) GetChatInfo(_ context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfo, error) {
-	// not supported
-	return nil, nil
+func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID) bool {
+	panic("unimplemented")
 }
 
-func (lc *LinkedInClient) GetUserInfo(_ context.Context, ghost *bridgev2.Ghost) (*bridgev2.UserInfo, error) {
-	userInfo := lc.GetUserInfoBridge(string(ghost.ID))
-	if userInfo == nil {
-		return nil, fmt.Errorf("failed to find user info in cache by id: %s", ghost.ID)
-	}
-	return userInfo, nil
-}
-
-func (lc *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message, data *response.MessageElement) (*bridgev2.ConvertedEdit, error) {
-	converted, err := lc.convertToMatrix(ctx, portal, intent, data)
-	if err != nil {
-		return nil, err
-	}
-	return &bridgev2.ConvertedEdit{
-		ModifiedParts: []*bridgev2.ConvertedEditPart{converted.Parts[0].ToEditPart(existing[0])},
-	}, nil
-}
-
-func (lc *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg *response.MessageElement) (*bridgev2.ConvertedMessage, error) {
-	var replyTo *networkid.MessageOptionalPartID
-	parts := make([]*bridgev2.ConvertedMessagePart, 0)
-
-	for _, renderContent := range msg.RenderContent {
-		if renderContent.RepliedMessageContent != nil {
-			replyTo = &networkid.MessageOptionalPartID{
-				MessageID: networkid.MessageID(renderContent.RepliedMessageContent.OriginalMessageUrn),
-			}
-		} else {
-			convertedPart, err := lc.LinkedInAttachmentToMatrix(ctx, portal, intent, renderContent)
-			if err != nil {
-				if !errors.Is(err, ErrUnsupportedAttachmentType) {
-					return nil, err
-				}
-			}
-			if convertedPart != nil {
-				parts = append(parts, convertedPart)
-			}
-		}
-	}
-
-	textPart := &bridgev2.ConvertedMessagePart{
-		ID:   "",
-		Type: bridgeEvt.EventMessage,
-		Content: &bridgeEvt.MessageEventContent{
-			MsgType: bridgeEvt.MsgText,
-			Body:    msg.Body.Text,
-		},
-	}
-
-	if len(textPart.Content.Body) > 0 {
-		parts = append(parts, textPart)
-	}
-
-	cm := &bridgev2.ConvertedMessage{
-		ReplyTo: replyTo,
-		Parts:   parts,
-	}
-
-	cm.MergeCaption() // merges captions and media onto one part
-
-	return cm, nil
-}
-
-func (lc *LinkedInClient) MakePortalKey(thread response.ThreadElement) networkid.PortalKey {
-	var receiver networkid.UserLoginID
-	if !thread.GroupChat {
-		receiver = lc.userLogin.ID
-	}
-	return networkid.PortalKey{
-		ID:       networkid.PortalID(thread.EntityUrn),
-		Receiver: receiver,
-	}
+func (l *LinkedInClient) LogoutRemote(ctx context.Context) {
+	panic("unimplemented")
 }

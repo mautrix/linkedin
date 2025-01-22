@@ -21,7 +21,7 @@ import (
 // library will automatically set it for you
 func (c *Client) GetThreads(variables query.GetThreadsVariables) (*response.MessengerConversationsResponse, error) {
 	if variables.MailboxUrn == "" {
-		variables.MailboxUrn = c.pageLoader.CurrentUser.FsdProfileID
+		variables.MailboxUrn = c.PageLoader.CurrentUser.FsdProfileID
 	}
 
 	withCursor := variables.LastUpdatedBefore != 0 && variables.NextCursor != ""
@@ -48,6 +48,7 @@ func (c *Client) GetThreads(variables query.GetThreadsVariables) (*response.Mess
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("%s\n", respData)
 
 	graphQLResponse, ok := respData.(*response.GraphQlResponse)
 	if !ok || graphQLResponse == nil {
@@ -55,6 +56,7 @@ func (c *Client) GetThreads(variables query.GetThreadsVariables) (*response.Mess
 	}
 
 	graphQLResponseData := graphQLResponse.Data
+	fmt.Printf("%+v\n", graphQLResponseData)
 	if withCursor {
 		return graphQLResponseData.MessengerConversationsByCategory, nil
 	}
@@ -152,7 +154,7 @@ func (c *Client) SendMessage(p payload.SendMessagePayload) (*response.MessageSen
 	}
 
 	if p.MailboxUrn == "" {
-		p.MailboxUrn = c.pageLoader.CurrentUser.FsdProfileID
+		p.MailboxUrn = c.PageLoader.CurrentUser.FsdProfileID
 	}
 
 	if p.TrackingID == "" {

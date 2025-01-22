@@ -1,4 +1,4 @@
-package connector
+package connectorold
 
 import (
 	"context"
@@ -26,7 +26,7 @@ func (lc *LinkedInClient) syncChannels(ctx context.Context) {
 	}
 	conversations, err := lc.client.GetThreads(query.GetThreadsVariables{})
 	if err != nil {
-		log.Error().Err(err).Msg("failed to fetch initial inbox state:")
+		log.Error().Err(err).Msg("failed to fetch initial inbox state")
 		return
 	}
 

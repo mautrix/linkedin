@@ -26,7 +26,7 @@ type ClientOpts struct {
 type Client struct {
 	Logger       zerolog.Logger
 	cookies      *cookies.Cookies
-	pageLoader   *PageLoader
+	PageLoader   *PageLoader
 	rc           *RealtimeClient
 	http         *http.Client
 	httpProxy    func(*http.Request) (*url.URL, error)
@@ -59,7 +59,7 @@ func NewClient(opts *ClientOpts, logger zerolog.Logger) *Client {
 	}
 
 	cli.rc = cli.newRealtimeClient()
-	cli.pageLoader = cli.newPageLoader()
+	cli.PageLoader = cli.newPageLoader()
 
 	return &cli
 }
@@ -96,11 +96,11 @@ func (c *Client) GetCookieString() string {
 }
 
 func (c *Client) LoadMessagesPage() error {
-	return c.pageLoader.LoadMessagesPage()
+	return c.PageLoader.LoadMessagesPage()
 }
 
 func (c *Client) GetCurrentUserID() string {
-	return c.pageLoader.CurrentUser.FsdProfileID
+	return c.PageLoader.CurrentUser.FsdProfileID
 }
 
 func (c *Client) GetCurrentUserProfile() (*types.UserLoginProfile, error) {

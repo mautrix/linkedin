@@ -1,3 +1,19 @@
+// mautrix-linkedin - A Matrix-LinkedIn puppeting bridge.
+// Copyright (C) 2025 Sumner Evans
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 package main
 
 import (
@@ -5,44 +21,18 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exhttp"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
-	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector"
 )
 
-var levelsToNames = map[bridgeconfig.Permissions]string{
-	bridgeconfig.PermissionLevelBlock:    "block",
-	bridgeconfig.PermissionLevelRelay:    "relay",
-	bridgeconfig.PermissionLevelCommands: "commands",
-	bridgeconfig.PermissionLevelUser:     "user",
-	bridgeconfig.PermissionLevelAdmin:    "admin",
-}
-
-func legacyProvStatus(w http.ResponseWriter, r *http.Request) {
-	user := m.Matrix.Provisioning.GetUser(r)
-	response := map[string]any{
-		"permissions": levelsToNames[user.Permissions],
-		"mxid":        user.MXID.String(),
-	}
-
-	ul := user.GetDefaultLogin()
-	if ul.ID != "" { // if logged in
-		linClient := connector.NewLinkedInClient(r.Context(), m.Connector.(*connector.LinkedInConnector), ul)
-
-		currentUser, err := linClient.GetCurrentUser()
-		if err == nil {
-			response["linkedin"] = currentUser
-		}
-	}
-
-	exhttp.WriteJSONResponse(w, http.StatusOK, response)
-}
+var ValidCookieRegex = regexp.MustCompile(`\bJSESSIONID=[^;]+`)
 
 func legacyProvLogin(w http.ResponseWriter, r *http.Request) {
 	user := m.Matrix.Provisioning.GetUser(r)
@@ -62,12 +52,12 @@ func legacyProvLogin(w http.ResponseWriter, r *http.Request) {
 	} else if firstStep, err := lp.Start(ctx); err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to start login")
 		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Internal error starting login"))
-	} else if firstStep.StepID != connector.LoginStepIDCookies {
+	} else if firstStep.StepID != connector.CookieLoginStepIDCookies {
 		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Unexpected login step"))
-	} else if !connector.ValidCookieRegex.MatchString(cookieString) {
+	} else if !ValidCookieRegex.MatchString(cookieString) {
 		exhttp.WriteJSONResponse(w, http.StatusOK, nil)
 	} else if finalStep, err := lp.(bridgev2.LoginProcessCookies).SubmitCookies(ctx, map[string]string{
-		"cookie": cookieString,
+		connector.CookieLoginCookieHeaderField: cookieString,
 	}); err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to log in")
 		var respErr bridgev2.RespError
@@ -76,7 +66,7 @@ func legacyProvLogin(w http.ResponseWriter, r *http.Request) {
 		} else {
 			exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Internal error logging in"))
 		}
-	} else if finalStep.StepID != connector.LoginStepIDComplete {
+	} else if finalStep.StepID != connector.CookieLoginStepIDComplete {
 		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Unexpected login step"))
 	} else {
 		exhttp.WriteJSONResponse(w, http.StatusOK, map[string]any{})
@@ -96,8 +86,15 @@ func handleLoginComplete(ctx context.Context, user *bridgev2.User, newLogin *bri
 func legacyProvLogout(w http.ResponseWriter, r *http.Request) {
 	user := m.Matrix.Provisioning.GetUser(r)
 	logins := user.GetUserLogins()
+	if len(logins) == 0 {
+		exhttp.WriteJSONResponse(w, http.StatusOK, map[string]any{
+			"success": false,
+			"errcode": "not logged in",
+			"error":   "You're not logged in",
+		})
+		return
+	}
 	for _, login := range logins {
-		// Intentionally don't delete the user login, only disconnect the client
 		login.Client.(*connector.LinkedInClient).LogoutRemote(r.Context())
 	}
 	exhttp.WriteJSONResponse(w, http.StatusOK, map[string]any{

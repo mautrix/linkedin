@@ -62,6 +62,7 @@ func (c *Client) MakeRoutingRequest(endpointURL routing.RequestEndpointURL, payl
 	if err != nil {
 		return nil, nil, err
 	}
+	fmt.Printf("%s\n", respBody)
 
 	respDefinition := routingDefinition.ResponseDefinition
 	var respStruct any

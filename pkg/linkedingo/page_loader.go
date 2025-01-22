@@ -1,7 +1,6 @@
 package linkedingo
 
 import (
-	"fmt"
 	"net/url"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/methods"
@@ -46,12 +45,12 @@ func (pl *PageLoader) LoadMessagesPage() error {
 	pl.XLiPageInstance = pl.ParseXLiPageInstance(mainPageHTML)
 	pl.XLiLang = methods.ParseMetaTagValue(mainPageHTML, "i18nLocale")
 
-	fsdProfileId := methods.ParseFsdProfileID(mainPageHTML)
-	if fsdProfileId == "" {
-		return fmt.Errorf("failed to find current user fsd profile id in html response to messaging page")
-	}
-
-	pl.CurrentUser.FsdProfileID = fsdProfileId
+	// fsdProfileId := methods.ParseFsdProfileID(mainPageHTML)
+	// if fsdProfileId == "" {
+	// 	return fmt.Errorf("failed to find current user fsd profile id in html response to messaging page")
+	// }
+	//
+	// pl.CurrentUser.FsdProfileID = fsdProfileId
 
 	return nil
 }
