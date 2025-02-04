@@ -1,4 +1,4 @@
-package connector
+package linkedingo2
 
 const (
 	LinkedInLang                 = "lang"

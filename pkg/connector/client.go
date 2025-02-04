@@ -18,11 +18,9 @@ package connector
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
+	"github.com/rs/zerolog"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2"
-	"go.mau.fi/util/exerrors"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 )
@@ -64,12 +62,12 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 
 func (l *LinkedInClient) Connect(ctx context.Context) {
 	// DEBUG
-	profile, err := l.client.GetCurrentUserProfile()
-	if err != nil {
-		fmt.Printf("%+v\n", err)
-		panic("failed to get profile")
-	}
-	fmt.Printf("%s\n", exerrors.Must(json.Marshal(profile)))
+	// profile, err := l.client.GetCurrentUserProfile(ctx)
+	// if err != nil {
+	// 	fmt.Printf("%+v\n", err)
+	// 	panic("failed to get profile")
+	// }
+	// fmt.Printf("%s\n", exerrors.Must(json.Marshal(profile)))
 }
 
 func (l *LinkedInClient) Disconnect() {
@@ -88,7 +86,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 }
 
 func (l *LinkedInClient) IsLoggedIn() bool {
-	return l.userLogin.Metadata.(*UserLoginMetadata).Cookies.GetCookie(LinkedInJSESSIONID) != ""
+	return l.userLogin.Metadata.(*UserLoginMetadata).Cookies.GetCookie(linkedingo2.LinkedInJSESSIONID) != ""
 }
 
 func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID) bool {
@@ -96,5 +94,7 @@ func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID
 }
 
 func (l *LinkedInClient) LogoutRemote(ctx context.Context) {
-	panic("unimplemented")
+	if err := l.client.Logout(ctx); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("error logging out of remote")
+	}
 }

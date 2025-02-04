@@ -100,11 +100,7 @@ func (lc *LinkedInClient) IsLoggedIn() bool {
 }
 
 func (lc *LinkedInClient) LogoutRemote(ctx context.Context) {
-	log := zerolog.Ctx(ctx)
-	err := lc.client.Logout()
-	if err != nil {
-		log.Error().Err(err).Msg("error logging out")
-	}
+	panic("unimplemented")
 }
 
 func (lc *LinkedInClient) IsThisUser(_ context.Context, userID networkid.UserID) bool {

@@ -17,18 +17,24 @@
 package linkedingo2
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2/types2"
 )
 
-func (c *Client) GetCurrentUserProfile() (*types2.UserProfile, error) {
-	req, err := http.NewRequest(http.MethodGet, LinkedInVoyagerCommonMeURL, nil)
+func (c *Client) getCSRFToken() string {
+	return c.jar.GetCookie(LinkedInJSESSIONID)
+}
+
+func (c *Client) GetCurrentUserProfile(ctx context.Context) (*types2.UserProfile, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, LinkedInVoyagerCommonMeURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("csrf-token", c.csrfToken)
+	req.Header.Add("csrf-token", c.getCSRFToken())
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -37,4 +43,21 @@ func (c *Client) GetCurrentUserProfile() (*types2.UserProfile, error) {
 
 	var profile types2.UserProfile
 	return &profile, json.NewDecoder(resp.Body).Decode(&profile)
+}
+
+func (c *Client) Logout(ctx context.Context) error {
+	params := url.Values{}
+	params.Add("csrfToken", c.getCSRFToken())
+	url, err := url.Parse(LinkedInLogoutURL)
+	if err != nil {
+		return err
+	}
+	url.RawQuery = params.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
+	if err != nil {
+		return err
+	}
+	_, err = c.http.Do(req)
+	return err
 }

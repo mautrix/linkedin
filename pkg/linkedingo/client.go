@@ -3,7 +3,6 @@ package linkedingo
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,7 +12,6 @@ import (
 	"golang.org/x/net/proxy"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing"
-	queryData "go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/query"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
@@ -67,25 +65,6 @@ func (c *Client) Connect() error {
 
 func (c *Client) Disconnect() error {
 	return c.rc.Disconnect()
-}
-
-func (c *Client) Logout() error {
-	query := queryData.LogoutQuery{
-		// CsrfToken: c.cookies.Get(cookies.LinkedInJSESSIONID),
-	}
-	encodedQuery, err := query.Encode()
-	if err != nil {
-		return err
-	}
-
-	logoutUrl := fmt.Sprintf("%s?%s", routing.LinkedInLogoutURL, string(encodedQuery))
-
-	logoutDefinition := routing.RequestStoreDefinition[routing.LinkedInLogoutURL]
-	headers := c.buildHeaders(logoutDefinition.HeaderOpts)
-	_, _, err = c.MakeRequest(logoutUrl, http.MethodGet, headers, nil, logoutDefinition.ContentType)
-	_ = c.Disconnect()
-	// c.cookies.Store = make(map[cookies.LinkedInCookieName]string)
-	return err
 }
 
 func (c *Client) GetCookieString() string {

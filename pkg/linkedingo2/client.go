@@ -24,15 +24,21 @@ import (
 )
 
 type Client struct {
-	http      *http.Client
-	csrfToken string
+	http *http.Client
+	jar  *stringcookiejar.Jar
 }
 
 func NewClient(ctx context.Context, jar *stringcookiejar.Jar) *Client {
 	return &Client{
 		http: &http.Client{
 			Jar: jar,
+
+			// Disallow redirects entirely:
+			// https://stackoverflow.com/a/38150816/2319844
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		},
-		csrfToken: jar.GetCookie("JSESSIONID"),
+		jar: jar,
 	}
 }
