@@ -13,7 +13,6 @@ import (
 	bridgeEvt "maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/cookies"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
@@ -38,9 +37,9 @@ func NewLinkedInClient(ctx context.Context, tc *LinkedInConnector, login *bridge
 		Str("user_login_id", string(login.ID)).
 		Logger()
 
-	meta := login.Metadata.(*UserLoginMetadata)
+	// meta := login.Metadata.(*UserLoginMetadata)
 	clientOpts := &linkedingo.ClientOpts{
-		Cookies: cookies.NewCookiesFromString(meta.Cookies),
+		// Cookies: cookies.NewCookiesFromString(meta.Cookies),
 	}
 	linClient := &LinkedInClient{
 		client:      linkedingo.NewClient(clientOpts, log),

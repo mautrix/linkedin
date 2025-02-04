@@ -1,7 +1,6 @@
 package linkedingo
 
 import (
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/cookies"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 
 	"log"
@@ -41,13 +40,13 @@ func (c *Client) buildHeaders(opts types.HeaderOpts) http.Header {
 	}
 
 	headers := defaultConstantHeaders.Clone()
-	if opts.WithCookies {
-		opts.Extra["cookie"] = c.cookies.String()
-	}
+	// if opts.WithCookies {
+	// 	opts.Extra["cookie"] = c.cookies.String()
+	// }
 
-	if opts.WithCsrfToken {
-		opts.Extra["csrf-token"] = c.cookies.Get(cookies.LinkedInJSESSIONID)
-	}
+	// if opts.WithCsrfToken {
+	// 	opts.Extra["csrf-token"] = c.cookies.Get(cookies.LinkedInJSESSIONID)
+	// }
 
 	if opts.Origin != "" {
 		opts.Extra["origin"] = opts.Origin

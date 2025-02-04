@@ -63,6 +63,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 }
 
 func (l *LinkedInClient) Connect(ctx context.Context) {
+	// DEBUG
 	profile, err := l.client.GetCurrentUserProfile()
 	if err != nil {
 		fmt.Printf("%+v\n", err)
@@ -72,7 +73,6 @@ func (l *LinkedInClient) Connect(ctx context.Context) {
 }
 
 func (l *LinkedInClient) Disconnect() {
-	panic("unimplemented")
 }
 
 func (l *LinkedInClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfo, error) {
@@ -88,7 +88,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 }
 
 func (l *LinkedInClient) IsLoggedIn() bool {
-	panic("unimplemented")
+	return l.userLogin.Metadata.(*UserLoginMetadata).Cookies.GetCookie(LinkedInJSESSIONID) != ""
 }
 
 func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID) bool {

@@ -12,7 +12,6 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/net/proxy"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/cookies"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing"
 	queryData "go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/query"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
@@ -20,12 +19,10 @@ import (
 
 type EventHandler func(evt any)
 type ClientOpts struct {
-	Cookies      *cookies.Cookies
 	EventHandler EventHandler
 }
 type Client struct {
 	Logger       zerolog.Logger
-	cookies      *cookies.Cookies
 	PageLoader   *PageLoader
 	rc           *RealtimeClient
 	http         *http.Client
@@ -52,11 +49,11 @@ func NewClient(opts *ClientOpts, logger zerolog.Logger) *Client {
 		cli.SetEventHandler(opts.EventHandler)
 	}
 
-	if opts.Cookies != nil {
-		cli.cookies = opts.Cookies
-	} else {
-		cli.cookies = cookies.NewCookies()
-	}
+	// if opts.Cookies != nil {
+	// 	cli.cookies = opts.Cookies
+	// } else {
+	// 	cli.cookies = cookies.NewCookies()
+	// }
 
 	cli.rc = cli.newRealtimeClient()
 	cli.PageLoader = cli.newPageLoader()
@@ -74,7 +71,7 @@ func (c *Client) Disconnect() error {
 
 func (c *Client) Logout() error {
 	query := queryData.LogoutQuery{
-		CsrfToken: c.cookies.Get(cookies.LinkedInJSESSIONID),
+		// CsrfToken: c.cookies.Get(cookies.LinkedInJSESSIONID),
 	}
 	encodedQuery, err := query.Encode()
 	if err != nil {
@@ -87,12 +84,13 @@ func (c *Client) Logout() error {
 	headers := c.buildHeaders(logoutDefinition.HeaderOpts)
 	_, _, err = c.MakeRequest(logoutUrl, http.MethodGet, headers, nil, logoutDefinition.ContentType)
 	_ = c.Disconnect()
-	c.cookies.Store = make(map[cookies.LinkedInCookieName]string)
+	// c.cookies.Store = make(map[cookies.LinkedInCookieName]string)
 	return err
 }
 
 func (c *Client) GetCookieString() string {
-	return c.cookies.String()
+	// return c.cookies.String()
+	return ""
 }
 
 func (c *Client) LoadMessagesPage() error {
