@@ -27,6 +27,6 @@ const (
 	LinkedInVoyagerMessagingDashMessengerMessagesURL = LinkedInBaseURL + "/voyager/api/voyagerMessagingDashMessengerMessages"
 	LinkedInMessagingDashMessengerConversationsURL   = LinkedInBaseURL + "/voyager/api/voyagerMessagingDashMessengerConversations"
 	LinkedInVoyagerMediaUploadMetadataURL            = LinkedInBaseURL + "/voyager/api/voyagerVideoDashMediaUploadMetadata"
-	LinkedInRealtimeConnectURL                       = LinkedInBaseURL + "/realtime/connect"
-	LinkedInLogoutURL                                = LinkedInBaseURL + "/uas/logout"
+	LinkedInRealtimeConnectURL                       = "https://www.linkedin.com/realtime/connect?rc=1"
+	LinkedInLogoutURL                                = "https://www.linkedin.com/uas/logout"
 )

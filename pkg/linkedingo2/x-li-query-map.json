@@ -1,0 +1,149 @@
+{
+	"topicToGraphQLQueryParams": {
+		"conversationsBroadcastTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.441c03c3f294c7b672b2feb65067caa3",
+			"variables": {},
+			"extensions": {}
+		},
+		"conversationsTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.441c03c3f294c7b672b2feb65067caa3",
+			"variables": {},
+			"extensions": {}
+		},
+		"conversationDeletesBroadcastTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.282abe5fa1a242cb76825c32dbbfaede",
+			"variables": {},
+			"extensions": {}
+		},
+		"conversationDeletesTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.282abe5fa1a242cb76825c32dbbfaede",
+			"variables": {},
+			"extensions": {}
+		},
+		"messageReactionSummariesBroadcastTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.ba93ee1e426e02f0616cdc375ea8a035",
+			"variables": {},
+			"extensions": {}
+		},
+		"messageReactionSummariesTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.ba93ee1e426e02f0616cdc375ea8a035",
+			"variables": {},
+			"extensions": {}
+		},
+		"messageSeenReceiptsBroadcastTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.6848ca49032983a615be1d37bb545179",
+			"variables": {},
+			"extensions": {}
+		},
+		"messageSeenReceiptsTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.6848ca49032983a615be1d37bb545179",
+			"variables": {},
+			"extensions": {}
+		},
+		"messagesBroadcastTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.fc1135038175599c85c72de9647a8c36",
+			"variables": {},
+			"extensions": {}
+		},
+		"messagesTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.fc1135038175599c85c72de9647a8c36",
+			"variables": {},
+			"extensions": {}
+		},
+		"replySuggestionBroadcastTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.412964c3f7f5a67fb0e56b6bb3a00028",
+			"variables": {},
+			"extensions": {}
+		},
+		"replySuggestionTopicV2": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.412964c3f7f5a67fb0e56b6bb3a00028",
+			"variables": {},
+			"extensions": {}
+		},
+		"typingIndicatorsBroadcastTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.8a3db3519f616215d85657da21c07605",
+			"variables": {},
+			"extensions": {}
+		},
+		"typingIndicatorsTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.8a3db3519f616215d85657da21c07605",
+			"variables": {},
+			"extensions": {}
+		},
+		"messagingSecondaryPreviewBannerTopic": {
+			"queryId": "voyagerMessagingDashRealtimeDecoration.a0228e467df9f2ebd7c4c96d06b7c1f8",
+			"variables": {},
+			"extensions": {}
+		},
+		"reactionsTopic": {
+			"queryId": "liveVideoVoyagerSocialDashRealtimeDecoration.b8b33dedca7efbe34f1d7e84c3b3aa81",
+			"variables": {},
+			"extensions": {}
+		},
+		"commentsTopic": {
+			"queryId": "liveVideoVoyagerSocialDashRealtimeDecoration.9eed56392e681683996f77e403981621",
+			"variables": {},
+			"extensions": {}
+		},
+		"reactionsOnCommentsTopic": {
+			"queryId": "liveVideoVoyagerSocialDashRealtimeDecoration.0a181b05b3751f72ae3eb489b77e3245",
+			"variables": {},
+			"extensions": {}
+		},
+		"socialPermissionsPersonalTopic": {
+			"queryId": "liveVideoVoyagerSocialDashRealtimeDecoration.170bf3bfbcca1da322e34f34f37fb954",
+			"variables": {},
+			"extensions": {}
+		},
+		"liveVideoPostTopic": {
+			"queryId": "liveVideoVoyagerFeedDashLiveUpdatesRealtimeDecoration.f6cb0d6fa726c9c0c1ffc6f152ee8da8",
+			"variables": {},
+			"extensions": {}
+		},
+		"generatedJobDescriptionsTopic": {
+			"queryId": "voyagerHiringDashRealtimeDecoration.58501bc70ea8ce6b858527fb1be95007",
+			"variables": {},
+			"extensions": {}
+		},
+		"messageDraftsTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.ea999d7db28b647af21f47b0c9093d83",
+			"variables": {},
+			"extensions": {}
+		},
+		"conversationDraftsTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.e5f056134f6bdb3c9d1eb66015f236c4",
+			"variables": {},
+			"extensions": {}
+		},
+		"messageDraftDeletesTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.e3e4c7121838321a42752b55f487a73e",
+			"variables": {},
+			"extensions": {}
+		},
+		"conversationDraftDeletesTopic": {
+			"queryId": "voyagerMessagingDashMessengerRealtimeDecoration.5288036a2c0e63f49d34ee32b139976c",
+			"variables": {},
+			"extensions": {}
+		},
+		"eventToastsTopic": {
+			"queryId": "voyagerEventsDashProfessionalEventsRealtimeResource.6b42abd3511e267e84a6765257deea50",
+			"variables": {},
+			"extensions": {}
+		},
+		"coachStreamingResponsesTopic": {
+			"queryId": "voyagerCoachDashGaiRealtimeDecoration.28d3ae97945d2900b6805f3e20bc2ae8",
+			"variables": {},
+			"extensions": {}
+		},
+		"realtimeSearchResultClustersTopic": {
+			"queryId": "voyagerSearchDashRealtimeDecoration.5fadaa2da272132c7bb6368786eec086",
+			"variables": {},
+			"extensions": {}
+		},
+		"memberVerificationResultsPersonalTopic": {
+			"queryId": "voyagerTrustDashVerificationRealTimeDecoration.78d27e95dba97623a3f209212e7ecbf3",
+			"variables": {},
+			"extensions": {}
+		}
+	}
+}

@@ -75,7 +75,7 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 		return nil, err
 	}
 
-	loginClient := linkedingo2.NewClient(ctx, jar)
+	loginClient := linkedingo2.NewClient(ctx, jar, linkedingo2.Handlers{})
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
 		return nil, err

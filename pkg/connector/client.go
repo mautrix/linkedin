@@ -18,9 +18,12 @@ package connector
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2/types2"
+	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 )
@@ -51,26 +54,88 @@ var (
 
 func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridgev2.UserLogin) *LinkedInClient {
 	userID := networkid.UserID(login.ID)
-	client := linkedingo2.NewClient(ctx, login.Metadata.(*UserLoginMetadata).Cookies)
-	return &LinkedInClient{
+	client := &LinkedInClient{
 		main:      lc,
 		userID:    userID,
 		userLogin: login,
-		client:    client,
 	}
+	client.client = linkedingo2.NewClient(ctx, login.Metadata.(*UserLoginMetadata).Cookies, linkedingo2.Handlers{
+		Heartbeat: func(ctx context.Context) {
+			login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+		},
+		ClientConnection: func(context.Context, *types2.ClientConnection) {
+			login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+		},
+		RealtimeConnectError: client.onRealtimeConnectError,
+		DecoratedMessage:     client.onDecoratedMessage,
+	})
+	return client
 }
 
 func (l *LinkedInClient) Connect(ctx context.Context) {
-	// DEBUG
-	// profile, err := l.client.GetCurrentUserProfile(ctx)
-	// if err != nil {
-	// 	fmt.Printf("%+v\n", err)
-	// 	panic("failed to get profile")
+	if !l.IsLoggedIn() {
+		zerolog.Ctx(ctx).Warn().Msg("user is not logged in, sending bad credentials state")
+		l.userLogin.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      "linkedin-no-auth",
+			Message:    "User does not have the necessary cookies",
+		})
+		return
+	}
+
+	if err := l.client.RealtimeConnect(ctx); err != nil {
+		l.userLogin.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateUnknownError,
+			Error:      "linkedin-realtime-connect-failed",
+			Message:    fmt.Sprintf("Failed to connect to the realtime stream: %v", err),
+		})
+	}
+}
+
+func (l *LinkedInClient) onRealtimeConnectError(ctx context.Context, err error) {
+	zerolog.Ctx(ctx).Err(err).Msg("failed to read from event stream")
+}
+
+func (l *LinkedInClient) onDecoratedMessage(ctx context.Context, msg *types2.DecoratedMessageRealtime) {
+	// msg.Result.Sender.EntityUrn
+	// sender := message.Sender
+	// isFromMe := sender.HostIdentityUrn == string(lc.userLogin.ID)
+	//
+	// msgType := bridgev2.RemoteEventMessage
+	// switch rawEvt.(type) {
+	// case event.MessageEditedEvent:
+	// 	msgType = bridgev2.RemoteEventEdit
 	// }
-	// fmt.Printf("%s\n", exerrors.Must(json.Marshal(profile)))
+	//
+	// lc.connector.br.QueueRemoteEvent(lc.userLogin, &simplevent.Message[*response.MessageElement]{
+	// 	EventMeta: simplevent.EventMeta{
+	// 		Type: msgType,
+	// 		LogContext: func(c zerolog.Context) zerolog.Context {
+	// 			return c.
+	// 				Str("message_id", message.EntityUrn).
+	// 				Str("sender", sender.HostIdentityUrn).
+	// 				Str("sender_login", path.Base(sender.ParticipantType.Member.ProfileURL)).
+	// 				Bool("is_from_me", isFromMe)
+	// 		},
+	// 		PortalKey:    lc.MakePortalKey(lc.threadCache[message.Conversation.EntityUrn]),
+	// 		CreatePortal: false, // todo debate
+	// 		Sender: bridgev2.EventSender{
+	// 			IsFromMe:    isFromMe,
+	// 			SenderLogin: networkid.UserLoginID(sender.HostIdentityUrn),
+	// 			Sender:      networkid.UserID(sender.HostIdentityUrn),
+	// 		},
+	// 		Timestamp: time.UnixMilli(message.DeliveredAt),
+	// 	},
+	// 	ID:                 networkid.MessageID(message.EntityUrn),
+	// 	TargetMessage:      networkid.MessageID(message.EntityUrn),
+	// 	Data:               &message,
+	// 	ConvertMessageFunc: lc.convertToMatrix,
+	// 	ConvertEditFunc:    lc.convertEditToMatrix,
+	// })
 }
 
 func (l *LinkedInClient) Disconnect() {
+	l.client.RealtimeDisconnect()
 }
 
 func (l *LinkedInClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfo, error) {
