@@ -90,7 +90,7 @@ func (l *LinkedInClient) IsLoggedIn() bool {
 }
 
 func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID) bool {
-	panic("unimplemented")
+	return l.userID == userID
 }
 
 func (l *LinkedInClient) LogoutRemote(ctx context.Context) {
