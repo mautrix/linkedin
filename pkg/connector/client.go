@@ -107,13 +107,14 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *t
 	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
 	switch decoratedEvent.Topic.NthPart(2) {
 	case linkedingo.RealtimeEventTopicMessages:
-		l.onRealtimeEventTopicMessages(decoratedEvent.Payload.Data.DecoratedMessage.Result)
+		l.onRealtimeEventTopicMessages(ctx, decoratedEvent.Payload.Data.DecoratedMessage.Result)
 	default:
 		fmt.Printf("UNSUPPORTED %q %+v\n", decoratedEvent.Topic, decoratedEvent)
 	}
 }
 
-func (l *LinkedInClient) onRealtimeEventTopicMessages(msg types.Message) {
+func (l *LinkedInClient) onRealtimeEventTopicMessages(ctx context.Context, msg types.Message) {
+	log := zerolog.Ctx(ctx)
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
@@ -132,10 +133,9 @@ func (l *LinkedInClient) onRealtimeEventTopicMessages(msg types.Message) {
 		LatestMessageTS: msg.DeliveredAt.Time,
 	})
 
-	// TODO do something with msg.MessageBodyRenderFormat
 	evt := simplevent.Message[types.Message]{
 		ID:                 networkid.MessageID(msg.BackendURN.ID()),
-		TargetMessage:      networkid.MessageID(msg.BackendURN.ID()), // TODO: this breaks subsequent edits, since the edits reference the root one always
+		TargetMessage:      networkid.MessageID(msg.BackendURN.ID()),
 		Data:               msg,
 		ConvertMessageFunc: l.convertToMatrix,
 		ConvertEditFunc:    l.convertEditToMatrix,
@@ -145,6 +145,15 @@ func (l *LinkedInClient) onRealtimeEventTopicMessages(msg types.Message) {
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
 	case types.MessageBodyRenderFormatEdited:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
+	case types.MessageBodyRenderFormatRecalled:
+		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
+			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove),
+			TargetMessage: networkid.MessageID(msg.BackendURN.ID()),
+		})
+		return
+	case types.MessageBodyRenderFormatSystem:
+	default:
+		log.Warn().Str("message_body_render_format", string(msg.MessageBodyRenderFormat)).Msg("Unknown render format")
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
 }

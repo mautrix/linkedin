@@ -1,21 +1,22 @@
 # Features & roadmap
 
 * Matrix → LinkedIn
-  * [x] Message content
-    * [x] Text
-    * [x] Media
-      * [x] Files
-      * [x] Images
-      * [x] Videos
-      * [x] GIFs
-      * [x] Voice Messages
+  * [ ] Message content
+    * [ ] Text
+    * [ ] Media
+      * [ ] Files
+      * [ ] Images
+      * [ ] Videos
+      * [ ] GIFs
+      * [ ] Voice Messages
       * [ ] ~~Stickers~~ (unsupported)
     * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
-    * [x] Replies
+    * [ ] Replies
     * [ ] Mentions
     * [ ] Emotes
-  * [x] Message redactions
-  * [x] Message reactions
+  * [ ] Message edits
+  * [ ] Message redactions
+  * [ ] Message reactions
   * [ ] Presence
   * [ ] Typing notifications
   * [ ] Read receipts
@@ -24,23 +25,24 @@
     * [ ] Invite
     * [ ] Kick
     * [ ] Leave
-  * [x] Room metadata changes
-    * [x] Name
-    * [x] Avatar
+  * [ ] Room metadata changes
+    * [ ] Name
+    * [ ] Avatar
     * [ ] Per-room user nick
 * LinkedIn → Matrix
-  * [x] Message content
+  * [ ] Message content
     * [x] Text
-    * [x] Media
-      * [x] Files
-      * [x] Images
-      * [x] GIFs
-      * [x] Voice Messages
+    * [ ] Media
+      * [ ] Files
+      * [ ] Images
+      * [ ] GIFs
+      * [ ] Voice Messages
     * [ ] Mentions
-  * [ ] Message delete
-  * [x] Message reactions
-  * [x] Message history
-  * [x] Real-time messages
+  * [x] Message edits
+  * [x] Message delete
+  * [ ] Message reactions
+  * [ ] Message history
+  * [ ] Real-time messages
   * [ ] ~~Presence~~ (impossible for now, see https://github.com/mautrix/go/issues/295)
   * [ ] Typing notifications
   * [ ] Read receipts
@@ -59,9 +61,9 @@
 * Misc
   * [ ] Multi-user support
   * [ ] Shared group chat portals
-  * [x] Automatic portal creation
-    * [x] At startup
-    * [x] When added to chat
+  * [ ] Automatic portal creation
+    * [ ] At startup
+    * [ ] When added to chat
     * [ ] When receiving message (not supported)
   * [ ] Private chat creation by inviting Matrix puppet of LinkedIn user to new room
   * [ ] Option to use own Matrix account for messages sent from other LinkedIn clients (relay mode)

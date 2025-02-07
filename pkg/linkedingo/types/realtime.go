@@ -84,7 +84,7 @@ type MessageBodyRenderFormat string
 const (
 	MessageBodyRenderFormatDefault  MessageBodyRenderFormat = "DEFAULT"
 	MessageBodyRenderFormatEdited   MessageBodyRenderFormat = "EDITED"
-	MessageBodyRenderFormatReCalled MessageBodyRenderFormat = "RECALLED"
+	MessageBodyRenderFormatRecalled MessageBodyRenderFormat = "RECALLED"
 	MessageBodyRenderFormatSystem   MessageBodyRenderFormat = "SYSTEM"
 )
 
