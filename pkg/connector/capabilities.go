@@ -49,16 +49,14 @@ var formattingCaps = event.FormattingFeatureMap{
 	event.FmtBlockquote:         event.CapLevelDropped,
 	event.FmtInlineLink:         event.CapLevelDropped,
 	event.FmtUserLink:           event.CapLevelDropped,
-	// TODO support room links and event links (convert to appropriate t.me links)
-	event.FmtUnorderedList: event.CapLevelDropped,
-	event.FmtOrderedList:   event.CapLevelDropped,
-	event.FmtListStart:     event.CapLevelDropped,
-	event.FmtListJumpValue: event.CapLevelDropped,
-	// TODO support custom emojis in messages
-	event.FmtCustomEmoji:   event.CapLevelDropped,
-	event.FmtSpoiler:       event.CapLevelDropped,
-	event.FmtSpoilerReason: event.CapLevelDropped,
-	event.FmtHeaders:       event.CapLevelDropped,
+	event.FmtUnorderedList:      event.CapLevelDropped,
+	event.FmtOrderedList:        event.CapLevelDropped,
+	event.FmtListStart:          event.CapLevelDropped,
+	event.FmtListJumpValue:      event.CapLevelDropped,
+	event.FmtCustomEmoji:        event.CapLevelDropped,
+	event.FmtSpoiler:            event.CapLevelDropped,
+	event.FmtSpoilerReason:      event.CapLevelDropped,
+	event.FmtHeaders:            event.CapLevelDropped,
 }
 
 var fileCaps = event.FileFeatureMap{

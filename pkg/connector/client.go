@@ -192,12 +192,9 @@ func (l *LinkedInClient) conversationToChatInfo(conv types.Conversation) (ci bri
 
 	// TODO: topic is probably headlineText of the conversation, or set it to the headline of the other user in the chat
 
-	// TODO: avatar
-
 	ci.Type = ptr.Ptr(database.RoomTypeDM)
 	if conv.GroupChat {
 		ci.Type = ptr.Ptr(database.RoomTypeGroupDM)
-	} else {
 	}
 
 	ci.CanBackfill = true
@@ -224,11 +221,17 @@ func (l *LinkedInClient) Disconnect() {
 }
 
 func (l *LinkedInClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfo, error) {
-	panic("unimplemented")
+	// This is not supported. All of the info should already be populated with
+	// the information we get on a per-message basis.
+	zerolog.Ctx(ctx).Warn().Msg("GetChatInfo called")
+	return nil, nil
 }
 
 func (l *LinkedInClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost) (*bridgev2.UserInfo, error) {
-	panic("unimplemented")
+	// This is not supported. All of the info should already be populated with
+	// the information we get on a per-message basis.
+	zerolog.Ctx(ctx).Warn().Msg("GetUserInfo called")
+	return nil, nil
 }
 
 func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (message *bridgev2.MatrixMessageResponse, err error) {
