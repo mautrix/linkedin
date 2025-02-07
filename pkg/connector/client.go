@@ -26,6 +26,7 @@ import (
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+	"maunium.net/go/mautrix/bridgev2/simplevent"
 )
 
 type LinkedInClient struct {
@@ -97,6 +98,24 @@ func (l *LinkedInClient) onRealtimeConnectError(ctx context.Context, err error) 
 }
 
 func (l *LinkedInClient) onDecoratedMessage(ctx context.Context, msg *types2.DecoratedMessageRealtime) {
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Message[*types2.DecoratedMessageRealtime]{
+		EventMeta: simplevent.EventMeta{
+			Type: bridgev2.RemoteEventMessage,
+			LogContext: func(c zerolog.Context) zerolog.Context {
+				return c.
+					Stringer("backend_urn", msg.Result.BackendURN).
+					Stringer("sender", msg.Result.Sender.BackendURN)
+			},
+			PortalKey:    l.makePortalKey(msg.Result.BackendURN),
+			CreatePortal: true,
+			Sender:       l.makeSender(msg.Result.Sender),
+			Timestamp:    msg.Result.DeliveredAt.Time,
+		},
+		ID:                 networkid.MessageID(msg.Result.BackendURN.ID()),
+		Data:               msg,
+		ConvertMessageFunc: l.convertToMatrix,
+	})
+
 	// msg.Result.Sender.EntityUrn
 	// sender := message.Sender
 	// isFromMe := sender.HostIdentityUrn == string(lc.userLogin.ID)

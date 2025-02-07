@@ -45,8 +45,8 @@ type DecoratedEventData struct {
 
 // Conversation represents a com.linkedin.messenger.Conversation object
 type Conversation struct {
-	BackendURN               URN                    `json:"backendUrn,omitempty"`
-	EntityURN                URN                    `json:"entityUrn,omitempty"`
+	BackendURN URN `json:"backendUrn,omitempty"`
+	// EntityURN                URN                    `json:"entityUrn,omitempty"`
 	ConversationParticipants []MessagingParticipant `json:"conversationParticipants,omitempty"`
 }
 
@@ -74,9 +74,8 @@ type ParticipantType struct {
 // MessagingParticipant represents a
 // com.linkedin.messenger.MessagingParticipant object.
 type MessagingParticipant struct {
-	// TODO: should we use backendUrn instead of EntityURN?
-	EntityURN       URN             `json:"entityUrn,omitempty"`
 	ParticipantType ParticipantType `json:"participantType,omitempty"`
+	BackendURN      URN             `json:"backendUrn,omitempty"`
 }
 
 // Message represents a com.linkedin.messenger.Message object.

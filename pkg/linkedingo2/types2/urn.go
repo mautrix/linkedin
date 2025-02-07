@@ -13,6 +13,7 @@ type URN struct {
 
 var _ json.Marshaler = (*URN)(nil)
 var _ json.Unmarshaler = (*URN)(nil)
+var _ fmt.Stringer = (*URN)(nil)
 
 func (u URN) ID() string {
 	if len(u.idParts) != 1 {
