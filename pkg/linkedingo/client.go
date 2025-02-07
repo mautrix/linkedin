@@ -65,7 +65,7 @@ type Handlers struct {
 	Heartbeat            func(context.Context)
 	ClientConnection     func(context.Context, *types.ClientConnection)
 	RealtimeConnectError func(context.Context, error)
-	DecoratedMessage     func(context.Context, *types.Message)
+	DecoratedEvent       func(context.Context, *types.DecoratedEvent)
 }
 
 func (h Handlers) onHeartbeat(ctx context.Context) {
@@ -86,8 +86,8 @@ func (h Handlers) onRealtimeConnectError(ctx context.Context, err error) {
 	}
 }
 
-func (h Handlers) onDecoratedMessage(ctx context.Context, msg *types.Message) {
-	if h.DecoratedMessage != nil {
-		h.DecoratedMessage(ctx, msg)
+func (h Handlers) onDecoratedEvent(ctx context.Context, decoratedEvent *types.DecoratedEvent) {
+	if h.DecoratedEvent != nil {
+		h.DecoratedEvent(ctx, decoratedEvent)
 	}
 }

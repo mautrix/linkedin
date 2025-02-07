@@ -7,11 +7,11 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
-func (c *Client) UploadMedia(mediaUploadType payload.MediaUploadType, fileName string, mediaBytes []byte, contentType typesold.ContentType) (*response.MediaMetadata, error) {
+func (c *Client) UploadMedia(mediaUploadType payload.MediaUploadType, fileName string, mediaBytes []byte, contentType typesold.ContentType) (*responseold.MediaMetadata, error) {
 	uploadMetadataQuery := query.DoActionQuery{
 		Action: query.ActionUpload,
 	}
@@ -26,9 +26,9 @@ func (c *Client) UploadMedia(mediaUploadType payload.MediaUploadType, fileName s
 		return nil, err
 	}
 
-	metaDataResp, ok := respData.(*response.UploadMediaMetadataResponse)
+	metaDataResp, ok := respData.(*responseold.UploadMediaMetadataResponse)
 	if !ok {
-		return nil, newErrorResponseTypeAssertFailed("*response.UploadMediaMetadataResponse")
+		return nil, newErrorResponseTypeAssertFailed("*responseold.UploadMediaMetadataResponse")
 	}
 
 	metaData := metaDataResp.Data.Value

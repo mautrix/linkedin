@@ -3,7 +3,7 @@ package routing
 import (
 	"net/http"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -49,7 +49,7 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 				"accept": string(typesold.ContentTypeGraphQL),
 			},
 		},
-		ResponseDefinition: response.GraphQlResponse{},
+		ResponseDefinition: responseold.GraphQlResponse{},
 	},
 	LinkedInVoyagerMessagingDashMessengerMessagesURL: {
 		Method:      http.MethodPost,
@@ -66,7 +66,7 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 				"accept": string(typesold.ContentTypeJSON),
 			},
 		},
-		ResponseDefinition: response.MessageSentResponse{},
+		ResponseDefinition: responseold.MessageSentResponse{},
 	},
 	LinkedInMessagingDashMessengerConversationsURL: {
 		Method:      http.MethodPost,
@@ -98,7 +98,7 @@ var RequestStoreDefinition = map[RequestEndpointURL]RequestEndpointInfo{
 				"accept": string(typesold.ContentTypeJSONLinkedInNormalized),
 			},
 		},
-		ResponseDefinition: response.UploadMediaMetadataResponse{},
+		ResponseDefinition: responseold.UploadMediaMetadataResponse{},
 	},
 	LinkedInLogoutURL: {
 		Method: http.MethodGet,

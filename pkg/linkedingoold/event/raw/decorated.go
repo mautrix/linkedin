@@ -1,7 +1,7 @@
 package raw
 
 import (
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -22,39 +22,39 @@ type DecoratedEventPayload struct {
 }
 
 type DecoratedMessageRealtime struct {
-	Result     response.MessageElement `json:"result,omitempty"`
-	RecipeType string                  `json:"_recipeType,omitempty"`
-	Type       string                  `json:"_type,omitempty"`
+	Result     responseold.MessageElement `json:"result,omitempty"`
+	RecipeType string                     `json:"_recipeType,omitempty"`
+	Type       string                     `json:"_type,omitempty"`
 }
 
 type DecoratedSeenReceipt struct {
-	Result     response.MessageSeenReceipt `json:"result,omitempty"`
+	Result     responseold.MessageSeenReceipt `json:"result,omitempty"`
+	RecipeType string                         `json:"_recipeType,omitempty"`
+	Type       string                         `json:"_type,omitempty"`
+}
+
+type DecoratedTypingIndiciator struct {
+	Result     responseold.TypingIndicator `json:"result,omitempty"`
 	RecipeType string                      `json:"_recipeType,omitempty"`
 	Type       string                      `json:"_type,omitempty"`
 }
 
-type DecoratedTypingIndiciator struct {
-	Result     response.TypingIndicator `json:"result,omitempty"`
-	RecipeType string                   `json:"_recipeType,omitempty"`
-	Type       string                   `json:"_type,omitempty"`
-}
-
 type DecoratedMessageReaction struct {
-	Result     response.MessageReaction `json:"result,omitempty"`
-	RecipeType string                   `json:"_recipeType,omitempty"`
-	Type       string                   `json:"_type,omitempty"`
+	Result     responseold.MessageReaction `json:"result,omitempty"`
+	RecipeType string                      `json:"_recipeType,omitempty"`
+	Type       string                      `json:"_type,omitempty"`
 }
 
 type DecoratedDeletedConversation struct {
-	Result     response.Conversation `json:"result,omitempty"`
-	RecipeType string                `json:"_recipeType,omitempty"`
-	Type       string                `json:"_type,omitempty"`
+	Result     responseold.Conversation `json:"result,omitempty"`
+	RecipeType string                   `json:"_recipeType,omitempty"`
+	Type       string                   `json:"_type,omitempty"`
 }
 
 type DecoratedUpdatedConversation struct {
-	Result     response.ThreadElement `json:"result,omitempty"`
-	RecipeType string                 `json:"_recipeType,omitempty"`
-	Type       string                 `json:"_type,omitempty"`
+	Result     responseold.ThreadElement `json:"result,omitempty"`
+	RecipeType string                    `json:"_recipeType,omitempty"`
+	Type       string                    `json:"_type,omitempty"`
 }
 
 type DecoratedEventData struct {

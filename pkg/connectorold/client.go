@@ -13,7 +13,7 @@ import (
 	bridgeEvt "maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -24,7 +24,7 @@ type LinkedInClient struct {
 	userLogin *bridgev2.UserLogin
 
 	userCache   map[string]typesold.Member
-	threadCache map[string]response.ThreadElement
+	threadCache map[string]responseold.ThreadElement
 }
 
 var (
@@ -45,7 +45,7 @@ func NewLinkedInClient(ctx context.Context, tc *LinkedInConnector, login *bridge
 		client:      linkedingoold.NewClient(clientOpts, log),
 		userLogin:   login,
 		userCache:   make(map[string]typesold.Member),
-		threadCache: make(map[string]response.ThreadElement),
+		threadCache: make(map[string]responseold.ThreadElement),
 	}
 
 	linClient.client.SetEventHandler(linClient.HandleLinkedInEvent)
@@ -125,7 +125,7 @@ func (lc *LinkedInClient) GetUserInfo(_ context.Context, ghost *bridgev2.Ghost) 
 	return userInfo, nil
 }
 
-func (lc *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message, data *response.MessageElement) (*bridgev2.ConvertedEdit, error) {
+func (lc *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message, data *responseold.MessageElement) (*bridgev2.ConvertedEdit, error) {
 	converted, err := lc.convertToMatrix(ctx, portal, intent, data)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (lc *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridg
 	}, nil
 }
 
-func (lc *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg *response.MessageElement) (*bridgev2.ConvertedMessage, error) {
+func (lc *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg *responseold.MessageElement) (*bridgev2.ConvertedMessage, error) {
 	var replyTo *networkid.MessageOptionalPartID
 	parts := make([]*bridgev2.ConvertedMessagePart, 0)
 
@@ -180,7 +180,7 @@ func (lc *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.
 	return cm, nil
 }
 
-func (lc *LinkedInClient) MakePortalKey(thread response.ThreadElement) networkid.PortalKey {
+func (lc *LinkedInClient) MakePortalKey(thread responseold.ThreadElement) networkid.PortalKey {
 	var receiver networkid.UserLoginID
 	if !thread.GroupChat {
 		receiver = lc.userLogin.ID

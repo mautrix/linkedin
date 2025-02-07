@@ -13,7 +13,7 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/event"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/event/raw"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 
 	"github.com/google/uuid"
@@ -168,13 +168,13 @@ func (rc *RealtimeClient) processDecoratedEvent(data raw.DecoratedEventResponse)
 	case typesold.RealtimeEventTopicMessages:
 		renderFormat := data.Payload.Data.DecoratedMessage.Result.MessageBodyRenderFormat
 		switch renderFormat {
-		case response.RenderFormatDefault:
+		case responseold.RenderFormatDefault:
 			evtData = data.Payload.Data.ToMessageEvent()
-		case response.RenderFormatEdited:
+		case responseold.RenderFormatEdited:
 			evtData = data.Payload.Data.ToMessageEditedEvent()
-		case response.RenderFormatReCalled:
+		case responseold.RenderFormatReCalled:
 			evtData = data.Payload.Data.ToMessageDeleteEvent()
-		case response.RenderFormatSystem:
+		case responseold.RenderFormatSystem:
 			evtData = data.Payload.Data.ToSystemMessageEvent()
 		default:
 			rc.client.Logger.Warn().Any("json_data", data.Payload).Str("format", string(renderFormat)).Msg("Received unknown message body render format")

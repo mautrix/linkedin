@@ -3,32 +3,32 @@ package event
 import (
 	"time"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
 type MessageEvent struct {
-	Message response.MessageElement
+	Message responseold.MessageElement
 }
 
 type SystemMessageEvent struct {
-	Message response.MessageElement
+	Message responseold.MessageElement
 }
 
 type MessageEditedEvent struct {
-	Message response.MessageElement
+	Message responseold.MessageElement
 }
 
 type MessageDeleteEvent struct {
-	Message response.MessageElement
+	Message responseold.MessageElement
 }
 
 type MessageSeenEvent struct {
-	Receipt response.MessageSeenReceipt
+	Receipt responseold.MessageSeenReceipt
 }
 
 type MessageReactionEvent struct {
-	Reaction response.MessageReaction
+	Reaction responseold.MessageReaction
 }
 
 type UserPresenceEvent struct {
@@ -38,17 +38,17 @@ type UserPresenceEvent struct {
 }
 
 type TypingIndicatorEvent struct {
-	Indicator response.TypingIndicator
+	Indicator responseold.TypingIndicator
 }
 
 // this event is responsible for most thread updates like:
 // Title changes, archived, unarchived etc
 type ThreadUpdateEvent struct {
-	Thread response.ThreadElement
+	Thread responseold.ThreadElement
 }
 
 type ThreadDeleteEvent struct {
-	Thread response.Conversation
+	Thread responseold.Conversation
 }
 
 type ConnectionReady struct{}

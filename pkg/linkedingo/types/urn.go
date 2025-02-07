@@ -7,8 +7,14 @@ import (
 )
 
 type URN struct {
-	prefix  string
+	parts   []string
 	idParts []string
+}
+
+func NewURN(urnStr string) (u URN) {
+	u.parts = strings.Split(urnStr, ":")
+	u.idParts = strings.Split(strings.Trim(u.parts[len(u.parts)-1], "()"), ",")
+	return
 }
 
 var _ json.Marshaler = (*URN)(nil)
@@ -23,19 +29,7 @@ func (u URN) ID() string {
 }
 
 func (u URN) String() string {
-	var builder strings.Builder
-	builder.WriteString(u.prefix)
-	builder.WriteRune(':')
-	if len(u.idParts) > 1 {
-		builder.WriteRune('(')
-	}
-	for _, part := range u.idParts {
-		builder.WriteString(part)
-	}
-	if len(u.idParts) > 1 {
-		builder.WriteRune(')')
-	}
-	return builder.String()
+	return strings.Join(u.parts, ":")
 }
 
 func (u *URN) UnmarshalJSON(data []byte) (err error) {
@@ -43,12 +37,16 @@ func (u *URN) UnmarshalJSON(data []byte) (err error) {
 	if err = json.Unmarshal(data, &urn); err != nil {
 		return err
 	}
-	parts := strings.Split(urn, ":")
-	u.prefix = strings.Join(parts[:len(parts)-1], ":")
-	u.idParts = strings.Split(strings.Trim(parts[len(parts)-1], "()"), ",")
+	newURN := NewURN(urn)
+	u.parts = newURN.parts
+	u.idParts = newURN.idParts
 	return nil
 }
 
-func (u *URN) MarshalJSON() ([]byte, error) {
+func (u URN) MarshalJSON() ([]byte, error) {
 	return json.Marshal(u.String())
+}
+
+func (u *URN) NthPart(n int) string {
+	return u.parts[n]
 }

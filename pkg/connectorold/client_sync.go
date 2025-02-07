@@ -13,7 +13,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 )
 
 func (lc *LinkedInClient) syncChannels(ctx context.Context) {
@@ -93,7 +93,7 @@ func (lc *LinkedInClient) syncChannels(ctx context.Context) {
 			sender := message.Sender
 			isFromMe := sender.HostIdentityUrn == string(lc.userLogin.ID)
 
-			msgEvt := &simplevent.Message[*response.MessageElement]{
+			msgEvt := &simplevent.Message[*responseold.MessageElement]{
 				EventMeta: simplevent.EventMeta{
 					Type: bridgev2.RemoteEventMessage,
 					LogContext: func(c zerolog.Context) zerolog.Context {

@@ -11,7 +11,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/event"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 )
 
 func (lc *LinkedInClient) HandleLinkedInEvent(rawEvt any) {
@@ -27,7 +27,7 @@ func (lc *LinkedInClient) HandleLinkedInEvent(rawEvt any) {
 			msgType = bridgev2.RemoteEventEdit
 		}
 
-		lc.connector.br.QueueRemoteEvent(lc.userLogin, &simplevent.Message[*response.MessageElement]{
+		lc.connector.br.QueueRemoteEvent(lc.userLogin, &simplevent.Message[*responseold.MessageElement]{
 			EventMeta: simplevent.EventMeta{
 				Type: msgType,
 				LogContext: func(c zerolog.Context) zerolog.Context {
@@ -124,7 +124,7 @@ func (lc *LinkedInClient) HandleLinkedInEvent(rawEvt any) {
 	}
 }
 
-func (lc *LinkedInClient) wrapReaction(reaction response.MessageReaction) *simplevent.Reaction {
+func (lc *LinkedInClient) wrapReaction(reaction responseold.MessageReaction) *simplevent.Reaction {
 	var eventType bridgev2.RemoteEventType
 	if reaction.ReactionAdded {
 		eventType = bridgev2.RemoteEventReaction

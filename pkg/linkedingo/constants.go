@@ -31,3 +31,21 @@ const (
 	contentTypeTextEventStream        = "text/event-stream"
 	contentTypePlaintextUTF8          = "text/plain;charset=UTF-8"
 )
+
+const (
+	RealtimeEventTopicConversations              = "conversationsTopic"
+	RealtimeEventTopicConversationsDelete        = "conversationDeletesTopic"
+	RealtimeEventTopicMessageSeenReceipts        = "messageSeenReceiptsTopic"
+	RealtimeEventTopicMessages                   = "messagesTopic"
+	RealtimeEventTopicReplySuggestionV2          = "replySuggestionTopicV2"
+	RealtimeEventTopicTabBadgeUpdate             = "tabBadgeUpdateTopic"
+	RealtimeEventTopicTypingIndicators           = "typingIndicatorsTopic"
+	RealtimeEventTopicInvitations                = "invitationsTopic"
+	RealtimeEventTopicInAppAlerts                = "inAppAlertsTopic"
+	RealtimeEventTopicMessageReactionSummaries   = "messageReactionSummariesTopic"
+	RealtimeEventTopicSocialPermissionsPersonal  = "socialPermissionsPersonalTopic"
+	RealtimeEventTopicJobPostingPersonal         = "jobPostingPersonalTopic"
+	RealtimeEventTopicMessagingProgressIndicator = "messagingProgressIndicatorTopic"
+	RealtimeEventTopicMessagingDataSync          = "messagingDataSyncTopic"
+	RealtimeEventTopicPresenceStatus             = "presenceStatusTopic"
+)

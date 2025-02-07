@@ -3,7 +3,7 @@ package types
 import (
 	"go.mau.fi/util/jsontime"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 )
 
 type RealtimeEvent struct {
@@ -19,7 +19,7 @@ type ClientConnection struct {
 }
 
 type DecoratedEvent struct {
-	Topic               string                `json:"topic,omitempty"`
+	Topic               URN                   `json:"topic,omitempty"`
 	LeftServerAt        jsontime.UnixMilli    `json:"leftServerAt,omitempty"`
 	ID                  string                `json:"id,omitempty"`
 	Payload             DecoratedEventPayload `json:"payload,omitempty"`
@@ -79,15 +79,25 @@ type MessagingParticipant struct {
 	BackendURN      URN             `json:"backendUrn,omitempty"`
 }
 
+type MessageBodyRenderFormat string
+
+const (
+	MessageBodyRenderFormatDefault  MessageBodyRenderFormat = "DEFAULT"
+	MessageBodyRenderFormatEdited   MessageBodyRenderFormat = "EDITED"
+	MessageBodyRenderFormatReCalled MessageBodyRenderFormat = "RECALLED"
+	MessageBodyRenderFormatSystem   MessageBodyRenderFormat = "SYSTEM"
+)
+
 // Message represents a com.linkedin.messenger.Message object.
 type Message struct {
-	Body                   AttributedText       `json:"body,omitempty"`
-	BackendURN             URN                  `json:"backendUrn,omitempty"`
-	DeliveredAt            jsontime.UnixMilli   `json:"deliveredAt,omitempty"`
-	EntityURN              URN                  `json:"entityUrn,omitempty"`
-	Sender                 MessagingParticipant `json:"sender,omitempty"`
-	BackendConversationURN URN                  `json:"backendConversationUrn,omitempty"`
-	Conversation           Conversation         `json:"conversation,omitempty"`
+	Body                    AttributedText          `json:"body,omitempty"`
+	BackendURN              URN                     `json:"backendUrn,omitempty"`
+	DeliveredAt             jsontime.UnixMilli      `json:"deliveredAt,omitempty"`
+	EntityURN               URN                     `json:"entityUrn,omitempty"`
+	Sender                  MessagingParticipant    `json:"sender,omitempty"`
+	MessageBodyRenderFormat MessageBodyRenderFormat `json:"messageBodyRenderFormat,omitempty"`
+	BackendConversationURN  URN                     `json:"backendConversationUrn,omitempty"`
+	Conversation            Conversation            `json:"conversation,omitempty"`
 }
 
 type DecoratedMessageRealtime struct {
@@ -97,31 +107,31 @@ type DecoratedMessageRealtime struct {
 }
 
 type DecoratedSeenReceipt struct {
-	Result     response.MessageSeenReceipt `json:"result,omitempty"`
+	Result     responseold.MessageSeenReceipt `json:"result,omitempty"`
+	RecipeType string                         `json:"_recipeType,omitempty"`
+	Type       string                         `json:"_type,omitempty"`
+}
+
+type DecoratedTypingIndiciator struct {
+	Result     responseold.TypingIndicator `json:"result,omitempty"`
 	RecipeType string                      `json:"_recipeType,omitempty"`
 	Type       string                      `json:"_type,omitempty"`
 }
 
-type DecoratedTypingIndiciator struct {
-	Result     response.TypingIndicator `json:"result,omitempty"`
-	RecipeType string                   `json:"_recipeType,omitempty"`
-	Type       string                   `json:"_type,omitempty"`
-}
-
 type DecoratedMessageReaction struct {
-	Result     response.MessageReaction `json:"result,omitempty"`
-	RecipeType string                   `json:"_recipeType,omitempty"`
-	Type       string                   `json:"_type,omitempty"`
+	Result     responseold.MessageReaction `json:"result,omitempty"`
+	RecipeType string                      `json:"_recipeType,omitempty"`
+	Type       string                      `json:"_type,omitempty"`
 }
 
 type DecoratedDeletedConversation struct {
-	Result     response.Conversation `json:"result,omitempty"`
-	RecipeType string                `json:"_recipeType,omitempty"`
-	Type       string                `json:"_type,omitempty"`
+	Result     responseold.Conversation `json:"result,omitempty"`
+	RecipeType string                   `json:"_recipeType,omitempty"`
+	Type       string                   `json:"_type,omitempty"`
 }
 
 type DecoratedUpdatedConversation struct {
-	Result     response.ThreadElement `json:"result,omitempty"`
-	RecipeType string                 `json:"_recipeType,omitempty"`
-	Type       string                 `json:"_type,omitempty"`
+	Result     responseold.ThreadElement `json:"result,omitempty"`
+	RecipeType string                    `json:"_recipeType,omitempty"`
+	Type       string                    `json:"_type,omitempty"`
 }

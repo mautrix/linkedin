@@ -196,17 +196,12 @@ func (c *Client) realtimeConnectLoop() {
 				c.handlers.onClientConnection(c.realtimeCtx, realtimeEvent.ClientConnection)
 			case realtimeEvent.DecoratedEvent != nil:
 				log.Debug().
-					Str("topic", realtimeEvent.DecoratedEvent.Topic).
+					Stringer("topic", realtimeEvent.DecoratedEvent.Topic).
 					Str("payload_type", realtimeEvent.DecoratedEvent.Payload.Data.Type).
 					Msg("Received decorated event")
 				fmt.Printf("%s\n", line)
 				fmt.Printf("decoratedEvent %+v\n", realtimeEvent.DecoratedEvent)
-				switch {
-				case realtimeEvent.DecoratedEvent.Payload.Data.DecoratedMessage != nil:
-					// TODO might need a multiplex here
-					c.handlers.onDecoratedMessage(c.realtimeCtx, &realtimeEvent.DecoratedEvent.Payload.Data.DecoratedMessage.Result)
-				default:
-				}
+				c.handlers.onDecoratedEvent(c.realtimeCtx, realtimeEvent.DecoratedEvent)
 			}
 		}
 	}

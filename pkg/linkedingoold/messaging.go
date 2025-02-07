@@ -10,7 +10,7 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 
 	"github.com/google/uuid"
@@ -18,7 +18,7 @@ import (
 
 // u dont have to pass mailboxUrn if u don't want to
 // library will automatically set it for you
-func (c *Client) GetThreads(variables query.GetThreadsVariables) (*response.MessengerConversationsResponse, error) {
+func (c *Client) GetThreads(variables query.GetThreadsVariables) (*responseold.MessengerConversationsResponse, error) {
 	if variables.MailboxUrn == "" {
 		variables.MailboxUrn = c.PageLoader.CurrentUser.FsdProfileID
 	}
@@ -49,9 +49,9 @@ func (c *Client) GetThreads(variables query.GetThreadsVariables) (*response.Mess
 	}
 	fmt.Printf("%s\n", respData)
 
-	graphQLResponse, ok := respData.(*response.GraphQlResponse)
+	graphQLResponse, ok := respData.(*responseold.GraphQlResponse)
 	if !ok || graphQLResponse == nil {
-		return nil, newErrorResponseTypeAssertFailed("*response.GraphQlResponse")
+		return nil, newErrorResponseTypeAssertFailed("*responseold.GraphQlResponse")
 	}
 
 	graphQLResponseData := graphQLResponse.Data
@@ -63,7 +63,7 @@ func (c *Client) GetThreads(variables query.GetThreadsVariables) (*response.Mess
 	return graphQLResponseData.MessengerConversationsBySyncToken, nil
 }
 
-func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*response.MessengerMessagesResponse, error) {
+func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*responseold.MessengerMessagesResponse, error) {
 	withCursor := variables.PrevCursor != ""
 	withAnchorTimestamp := variables.DeliveredAt != 0
 
@@ -90,9 +90,9 @@ func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*respons
 		return nil, err
 	}
 
-	graphQLResponse, ok := respData.(*response.GraphQlResponse)
+	graphQLResponse, ok := respData.(*responseold.GraphQlResponse)
 	if !ok || graphQLResponse == nil {
-		return nil, newErrorResponseTypeAssertFailed("*response.GraphQlResponse")
+		return nil, newErrorResponseTypeAssertFailed("*responseold.GraphQlResponse")
 	}
 
 	graphQLResponseData := graphQLResponse.Data
@@ -147,7 +147,7 @@ func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
 
 // function will set mailboxUrn, originToken and trackingId automatically IF it is empty
 // so you do not have to set it if u dont want to
-func (c *Client) SendMessage(p payload.SendMessagePayload) (*response.MessageSentResponse, error) {
+func (c *Client) SendMessage(p payload.SendMessagePayload) (*responseold.MessageSentResponse, error) {
 	actionQuery := query.DoActionQuery{
 		Action: query.ActionCreateMessage,
 	}
@@ -173,9 +173,9 @@ func (c *Client) SendMessage(p payload.SendMessagePayload) (*response.MessageSen
 		return nil, fmt.Errorf("failed to send message to conversation with urn %s (statusCode=%d)", p.Message.ConversationUrn, resp.StatusCode)
 	}
 
-	messageSentResponse, ok := respData.(*response.MessageSentResponse)
+	messageSentResponse, ok := respData.(*responseold.MessageSentResponse)
 	if !ok {
-		return nil, newErrorResponseTypeAssertFailed("*response.MessageSentResponse")
+		return nil, newErrorResponseTypeAssertFailed("*responseold.MessageSentResponse")
 	}
 
 	return messageSentResponse, nil
@@ -225,7 +225,7 @@ func (c *Client) DeleteMessage(messageUrn string) error {
 
 // this endpoint allows you to mark multiple threads as read/unread at a time
 // pass false to second arg to unread all conversations and true to read all of them
-func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response.MarkThreadReadResponse, error) {
+func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*responseold.MarkThreadReadResponse, error) {
 	queryUrnValues := ""
 	entities := make(map[string]payload.GraphQLPatchBody, 0)
 	for i, convUrn := range conversationUrns {
@@ -275,7 +275,7 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 		return nil, fmt.Errorf("failed to read conversations... (statusCode=%d)", resp.StatusCode)
 	}
 
-	result := &response.MarkThreadReadResponse{}
+	result := &responseold.MarkThreadReadResponse{}
 	return result, json.Unmarshal(respBody, result)
 }
 
@@ -345,9 +345,9 @@ func (c *Client) GetReactionsForEmoji(vars query.GetReactionsForEmojiVariables) 
 		return nil, err
 	}
 
-	graphQLResponse, ok := respData.(*response.GraphQlResponse)
+	graphQLResponse, ok := respData.(*responseold.GraphQlResponse)
 	if !ok || graphQLResponse == nil {
-		return nil, newErrorResponseTypeAssertFailed("*response.GraphQlResponse")
+		return nil, newErrorResponseTypeAssertFailed("*responseold.GraphQlResponse")
 	}
 
 	graphQLResponseData := graphQLResponse.Data

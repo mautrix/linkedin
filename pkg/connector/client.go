@@ -74,7 +74,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 		},
 		RealtimeConnectError: client.onRealtimeConnectError,
-		DecoratedMessage:     client.onDecoratedMessage,
+		DecoratedEvent:       client.onDecoratedEvent,
 	})
 	return client
 }
@@ -103,14 +103,24 @@ func (l *LinkedInClient) onRealtimeConnectError(ctx context.Context, err error) 
 	zerolog.Ctx(ctx).Err(err).Msg("failed to read from event stream")
 }
 
-func (l *LinkedInClient) onDecoratedMessage(ctx context.Context, msg *types.Message) {
+func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *types.DecoratedEvent) {
+	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
+	switch decoratedEvent.Topic.NthPart(2) {
+	case linkedingo.RealtimeEventTopicMessages:
+		l.onRealtimeEventTopicMessages(decoratedEvent.Payload.Data.DecoratedMessage.Result)
+	default:
+		fmt.Printf("UNSUPPORTED %q %+v\n", decoratedEvent.Topic, decoratedEvent)
+	}
+}
+
+func (l *LinkedInClient) onRealtimeEventTopicMessages(msg types.Message) {
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
 				Stringer("backend_urn", msg.BackendURN).
 				Stringer("sender", msg.Sender.BackendURN)
 		},
-		PortalKey:    l.makePortalKey(msg.BackendURN),
+		PortalKey:    l.makePortalKey(msg.Conversation.BackendURN),
 		CreatePortal: true,
 		Sender:       l.makeSender(msg.Sender),
 		Timestamp:    msg.DeliveredAt.Time,
@@ -122,12 +132,21 @@ func (l *LinkedInClient) onDecoratedMessage(ctx context.Context, msg *types.Mess
 		LatestMessageTS: msg.DeliveredAt.Time,
 	})
 
-	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Message[*types.Message]{
-		EventMeta:          meta.WithType(bridgev2.RemoteEventMessage),
+	// TODO do something with msg.MessageBodyRenderFormat
+	evt := simplevent.Message[types.Message]{
 		ID:                 networkid.MessageID(msg.BackendURN.ID()),
+		TargetMessage:      networkid.MessageID(msg.BackendURN.ID()), // TODO: this breaks subsequent edits, since the edits reference the root one always
 		Data:               msg,
 		ConvertMessageFunc: l.convertToMatrix,
-	})
+		ConvertEditFunc:    l.convertEditToMatrix,
+	}
+	switch msg.MessageBodyRenderFormat {
+	case types.MessageBodyRenderFormatDefault:
+		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
+	case types.MessageBodyRenderFormatEdited:
+		evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
+	}
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
 }
 
 func (l *LinkedInClient) getAvatar(img types.VectorImage) (avatar bridgev2.Avatar) {

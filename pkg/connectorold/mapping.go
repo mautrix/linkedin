@@ -17,7 +17,7 @@ import (
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -46,7 +46,7 @@ func MakeAvatar(avatarURL string) *bridgev2.Avatar {
 	}
 }
 
-func (lc *LinkedInClient) ConversationToChatInfo(thread *response.ThreadElement) *bridgev2.ChatInfo {
+func (lc *LinkedInClient) ConversationToChatInfo(thread *responseold.ThreadElement) *bridgev2.ChatInfo {
 	memberList := lc.ParticipantsToMemberList(thread.ConversationParticipants)
 	return &bridgev2.ChatInfo{
 		Name:        &thread.Title,
@@ -110,7 +110,7 @@ func (lc *LinkedInClient) getUserInfoMember(member typesold.Member) *bridgev2.Us
 	}
 }
 
-func (lc *LinkedInClient) MessagesToBackfillMessages(ctx context.Context, messages []response.MessageElement, portal *bridgev2.Portal) ([]*bridgev2.BackfillMessage, error) {
+func (lc *LinkedInClient) MessagesToBackfillMessages(ctx context.Context, messages []responseold.MessageElement, portal *bridgev2.Portal) ([]*bridgev2.BackfillMessage, error) {
 	backfilledMessages := make([]*bridgev2.BackfillMessage, 0)
 	for _, msg := range messages {
 		backfilledMessage, err := lc.MessageToBackfillMessage(ctx, msg, portal)
@@ -123,7 +123,7 @@ func (lc *LinkedInClient) MessagesToBackfillMessages(ctx context.Context, messag
 	return backfilledMessages, nil
 }
 
-func (lc *LinkedInClient) MessageToBackfillMessage(ctx context.Context, message response.MessageElement, portal *bridgev2.Portal) (*bridgev2.BackfillMessage, error) {
+func (lc *LinkedInClient) MessageToBackfillMessage(ctx context.Context, message responseold.MessageElement, portal *bridgev2.Portal) (*bridgev2.BackfillMessage, error) {
 	messageReactions, err := lc.MessageReactionsToBackfillReactions(message.ReactionSummaries, message.EntityUrn)
 	if err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (lc *LinkedInClient) MessageToBackfillMessage(ctx context.Context, message 
 	}, nil
 }
 
-func (lc *LinkedInClient) MessageReactionsToBackfillReactions(reactions []response.ReactionSummary, messageUrn string) ([]*bridgev2.BackfillReaction, error) {
+func (lc *LinkedInClient) MessageReactionsToBackfillReactions(reactions []responseold.ReactionSummary, messageUrn string) ([]*bridgev2.BackfillReaction, error) {
 	backfillReactions := make([]*bridgev2.BackfillReaction, 0)
 	for _, reaction := range reactions {
 		participants, err := lc.client.GetReactionsForEmoji(query.GetReactionsForEmojiVariables{
