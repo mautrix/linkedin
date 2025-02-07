@@ -1,7 +1,7 @@
-package query
+package queryold
 
 import (
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/methods"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/methodsold"
 )
 
 type Action string
@@ -43,7 +43,7 @@ type GetThreadsVariables struct {
 }
 
 func (q GetThreadsVariables) Encode() ([]byte, error) {
-	return methods.EncodeGraphQLQuery(q)
+	return methodsold.EncodeGraphQLQuery(q)
 }
 
 type FetchMessagesVariables struct {
@@ -56,7 +56,7 @@ type FetchMessagesVariables struct {
 }
 
 func (q FetchMessagesVariables) Encode() ([]byte, error) {
-	return methods.EncodeGraphQLQuery(q)
+	return methodsold.EncodeGraphQLQuery(q)
 }
 
 type GetReactionsForEmojiVariables struct {
@@ -65,5 +65,5 @@ type GetReactionsForEmojiVariables struct {
 }
 
 func (q GetReactionsForEmojiVariables) Encode() ([]byte, error) {
-	return methods.EncodeGraphQLQuery(q)
+	return methodsold.EncodeGraphQLQuery(q)
 }

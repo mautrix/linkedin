@@ -3,7 +3,7 @@ package types
 import (
 	"go.mau.fi/util/jsontime"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 )
 
 type RealtimeEvent struct {

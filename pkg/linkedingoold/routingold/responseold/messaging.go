@@ -3,8 +3,8 @@ package responseold
 import (
 	"encoding/json"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/payloadold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -67,7 +67,7 @@ type MessageElement struct {
 	Subject                   any                              `json:"subject,omitempty"`
 	Type                      string                           `json:"_type,omitempty"`
 	InlineWarning             any                              `json:"inlineWarning,omitempty"`
-	Body                      payload.MessageBody              `json:"body,omitempty"`
+	Body                      payloadold.MessageBody           `json:"body,omitempty"`
 	RecipeType                string                           `json:"_recipeType,omitempty"`
 	OriginToken               string                           `json:"originToken,omitempty"`
 	BackendUrn                string                           `json:"backendUrn,omitempty"`
@@ -79,7 +79,7 @@ type MessageElement struct {
 	BackendConversationUrn    string                           `json:"backendConversationUrn,omitempty"`
 	IncompleteRetriableData   bool                             `json:"incompleteRetriableData,omitempty"`
 	MessageBodyRenderFormat   MessageBodyRenderFormat          `json:"messageBodyRenderFormat,omitempty"`
-	RenderContent             []payload.RenderContent          `json:"renderContent,omitempty"`
+	RenderContent             []payloadold.RenderContent       `json:"renderContent,omitempty"`
 	Conversation              Conversation                     `json:"conversation,omitempty"`
 	PreviousMessages          Messages                         `json:"previousMessages,omitempty"`
 }
@@ -105,7 +105,7 @@ type ThreadElement struct {
 	LastReadAt                          int64                              `json:"lastReadAt,omitempty"`
 	HostConversationActions             []any                              `json:"hostConversationActions,omitempty"`
 	EntityUrn                           string                             `json:"entityUrn,omitempty"`
-	Categories                          []query.InboxCategory              `json:"categories,omitempty"`
+	Categories                          []queryold.InboxCategory           `json:"categories,omitempty"`
 	State                               any                                `json:"state,omitempty"`
 	DisabledFeatures                    []DisabledFeatures                 `json:"disabledFeatures,omitempty"`
 	Creator                             Creator                            `json:"creator,omitempty"`
@@ -197,15 +197,15 @@ func (r MessageSentResponse) Decode(data []byte) (any, error) {
 }
 
 type MessageSentData struct {
-	RenderContentUnions    []payload.RenderContent `json:"renderContentUnions,omitempty"`
-	EntityUrn              string                  `json:"entityUrn,omitempty"`
-	BackendConversationUrn string                  `json:"backendConversationUrn,omitempty"`
-	SenderUrn              string                  `json:"senderUrn,omitempty"`
-	OriginToken            string                  `json:"originToken,omitempty"`
-	Body                   payload.MessageBody     `json:"body,omitempty"`
-	BackendUrn             string                  `json:"backendUrn,omitempty"`
-	ConversationUrn        string                  `json:"conversationUrn,omitempty"`
-	DeliveredAt            int64                   `json:"deliveredAt,omitempty"`
+	RenderContentUnions    []payloadold.RenderContent `json:"renderContentUnions,omitempty"`
+	EntityUrn              string                     `json:"entityUrn,omitempty"`
+	BackendConversationUrn string                     `json:"backendConversationUrn,omitempty"`
+	SenderUrn              string                     `json:"senderUrn,omitempty"`
+	OriginToken            string                     `json:"originToken,omitempty"`
+	Body                   payloadold.MessageBody     `json:"body,omitempty"`
+	BackendUrn             string                     `json:"backendUrn,omitempty"`
+	ConversationUrn        string                     `json:"conversationUrn,omitempty"`
+	DeliveredAt            int64                      `json:"deliveredAt,omitempty"`
 }
 
 type MarkThreadReadResponse struct {

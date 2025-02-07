@@ -1,30 +1,23 @@
 package linkedingoold
 
 import (
-	"bufio"
-	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/event"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/event/raw"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/eventold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/eventold/rawold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 
 	"github.com/google/uuid"
 )
 
 type RealtimeClient struct {
-	client     *Client
-	http       *http.Client
-	conn       *http.Response
-	cancelFunc context.CancelFunc
-	sessionID  string
+	client    *Client
+	http      *http.Client
+	sessionID string
 }
 
 func (c *Client) newRealtimeClient() *RealtimeClient {
@@ -39,129 +32,30 @@ func (c *Client) newRealtimeClient() *RealtimeClient {
 	}
 }
 
-func (rc *RealtimeClient) Connect() error {
-	extraHeaders := map[string]string{
-		"accept":                string(typesold.ContentTypeTextEventStream),
-		"x-li-realtime-session": rc.sessionID,
-		"x-li-recipe-accept":    string(typesold.ContentTypeJSONLinkedInNormalized),
-		"x-li-query-accept":     string(typesold.ContentTypeGraphQL),
-		"x-li-accept":           string(typesold.ContentTypeJSONLinkedInNormalized),
-		"x-li-recipe-map":       `{"inAppAlertsTopic":"com.linkedin.voyager.dash.deco.identity.notifications.InAppAlert-51","professionalEventsTopic":"com.linkedin.voyager.dash.deco.events.ProfessionalEventDetailPage-57","topCardLiveVideoTopic":"com.linkedin.voyager.dash.deco.video.TopCardLiveVideo-9","tabBadgeUpdateTopic":"com.linkedin.voyager.dash.deco.notifications.RealtimeBadgingItemCountsEvent-1"}`,
-		"x-li-query-map":        `{"topicToGraphQLQueryParams":{"conversationsBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.dc0088938e4fd0220c7694cdc1e7e2f6","variables":{},"extensions":{}},"conversationsTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.dc0088938e4fd0220c7694cdc1e7e2f6","variables":{},"extensions":{}},"conversationDeletesBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.282abe5fa1a242cb76825c32dbbfaede","variables":{},"extensions":{}},"conversationDeletesTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.282abe5fa1a242cb76825c32dbbfaede","variables":{},"extensions":{}},"messageReactionSummariesBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.3173250b03ea4f9f9e138a145cf3d9b4","variables":{},"extensions":{}},"messageReactionSummariesTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.3173250b03ea4f9f9e138a145cf3d9b4","variables":{},"extensions":{}},"messageSeenReceiptsBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.56fd79ca10248ead05369fa7ab1868dc","variables":{},"extensions":{}},"messageSeenReceiptsTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.56fd79ca10248ead05369fa7ab1868dc","variables":{},"extensions":{}},"messagesBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.9a690a85b608d1212fdaed40be3a1465","variables":{},"extensions":{}},"messagesTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.9a690a85b608d1212fdaed40be3a1465","variables":{},"extensions":{}},"replySuggestionBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.412964c3f7f5a67fb0e56b6bb3a00028","variables":{},"extensions":{}},"replySuggestionTopicV2":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.412964c3f7f5a67fb0e56b6bb3a00028","variables":{},"extensions":{}},"typingIndicatorsBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.ad2174343a09cd7ef53b2e6f633695fe","variables":{},"extensions":{}},"typingIndicatorsTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.ad2174343a09cd7ef53b2e6f633695fe","variables":{},"extensions":{}},"messagingSecondaryPreviewBannerTopic":{"queryId":"voyagerMessagingDashRealtimeDecoration.60068248c1f5c683ad2557f7ccfdf188","variables":{},"extensions":{}},"reactionsTopic":{"queryId":"liveVideoVoyagerSocialDashRealtimeDecoration.b8b33dedca7efbe34f1d7e84c3b3aa81","variables":{},"extensions":{}},"commentsTopic":{"queryId":"liveVideoVoyagerSocialDashRealtimeDecoration.c582028e0b04485c17e4324d3f463e11","variables":{},"extensions":{}},"reactionsOnCommentsTopic":{"queryId":"liveVideoVoyagerSocialDashRealtimeDecoration.0a181b05b3751f72ae3eb489b77e3245","variables":{},"extensions":{}},"socialPermissionsPersonalTopic":{"queryId":"liveVideoVoyagerSocialDashRealtimeDecoration.170bf3bfbcca1da322e34f34f37fb954","variables":{},"extensions":{}},"liveVideoPostTopic":{"queryId":"liveVideoVoyagerFeedDashLiveUpdatesRealtimeDecoration.ccc245beb0ba0d99bd1df96a1fc53abc","variables":{},"extensions":{}},"generatedJobDescriptionsTopic":{"queryId":"voyagerHiringDashRealtimeDecoration.58501bc70ea8ce6b858527fb1be95007","variables":{},"extensions":{}},"eventToastsTopic":{"queryId":"voyagerEventsDashProfessionalEventsRealtimeResource.6b42abd3511e267e84a6765257deea50","variables":{},"extensions":{}},"coachStreamingResponsesTopic":{"queryId":"voyagerCoachDashGaiRealtimeDecoration.c5707587cf5d95191185235cf15d5129","variables":{},"extensions":{}},"realtimeSearchResultClustersTopic":{"queryId":"voyagerSearchDashRealtimeDecoration.545edd9da8c728b0854505ab6df11870","variables":{},"extensions":{}}}}`,
-	}
-	headerOpts := typesold.HeaderOpts{
-		WithCookies:         true,
-		WithCsrfToken:       true,
-		WithXLiTrack:        true,
-		WithXLiPageInstance: true,
-		WithXLiProtocolVer:  true,
-		Extra:               extraHeaders,
-		Referer:             string(routing.LinkedInMessagingBaseURL) + "/",
-	}
-	headers := rc.client.buildHeaders(headerOpts)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	rc.cancelFunc = cancel
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, string(routing.LinkedInRealtimeConnectURL)+"?rc=1", nil) // ("GET", string(routing.REALTIME_CONNECT_URL) + "?rc=1", nil)
-	if err != nil {
-		return err
-	}
-	req.Header = headers
-
-	conn, err := rc.http.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if conn.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", conn.Status)
-	}
-
-	rc.conn = conn
-	go rc.beginReadStream()
-
-	return nil
-}
-
-func (rc *RealtimeClient) beginReadStream() {
-	reader := bufio.NewReader(rc.conn.Body)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if errors.Is(err, context.Canceled) { // currently only means that Disconnect() was called
-				break
-			}
-			log.Fatalf("error reading from event stream: %s", err.Error())
-		}
-
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-
-		if strings.HasPrefix(line, "data: ") {
-			eventDataString := strings.TrimPrefix(line, "data: ")
-			var eventData map[typesold.RealtimeEvent]json.RawMessage
-			err = json.Unmarshal([]byte(eventDataString), &eventData)
-			if err != nil {
-				log.Printf("error unmarshaling JSON event data: %v\n", err)
-				continue
-			}
-
-			rc.processEvents(eventData)
-		}
-	}
-}
-
-func (rc *RealtimeClient) Disconnect() error {
-	if rc.conn == nil {
-		return fmt.Errorf("realtime client is not connected yet")
-	}
-
-	if rc.cancelFunc == nil {
-		return fmt.Errorf("cancel func is somehow nil, can not disconnect real-time client")
-	}
-
-	rc.cancelFunc()
-
-	rc.conn = nil
-	rc.cancelFunc = nil
-	rc.sessionID = uuid.NewString()
-
-	if rc.client.eventHandler != nil {
-		rc.client.eventHandler(event.ConnectionClosed{
-			Reason: typesold.ConnectionClosedReasonSelfDisconnectIssued,
-		})
-	}
-
-	return nil
-}
-
-func (rc *RealtimeClient) processEvents(data map[typesold.RealtimeEvent]json.RawMessage) {
+func (rc *RealtimeClient) ProcessEvents(data map[typesold.RealtimeEvent]json.RawMessage) {
 	for eventType, eventDataBytes := range data {
 		switch eventType {
 		case typesold.RealtimeEventDecoratedEvent:
-			var decoratedEventResponse raw.DecoratedEventResponse
+			var decoratedEventResponse rawold.DecoratedEventResponse
 			err := json.Unmarshal(eventDataBytes, &decoratedEventResponse)
 			if err != nil {
-				log.Fatalf("failed to unmarshal event bytes with type %s into raw.DecoratedEventResponse", eventType)
+				log.Fatalf("failed to unmarshal eventold bytes with type %s into rawold.DecoratedEventResponse", eventType)
 			}
 			log.Println(string(eventDataBytes))
-			rc.processDecoratedEvent(decoratedEventResponse)
+			rc.ProcessDecoratedEvent(decoratedEventResponse)
 		case typesold.RealtimeEventHeartbeat:
 			log.Println("received heartbeat")
 		case typesold.RealtimeEventClientConnection:
 			if rc.client.eventHandler != nil {
-				rc.client.eventHandler(event.ConnectionReady{})
+				rc.client.eventHandler(eventold.ConnectionReady{})
 			}
 		default:
-			rc.client.Logger.Warn().Str("json_data", string(eventDataBytes)).Str("event_type", string(eventType)).Msg("Received unknown event")
+			rc.client.Logger.Warn().Str("json_data", string(eventDataBytes)).Str("eventold_type", string(eventType)).Msg("Received unknown eventold")
 		}
 	}
 }
 
-func (rc *RealtimeClient) processDecoratedEvent(data raw.DecoratedEventResponse) {
+func (rc *RealtimeClient) ProcessDecoratedEvent(data rawold.DecoratedEventResponse) {
 	var evtData any
 	topic, topicChunks := parseRealtimeTopic(data.Topic)
 	switch topic {
@@ -193,7 +87,7 @@ func (rc *RealtimeClient) processDecoratedEvent(data raw.DecoratedEventResponse)
 		evtData = data.Payload.Data.ToThreadUpdateEvent()
 	case typesold.RealtimeEventTopicConversationsDelete:
 		evtData = data.Payload.Data.ToThreadDeleteEvent()
-	/* Ignored event topics */
+	/* Ignored eventold topics */
 	case typesold.RealtimeEventTopicJobPostingPersonal:
 	case typesold.RealtimeEventTopicSocialPermissionsPersonal:
 	case typesold.RealtimeEventTopicMessagingProgressIndicator:
@@ -204,7 +98,7 @@ func (rc *RealtimeClient) processDecoratedEvent(data raw.DecoratedEventResponse)
 	case typesold.RealtimeEventTopicTabBadgeUpdate:
 		break
 	default:
-		rc.client.Logger.Warn().Any("json_data", data.Payload).Str("event_topic", string(data.Topic)).Msg("Received unknown event topic")
+		rc.client.Logger.Warn().Any("json_data", data.Payload).Str("eventold_topic", string(data.Topic)).Msg("Received unknown eventold topic")
 	}
 
 	if evtData != nil {

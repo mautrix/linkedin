@@ -1,9 +1,9 @@
-package routing
+package routingold
 
 import (
 	"net/http"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 

@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/net/proxy"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -60,11 +60,13 @@ func NewClient(opts *ClientOpts, logger zerolog.Logger) *Client {
 }
 
 func (c *Client) Connect() error {
-	return c.rc.Connect()
+	// return c.rc.Connect()
+	return nil
 }
 
 func (c *Client) Disconnect() error {
-	return c.rc.Disconnect()
+	// return c.rc.Disconnect()
+	return nil
 }
 
 func (c *Client) GetCookieString() string {
@@ -90,7 +92,7 @@ func (c *Client) GetCurrentUserProfile() (*typesold.UserLoginProfile, error) {
 		WithXLiLang:         true,
 	})
 
-	_, data, err := c.MakeRequest(string(routing.LinkedInVoyagerCommonMeURL), http.MethodGet, headers, make([]byte, 0), typesold.ContentTypeJSONLinkedInNormalized)
+	_, data, err := c.MakeRequest(string(routingold.LinkedInVoyagerCommonMeURL), http.MethodGet, headers, make([]byte, 0), typesold.ContentTypeJSONLinkedInNormalized)
 	if err != nil {
 		return nil, err
 	}

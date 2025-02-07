@@ -15,9 +15,9 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	bridgeEvt "maunium.net/go/mautrix/event"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/payloadold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -153,7 +153,7 @@ func (lc *LinkedInClient) MessageToBackfillMessage(ctx context.Context, message 
 func (lc *LinkedInClient) MessageReactionsToBackfillReactions(reactions []responseold.ReactionSummary, messageUrn string) ([]*bridgev2.BackfillReaction, error) {
 	backfillReactions := make([]*bridgev2.BackfillReaction, 0)
 	for _, reaction := range reactions {
-		participants, err := lc.client.GetReactionsForEmoji(query.GetReactionsForEmojiVariables{
+		participants, err := lc.client.GetReactionsForEmoji(queryold.GetReactionsForEmojiVariables{
 			Emoji:      reaction.Emoji,
 			MessageUrn: messageUrn,
 		})
@@ -181,7 +181,7 @@ var (
 	ErrUnsupportedAttachmentType = errors.New("unsupported attachment type")
 )
 
-func (lc *LinkedInClient) LinkedInAttachmentToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, content payload.RenderContent) (*bridgev2.ConvertedMessagePart, error) {
+func (lc *LinkedInClient) LinkedInAttachmentToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, content payloadold.RenderContent) (*bridgev2.ConvertedMessagePart, error) {
 	var attachmentURL string
 	var mimeType string
 	var msgType bridgeEvt.MessageType

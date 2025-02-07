@@ -10,7 +10,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/event"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/payloadold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -30,21 +30,21 @@ func (lc *LinkedInClient) HandleMatrixTyping(_ context.Context, msg *bridgev2.Ma
 
 func (lc *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (message *bridgev2.MatrixMessageResponse, err error) {
 	conversationUrn := string(msg.Portal.ID)
-	sendMessagePayload := payload.SendMessagePayload{
-		Message: payload.SendMessageData{
-			Body: payload.MessageBody{
+	sendMessagePayload := payloadold.SendMessagePayload{
+		Message: payloadold.SendMessageData{
+			Body: payloadold.MessageBody{
 				Text: msg.Content.Body,
 			},
 			ConversationUrn:     conversationUrn,
-			RenderContentUnions: []payload.RenderContent{},
+			RenderContentUnions: []payloadold.RenderContent{},
 		},
 	}
 
 	if msg.ReplyTo != nil {
 		sendMessagePayload.Message.RenderContentUnions = append(
 			sendMessagePayload.Message.RenderContentUnions,
-			payload.RenderContent{
-				RepliedMessageContent: &payload.RepliedMessageContent{
+			payloadold.RenderContent{
+				RepliedMessageContent: &payloadold.RepliedMessageContent{
 					OriginalSenderUrn:  string(msg.ReplyTo.SenderID),
 					OriginalMessageUrn: string(msg.ReplyTo.ID),
 					OriginalSendAt:     msg.ReplyTo.Timestamp.UnixMilli(),
@@ -70,9 +70,9 @@ func (lc *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2
 			return nil, err
 		}
 
-		attachmentType := payload.MediaUploadFileAttachment
+		attachmentType := payloadold.MediaUploadFileAttachment
 		if content.MsgType == event.MsgImage {
-			attachmentType = payload.MediaUploadTypePhotoAttachment
+			attachmentType = payloadold.MediaUploadTypePhotoAttachment
 		}
 
 		mediaMetadata, err := lc.client.UploadMedia(attachmentType, content.FileName, data, typesold.ContentTypeJSONPlaintextUTF8)
@@ -81,8 +81,8 @@ func (lc *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2
 		}
 
 		lc.client.Logger.Debug().Any("media_metadata", mediaMetadata).Msg("Successfully uploaded media to LinkedIn's servers")
-		sendMessagePayload.Message.RenderContentUnions = append(sendMessagePayload.Message.RenderContentUnions, payload.RenderContent{
-			File: &payload.File{
+		sendMessagePayload.Message.RenderContentUnions = append(sendMessagePayload.Message.RenderContentUnions, payloadold.RenderContent{
+			File: &payloadold.File{
 				AssetUrn:  mediaMetadata.Urn,
 				Name:      content.FileName,
 				MediaType: typesold.ContentType(content.Info.MimeType),
@@ -126,7 +126,7 @@ func (lc *LinkedInClient) HandleMatrixReaction(_ context.Context, msg *bridgev2.
 }
 
 func (lc *LinkedInClient) doHandleMatrixReaction(react bool, messageUrn, emoji string) error {
-	reactionPayload := payload.SendReactionPayload{
+	reactionPayload := payloadold.SendReactionPayload{
 		MessageUrn: messageUrn,
 	}
 	err := lc.client.SendReaction(reactionPayload, react)
@@ -144,7 +144,7 @@ func (lc *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *brid
 }
 
 func (lc *LinkedInClient) HandleMatrixEdit(_ context.Context, edit *bridgev2.MatrixEdit) error {
-	return lc.client.EditMessage(string(edit.EditTarget.ID), payload.MessageBody{
+	return lc.client.EditMessage(string(edit.EditTarget.ID), payloadold.MessageBody{
 		Text: edit.Content.Body,
 	})
 }

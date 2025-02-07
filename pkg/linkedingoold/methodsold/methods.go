@@ -1,4 +1,4 @@
-package methods
+package methodsold
 
 import (
 	"fmt"

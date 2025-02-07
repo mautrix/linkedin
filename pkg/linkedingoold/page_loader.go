@@ -3,8 +3,8 @@ package linkedingoold
 import (
 	"net/url"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/methods"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/methodsold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -32,9 +32,9 @@ func (c *Client) newPageLoader() *PageLoader {
 }
 
 func (pl *PageLoader) LoadMessagesPage() error {
-	messagesDefinition := routing.RequestStoreDefinition[routing.LinkedInMessagingBaseURL]
+	messagesDefinition := routingold.RequestStoreDefinition[routingold.LinkedInMessagingBaseURL]
 	headers := pl.client.buildHeaders(messagesDefinition.HeaderOpts)
-	_, respBody, err := pl.client.MakeRequest(string(routing.LinkedInMessagingBaseURL), messagesDefinition.Method, headers, nil, "")
+	_, respBody, err := pl.client.MakeRequest(string(routingold.LinkedInMessagingBaseURL), messagesDefinition.Method, headers, nil, "")
 	if err != nil {
 		return err
 	}
@@ -43,9 +43,9 @@ func (pl *PageLoader) LoadMessagesPage() error {
 
 	pl.XLiDeviceTrack = pl.ParseDeviceTrackInfo(mainPageHTML)
 	pl.XLiPageInstance = pl.ParseXLiPageInstance(mainPageHTML)
-	pl.XLiLang = methods.ParseMetaTagValue(mainPageHTML, "i18nLocale")
+	pl.XLiLang = methodsold.ParseMetaTagValue(mainPageHTML, "i18nLocale")
 
-	// fsdProfileId := methods.ParseFsdProfileID(mainPageHTML)
+	// fsdProfileId := methodsold.ParseFsdProfileID(mainPageHTML)
 	// if fsdProfileId == "" {
 	// 	return fmt.Errorf("failed to find current user fsd profile id in html response to messaging page")
 	// }
@@ -56,7 +56,7 @@ func (pl *PageLoader) LoadMessagesPage() error {
 }
 
 func (pl *PageLoader) ParseDeviceTrackInfo(html string) *typesold.DeviceTrack {
-	serviceVersion := methods.ParseMetaTagValue(html, "serviceVersion")
+	serviceVersion := methodsold.ParseMetaTagValue(html, "serviceVersion")
 	return &typesold.DeviceTrack{
 		ClientVersion:    serviceVersion,
 		MpVersion:        serviceVersion,
@@ -72,6 +72,6 @@ func (pl *PageLoader) ParseDeviceTrackInfo(html string) *typesold.DeviceTrack {
 }
 
 func (pl *PageLoader) ParseXLiPageInstance(html string) string {
-	clientPageInstanceId := methods.ParseMetaTagValue(html, "clientPageInstanceId")
+	clientPageInstanceId := methodsold.ParseMetaTagValue(html, "clientPageInstanceId")
 	return "urn:li:page:messaging_index;" + clientPageInstanceId
 }

@@ -13,7 +13,7 @@ import (
 	bridgeEvt "maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 

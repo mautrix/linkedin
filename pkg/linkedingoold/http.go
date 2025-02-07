@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
@@ -32,8 +32,8 @@ func isPermanentRequestError(err error) bool {
 		errors.Is(err, ErrAccountSuspended)
 }
 
-func (c *Client) MakeRoutingRequest(endpointURL routing.RequestEndpointURL, payload routing.PayloadDataInterface, query routing.PayloadDataInterface) (*http.Response, any, error) {
-	routingDefinition, ok := routing.RequestStoreDefinition[endpointURL]
+func (c *Client) MakeRoutingRequest(endpointURL routingold.RequestEndpointURL, payload routingold.PayloadDataInterface, query routingold.PayloadDataInterface) (*http.Response, any, error) {
+	routingDefinition, ok := routingold.RequestStoreDefinition[endpointURL]
 	if !ok {
 		return nil, nil, fmt.Errorf("failed to find request definition for endpointURL %s", string(endpointURL))
 	}

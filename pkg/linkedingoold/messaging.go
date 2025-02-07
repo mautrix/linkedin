@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/methods"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/methodsold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/payloadold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 
 	"github.com/google/uuid"
@@ -18,7 +18,7 @@ import (
 
 // u dont have to pass mailboxUrn if u don't want to
 // library will automatically set it for you
-func (c *Client) GetThreads(variables query.GetThreadsVariables) (*responseold.MessengerConversationsResponse, error) {
+func (c *Client) GetThreads(variables queryold.GetThreadsVariables) (*responseold.MessengerConversationsResponse, error) {
 	if variables.MailboxUrn == "" {
 		variables.MailboxUrn = c.PageLoader.CurrentUser.FsdProfileID
 	}
@@ -38,12 +38,12 @@ func (c *Client) GetThreads(variables query.GetThreadsVariables) (*responseold.M
 		return nil, err
 	}
 
-	threadQuery := query.GraphQLQuery{
+	threadQuery := queryold.GraphQLQuery{
 		QueryID:   queryId,
 		Variables: string(variablesQuery),
 	}
 
-	_, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingGraphQLURL, nil, &threadQuery)
+	_, respData, err := c.MakeRoutingRequest(routingold.LinkedInVoyagerMessagingGraphQLURL, nil, &threadQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (c *Client) GetThreads(variables query.GetThreadsVariables) (*responseold.M
 	return graphQLResponseData.MessengerConversationsBySyncToken, nil
 }
 
-func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*responseold.MessengerMessagesResponse, error) {
+func (c *Client) FetchMessages(variables queryold.FetchMessagesVariables) (*responseold.MessengerMessagesResponse, error) {
 	withCursor := variables.PrevCursor != ""
 	withAnchorTimestamp := variables.DeliveredAt != 0
 
@@ -80,12 +80,12 @@ func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*respons
 	if err != nil {
 		return nil, err
 	}
-	messagesQuery := query.GraphQLQuery{
+	messagesQuery := queryold.GraphQLQuery{
 		QueryID:   queryId,
 		Variables: string(variablesQuery),
 	}
 
-	_, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingGraphQLURL, nil, &messagesQuery)
+	_, respData, err := c.MakeRoutingRequest(routingold.LinkedInVoyagerMessagingGraphQLURL, nil, &messagesQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -105,13 +105,13 @@ func (c *Client) FetchMessages(variables query.FetchMessagesVariables) (*respons
 	return graphQLResponseData.MessengerMessagesBySyncToken, nil
 }
 
-func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
-	editMessageUrl := fmt.Sprintf("%s/%s", routing.LinkedInVoyagerMessagingDashMessengerMessagesURL, url.QueryEscape(messageUrn))
+func (c *Client) EditMessage(messageUrn string, p payloadold.MessageBody) error {
+	editMessageUrl := fmt.Sprintf("%s/%s", routingold.LinkedInVoyagerMessagingDashMessengerMessagesURL, url.QueryEscape(messageUrn))
 
 	headerOpts := typesold.HeaderOpts{
 		WithCookies:         true,
 		WithCsrfToken:       true,
-		Origin:              string(routing.LinkedInBaseURL),
+		Origin:              string(routingold.LinkedInBaseURL),
 		WithXLiTrack:        true,
 		WithXLiProtocolVer:  true,
 		WithXLiPageInstance: true,
@@ -120,9 +120,9 @@ func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
 	}
 	headers := c.buildHeaders(headerOpts)
 
-	editMessagePayload := payload.GraphQLPatchBody{
-		Patch: payload.Patch{
-			Set: payload.Set{
+	editMessagePayload := payloadold.GraphQLPatchBody{
+		Patch: payloadold.Patch{
+			Set: payloadold.Set{
 				Body: p,
 			},
 		},
@@ -147,9 +147,9 @@ func (c *Client) EditMessage(messageUrn string, p payload.MessageBody) error {
 
 // function will set mailboxUrn, originToken and trackingId automatically IF it is empty
 // so you do not have to set it if u dont want to
-func (c *Client) SendMessage(p payload.SendMessagePayload) (*responseold.MessageSentResponse, error) {
-	actionQuery := query.DoActionQuery{
-		Action: query.ActionCreateMessage,
+func (c *Client) SendMessage(p payloadold.SendMessagePayload) (*responseold.MessageSentResponse, error) {
+	actionQuery := queryold.DoActionQuery{
+		Action: queryold.ActionCreateMessage,
 	}
 
 	if p.MailboxUrn == "" {
@@ -157,14 +157,14 @@ func (c *Client) SendMessage(p payload.SendMessagePayload) (*responseold.Message
 	}
 
 	if p.TrackingID == "" {
-		p.TrackingID = methods.GenerateTrackingId()
+		p.TrackingID = methodsold.GenerateTrackingId()
 	}
 
 	if p.Message.OriginToken == "" {
 		p.Message.OriginToken = uuid.NewString()
 	}
 
-	resp, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingDashMessengerMessagesURL, p, actionQuery)
+	resp, respData, err := c.MakeRoutingRequest(routingold.LinkedInVoyagerMessagingDashMessengerMessagesURL, p, actionQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -182,15 +182,15 @@ func (c *Client) SendMessage(p payload.SendMessagePayload) (*responseold.Message
 }
 
 func (c *Client) StartTyping(conversationUrn string) error {
-	actionQuery := query.DoActionQuery{
-		Action: query.ActionTyping,
+	actionQuery := queryold.DoActionQuery{
+		Action: queryold.ActionTyping,
 	}
 
-	typingPayload := payload.StartTypingPayload{
+	typingPayload := payloadold.StartTypingPayload{
 		ConversationUrn: conversationUrn,
 	}
 
-	resp, _, err := c.MakeRoutingRequest(routing.LinkedInMessagingDashMessengerConversationsURL, typingPayload, actionQuery)
+	resp, _, err := c.MakeRoutingRequest(routingold.LinkedInMessagingDashMessengerConversationsURL, typingPayload, actionQuery)
 	if err != nil {
 		return err
 	}
@@ -203,15 +203,15 @@ func (c *Client) StartTyping(conversationUrn string) error {
 }
 
 func (c *Client) DeleteMessage(messageUrn string) error {
-	actionQuery := query.DoActionQuery{
-		Action: query.ActionRecall,
+	actionQuery := queryold.DoActionQuery{
+		Action: queryold.ActionRecall,
 	}
 
-	deleteMsgPayload := payload.DeleteMessagePayload{
+	deleteMsgPayload := payloadold.DeleteMessagePayload{
 		MessageUrn: messageUrn,
 	}
 
-	resp, _, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingDashMessengerMessagesURL, deleteMsgPayload, actionQuery)
+	resp, _, err := c.MakeRoutingRequest(routingold.LinkedInVoyagerMessagingDashMessengerMessagesURL, deleteMsgPayload, actionQuery)
 	if err != nil {
 		return err
 	}
@@ -227,16 +227,16 @@ func (c *Client) DeleteMessage(messageUrn string) error {
 // pass false to second arg to unread all conversations and true to read all of them
 func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*responseold.MarkThreadReadResponse, error) {
 	queryUrnValues := ""
-	entities := make(map[string]payload.GraphQLPatchBody, 0)
+	entities := make(map[string]payloadold.GraphQLPatchBody, 0)
 	for i, convUrn := range conversationUrns {
 		if i >= len(conversationUrns)-1 {
 			queryUrnValues += url.QueryEscape(convUrn)
 		} else {
 			queryUrnValues += url.QueryEscape(convUrn) + ","
 		}
-		entities[convUrn] = payload.GraphQLPatchBody{
-			Patch: payload.Patch{
-				Set: payload.MarkThreadReadBody{
+		entities[convUrn] = payloadold.GraphQLPatchBody{
+			Patch: payloadold.Patch{
+				Set: payloadold.MarkThreadReadBody{
 					Read: read,
 				},
 			},
@@ -244,8 +244,8 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 	}
 
 	queryStr := fmt.Sprintf("ids=List(%s)", queryUrnValues)
-	markReadUrl := fmt.Sprintf("%s?%s", routing.LinkedInMessagingDashMessengerConversationsURL, queryStr)
-	patchEntitiesPayload := payload.PatchEntitiesPayload{
+	markReadUrl := fmt.Sprintf("%s?%s", routingold.LinkedInMessagingDashMessengerConversationsURL, queryStr)
+	patchEntitiesPayload := payloadold.PatchEntitiesPayload{
 		Entities: entities,
 	}
 
@@ -257,7 +257,7 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 	headerOpts := typesold.HeaderOpts{
 		WithCookies:         true,
 		WithCsrfToken:       true,
-		Origin:              string(routing.LinkedInBaseURL),
+		Origin:              string(routingold.LinkedInBaseURL),
 		WithXLiTrack:        true,
 		WithXLiProtocolVer:  true,
 		WithXLiPageInstance: true,
@@ -280,7 +280,7 @@ func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*response
 }
 
 func (c *Client) DeleteConversation(conversationUrn string) error {
-	deleteConvUrl := fmt.Sprintf("%s/%s", routing.LinkedInMessagingDashMessengerConversationsURL, url.QueryEscape(conversationUrn))
+	deleteConvUrl := fmt.Sprintf("%s/%s", routingold.LinkedInMessagingDashMessengerConversationsURL, url.QueryEscape(conversationUrn))
 
 	headers := c.buildHeaders(typesold.HeaderOpts{
 		WithCookies:         true,
@@ -289,7 +289,7 @@ func (c *Client) DeleteConversation(conversationUrn string) error {
 		WithXLiPageInstance: true,
 		WithXLiLang:         true,
 		WithXLiProtocolVer:  true,
-		Origin:              string(routing.LinkedInBaseURL),
+		Origin:              string(routingold.LinkedInBaseURL),
 		Extra: map[string]string{
 			"accept": string(typesold.ContentTypeGraphQL),
 		},
@@ -308,16 +308,16 @@ func (c *Client) DeleteConversation(conversationUrn string) error {
 }
 
 // pass true to second arg to react and pass false to unreact
-func (c *Client) SendReaction(p payload.SendReactionPayload, react bool) error {
-	action := query.ActionReactWithEmoji
+func (c *Client) SendReaction(p payloadold.SendReactionPayload, react bool) error {
+	action := queryold.ActionReactWithEmoji
 	if !react {
-		action = query.ActionUnreactWithEmoji
+		action = queryold.ActionUnreactWithEmoji
 	}
-	actionQuery := query.DoActionQuery{
+	actionQuery := queryold.DoActionQuery{
 		Action: action,
 	}
 
-	resp, _, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingDashMessengerMessagesURL, p, actionQuery)
+	resp, _, err := c.MakeRoutingRequest(routingold.LinkedInVoyagerMessagingDashMessengerMessagesURL, p, actionQuery)
 	if err != nil {
 		return err
 	}
@@ -329,18 +329,18 @@ func (c *Client) SendReaction(p payload.SendReactionPayload, react bool) error {
 	return nil
 }
 
-func (c *Client) GetReactionsForEmoji(vars query.GetReactionsForEmojiVariables) ([]typesold.ConversationParticipant, error) {
+func (c *Client) GetReactionsForEmoji(vars queryold.GetReactionsForEmojiVariables) ([]typesold.ConversationParticipant, error) {
 	variablesQuery, err := vars.Encode()
 	if err != nil {
 		return nil, err
 	}
 
-	gqlQuery := query.GraphQLQuery{
+	gqlQuery := queryold.GraphQLQuery{
 		QueryID:   "messengerMessagingParticipants.3d2e0e93494e9dbf4943dc19da98bdf6",
 		Variables: string(variablesQuery),
 	}
 
-	_, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMessagingGraphQLURL, nil, &gqlQuery)
+	_, respData, err := c.MakeRoutingRequest(routingold.LinkedInVoyagerMessagingGraphQLURL, nil, &gqlQuery)
 	if err != nil {
 		return nil, err
 	}

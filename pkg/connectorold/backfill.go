@@ -8,7 +8,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
 )
 
 var _ bridgev2.BackfillingNetworkAPI = (*LinkedInClient)(nil)
@@ -16,7 +16,7 @@ var _ bridgev2.BackfillingNetworkAPI = (*LinkedInClient)(nil)
 func (lc *LinkedInClient) FetchMessages(ctx context.Context, params bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
 	conversationUrn := string(params.Portal.ID)
 
-	variables := query.FetchMessagesVariables{
+	variables := queryold.FetchMessagesVariables{
 		ConversationUrn: conversationUrn,
 		CountBefore:     20,
 	}

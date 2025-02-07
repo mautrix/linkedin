@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"net/http"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/payloadold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
-func (c *Client) UploadMedia(mediaUploadType payload.MediaUploadType, fileName string, mediaBytes []byte, contentType typesold.ContentType) (*responseold.MediaMetadata, error) {
-	uploadMetadataQuery := query.DoActionQuery{
-		Action: query.ActionUpload,
+func (c *Client) UploadMedia(mediaUploadType payloadold.MediaUploadType, fileName string, mediaBytes []byte, contentType typesold.ContentType) (*responseold.MediaMetadata, error) {
+	uploadMetadataQuery := queryold.DoActionQuery{
+		Action: queryold.ActionUpload,
 	}
-	uploadMetadataPayload := payload.UploadMediaMetadataPayload{
+	uploadMetadataPayload := payloadold.UploadMediaMetadataPayload{
 		MediaUploadType: mediaUploadType,
 		FileSize:        len(mediaBytes),
 		Filename:        fileName,
 	}
 
-	_, respData, err := c.MakeRoutingRequest(routing.LinkedInVoyagerMediaUploadMetadataURL, uploadMetadataPayload, uploadMetadataQuery)
+	_, respData, err := c.MakeRoutingRequest(routingold.LinkedInVoyagerMediaUploadMetadataURL, uploadMetadataPayload, uploadMetadataQuery)
 	if err != nil {
 		return nil, err
 	}

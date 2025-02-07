@@ -10,20 +10,20 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/event"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/eventold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 )
 
 func (lc *LinkedInClient) HandleLinkedInEvent(rawEvt any) {
 	switch evtData := rawEvt.(type) {
-	case event.MessageEvent, event.MessageEditedEvent:
-		message := evtData.(event.MessageEvent).Message
+	case eventold.MessageEvent, eventold.MessageEditedEvent:
+		message := evtData.(eventold.MessageEvent).Message
 		sender := message.Sender
 		isFromMe := sender.HostIdentityUrn == string(lc.userLogin.ID)
 
 		msgType := bridgev2.RemoteEventMessage
 		switch rawEvt.(type) {
-		case event.MessageEditedEvent:
+		case eventold.MessageEditedEvent:
 			msgType = bridgev2.RemoteEventEdit
 		}
 
@@ -52,10 +52,10 @@ func (lc *LinkedInClient) HandleLinkedInEvent(rawEvt any) {
 			ConvertMessageFunc: lc.convertToMatrix,
 			ConvertEditFunc:    lc.convertEditToMatrix,
 		})
-	case event.MessageReactionEvent:
+	case eventold.MessageReactionEvent:
 		reactionRemoteEvent := lc.wrapReaction(evtData.Reaction)
 		lc.connector.br.QueueRemoteEvent(lc.userLogin, reactionRemoteEvent)
-	case event.MessageDeleteEvent:
+	case eventold.MessageDeleteEvent:
 		messageDeleteRemoteEvent := &simplevent.MessageRemove{
 			EventMeta: simplevent.EventMeta{
 				Type:      bridgev2.RemoteEventMessageRemove,
@@ -69,9 +69,9 @@ func (lc *LinkedInClient) HandleLinkedInEvent(rawEvt any) {
 			TargetMessage: networkid.MessageID(evtData.Message.EntityUrn),
 		}
 		lc.connector.br.QueueRemoteEvent(lc.userLogin, messageDeleteRemoteEvent)
-	case event.MessageSeenEvent:
+	case eventold.MessageSeenEvent:
 		//
-	case event.TypingIndicatorEvent:
+	case eventold.TypingIndicatorEvent:
 		lc.connector.br.QueueRemoteEvent(lc.userLogin, &simplevent.Typing{
 			EventMeta: simplevent.EventMeta{
 				Type:       bridgev2.RemoteEventTyping,
@@ -89,7 +89,7 @@ func (lc *LinkedInClient) HandleLinkedInEvent(rawEvt any) {
 			Timeout: 15 * time.Second,
 			Type:    bridgev2.TypingTypeText,
 		})
-	case event.ThreadUpdateEvent:
+	case eventold.ThreadUpdateEvent:
 		evt := &simplevent.ChatResync{
 			EventMeta: simplevent.EventMeta{
 				Type: bridgev2.RemoteEventChatResync,
@@ -104,7 +104,7 @@ func (lc *LinkedInClient) HandleLinkedInEvent(rawEvt any) {
 			LatestMessageTS: time.UnixMilli(evtData.Thread.LastActivityAt),
 		}
 		lc.connector.br.QueueRemoteEvent(lc.userLogin, evt)
-	case event.ThreadDeleteEvent:
+	case eventold.ThreadDeleteEvent:
 		portalDeleteRemoteEvent := &simplevent.ChatDelete{
 			EventMeta: simplevent.EventMeta{
 				Type:      bridgev2.RemoteEventChatDelete,

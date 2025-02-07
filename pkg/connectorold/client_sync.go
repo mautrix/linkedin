@@ -12,19 +12,19 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/responseold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 )
 
 func (lc *LinkedInClient) syncChannels(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
 
-	getThreadsVariables := query.GetThreadsVariables{
+	getThreadsVariables := queryold.GetThreadsVariables{
 		Count:             20,
 		LastUpdatedBefore: 0,
 		NextCursor:        "",
 	}
-	conversations, err := lc.client.GetThreads(query.GetThreadsVariables{})
+	conversations, err := lc.client.GetThreads(queryold.GetThreadsVariables{})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to fetch initial inbox state")
 		return
