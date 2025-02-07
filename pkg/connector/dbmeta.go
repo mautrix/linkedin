@@ -19,6 +19,7 @@ package connector
 import (
 	"maunium.net/go/mautrix/bridgev2/database"
 
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
@@ -33,5 +34,6 @@ func (lc *LinkedInConnector) GetDBMetaTypes() database.MetaTypes {
 }
 
 type UserLoginMetadata struct {
-	Cookies *stringcookiejar.Jar `json:"cookies,omitempty"`
+	Cookies   *stringcookiejar.Jar `json:"cookies,omitempty"`
+	EntityURN types.URN            `json:"urn,omitempty"`
 }

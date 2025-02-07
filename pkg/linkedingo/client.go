@@ -27,8 +27,9 @@ import (
 )
 
 type Client struct {
-	http *http.Client
-	jar  *stringcookiejar.Jar
+	http          *http.Client
+	jar           *stringcookiejar.Jar
+	userEntityURN types.URN
 
 	realtimeSessionID uuid.UUID
 	realtimeCtx       context.Context
@@ -38,12 +39,14 @@ type Client struct {
 	handlers Handlers
 
 	clientPageInstanceID string
+	serviceVersion       string
 	xLITrack             string
 	i18nLocale           string
 }
 
-func NewClient(ctx context.Context, jar *stringcookiejar.Jar, handlers Handlers) *Client {
+func NewClient(ctx context.Context, userEntityURN types.URN, jar *stringcookiejar.Jar, handlers Handlers) *Client {
 	return &Client{
+		userEntityURN: userEntityURN,
 		http: &http.Client{
 			Jar: jar,
 

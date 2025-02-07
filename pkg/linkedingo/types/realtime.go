@@ -1,9 +1,8 @@
 package types
 
 import (
+	"github.com/google/uuid"
 	"go.mau.fi/util/jsontime"
-
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 )
 
 type RealtimeEvent struct {
@@ -15,7 +14,7 @@ type RealtimeEvent struct {
 type Heartbeat struct{}
 
 type ClientConnection struct {
-	ID string `json:"id"`
+	ID uuid.UUID `json:"id"`
 }
 
 type DecoratedEvent struct {
@@ -32,14 +31,8 @@ type DecoratedEventPayload struct {
 }
 
 type DecoratedEventData struct {
-	RecipeType                   string                        `json:"_recipeType,omitempty"`
-	Type                         string                        `json:"_type,omitempty"`
-	DecoratedMessage             *DecoratedMessageRealtime     `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
-	DecoratedSeenReceipt         *DecoratedSeenReceipt         `json:"doDecorateSeenReceiptMessengerRealtimeDecoration,omitempty"`
-	DecoratedTypingIndicator     *DecoratedTypingIndiciator    `json:"doDecorateTypingIndicatorMessengerRealtimeDecoration,omitempty"`
-	DecoratedMessageReaction     *DecoratedMessageReaction     `json:"doDecorateRealtimeReactionSummaryMessengerRealtimeDecoration,omitempty"`
-	DecoratedDeletedConversation *DecoratedDeletedConversation `json:"doDecorateConversationDeleteMessengerRealtimeDecoration,omitempty"`
-	DecoratedUpdatedConversation *DecoratedUpdatedConversation `json:"doDecorateConversationMessengerRealtimeDecoration,omitempty"`
+	Type             string          `json:"_type,omitempty"`
+	DecoratedMessage *ActionResponse `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
 }
 
 // Conversation represents a com.linkedin.messenger.Conversation object
@@ -100,38 +93,8 @@ type Message struct {
 	Conversation            Conversation            `json:"conversation,omitempty"`
 }
 
-type DecoratedMessageRealtime struct {
-	Result     Message `json:"result,omitempty"`
-	RecipeType string  `json:"_recipeType,omitempty"`
-	Type       string  `json:"_type,omitempty"`
-}
-
-type DecoratedSeenReceipt struct {
-	Result     responseold.MessageSeenReceipt `json:"result,omitempty"`
-	RecipeType string                         `json:"_recipeType,omitempty"`
-	Type       string                         `json:"_type,omitempty"`
-}
-
-type DecoratedTypingIndiciator struct {
-	Result     responseold.TypingIndicator `json:"result,omitempty"`
-	RecipeType string                      `json:"_recipeType,omitempty"`
-	Type       string                      `json:"_type,omitempty"`
-}
-
-type DecoratedMessageReaction struct {
-	Result     responseold.MessageReaction `json:"result,omitempty"`
-	RecipeType string                      `json:"_recipeType,omitempty"`
-	Type       string                      `json:"_type,omitempty"`
-}
-
-type DecoratedDeletedConversation struct {
-	Result     responseold.Conversation `json:"result,omitempty"`
-	RecipeType string                   `json:"_recipeType,omitempty"`
-	Type       string                   `json:"_type,omitempty"`
-}
-
-type DecoratedUpdatedConversation struct {
-	Result     responseold.ThreadElement `json:"result,omitempty"`
-	RecipeType string                    `json:"_recipeType,omitempty"`
-	Type       string                    `json:"_type,omitempty"`
+// ActionResponse represents a com.linkedin.restli.common.ActionResponse
+// object.
+type ActionResponse struct {
+	Result Message `json:"result,omitempty"`
 }

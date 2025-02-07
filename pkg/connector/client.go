@@ -66,16 +66,21 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 		userID:    userID,
 		userLogin: login,
 	}
-	client.client = linkedingo.NewClient(ctx, login.Metadata.(*UserLoginMetadata).Cookies, linkedingo.Handlers{
-		Heartbeat: func(ctx context.Context) {
-			login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	client.client = linkedingo.NewClient(
+		ctx,
+		login.Metadata.(*UserLoginMetadata).EntityURN,
+		login.Metadata.(*UserLoginMetadata).Cookies,
+		linkedingo.Handlers{
+			Heartbeat: func(ctx context.Context) {
+				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+			},
+			ClientConnection: func(context.Context, *types.ClientConnection) {
+				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+			},
+			RealtimeConnectError: client.onRealtimeConnectError,
+			DecoratedEvent:       client.onDecoratedEvent,
 		},
-		ClientConnection: func(context.Context, *types.ClientConnection) {
-			login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
-		},
-		RealtimeConnectError: client.onRealtimeConnectError,
-		DecoratedEvent:       client.onDecoratedEvent,
-	})
+	)
 	return client
 }
 
@@ -101,6 +106,13 @@ func (l *LinkedInClient) Connect(ctx context.Context) {
 
 func (l *LinkedInClient) onRealtimeConnectError(ctx context.Context, err error) {
 	zerolog.Ctx(ctx).Err(err).Msg("failed to read from event stream")
+	// TODO probably don't do this unconditionally
+	l.userLogin.BridgeState.Send(status.BridgeState{
+		StateEvent: status.StateBadCredentials,
+		Error:      "linkedin-no-auth",
+		Message:    err.Error(),
+	})
+	l.Disconnect()
 }
 
 func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *types.DecoratedEvent) {

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exerrors"
@@ -77,6 +78,7 @@ func (c *Client) cacheMetaValues(ctx context.Context) error {
 			case "clientPageInstanceId":
 				c.clientPageInstanceID = content
 			case "serviceVersion":
+				c.serviceVersion = content
 				xLITrack, err := json.Marshal(map[string]any{
 					"clientVersion":    content,
 					"mpVersion":        content,
@@ -117,28 +119,85 @@ func (c *Client) RealtimeConnect(ctx context.Context) error {
 		Logger()
 	ctx = log.WithContext(ctx)
 
-	log.Info().Msg("Starting realtime connection loop")
-
 	c.realtimeCtx, c.realtimeCancelFn = context.WithCancel(ctx)
-	// TODO run sendHeartbeat loop
-	go c.realtimeConnectLoop()
+	go c.runHeartbeatsLoop(c.realtimeCtx)
+	go c.realtimeConnectLoop(c.realtimeCtx)
 	return nil
 }
 
-func (c *Client) realtimeConnectLoop() {
-	log := zerolog.Ctx(c.realtimeCtx)
+func (c *Client) runHeartbeatsLoop(ctx context.Context) {
+	isFirst := true
+	userURN := c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String()
+
+	log := zerolog.Ctx(ctx).With().Str("usr_urn", userURN).Logger()
+	log.Info().Msg("Starting heartbeats loop")
+	for {
+		log.Debug().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Sending heartbeat")
+
+		body, err := json.Marshal(map[string]any{
+			"isFirstHeartbeat":  !isFirst,
+			"isLastHeartbeat":   false,
+			"realtimeSessionId": c.realtimeSessionID.String(),
+			"mpName":            "voyager-web",
+			"mpVersion":         c.serviceVersion,
+			"clientId":          "voyager-web",
+			"actorUrn":          userURN,
+			"contextUrns":       []string{userURN},
+		})
+		if err != nil {
+			log.Err(err).Msg("Failed to create heartbeat request body")
+			return
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, linkedInRealtimeHeartbeatURL, bytes.NewReader(body))
+		if err != nil {
+			log.Err(err).Msg("Failed to create heartbeat request")
+			return
+		}
+		req.Header.Add("csrf-token", c.getCSRFToken())
+		req.Header.Add("referer", linkedInMessagingBaseURL+"/")
+		req.Header.Add("x-li-accept", contentTypeJSONLinkedInNormalized)
+		req.Header.Add("x-li-page-instance", "urn:li:page:messaging_index;"+c.clientPageInstanceID)
+		req.Header.Add("x-li-query-accept", contentTypeGraphQL)
+		req.Header.Add("x-li-query-map", realtimeQueryMap)
+		req.Header.Add("x-li-realtime-session", c.realtimeSessionID.String())
+		req.Header.Add("x-li-recipe-accept", contentTypeJSONLinkedInNormalized)
+		req.Header.Add("x-li-recipe-map", realtimeRecipeMap)
+		req.Header.Add("x-li-track", c.xLITrack)
+		req.Header.Add("x-restli-protocol-version", "2.0.0")
+
+		_, err = c.http.Do(req)
+		if err != nil {
+			log.Err(err).Msg("Failed to send heartbeat")
+			return
+		}
+
+		isFirst = false
+		select {
+		case <-ctx.Done():
+			log.Info().Msg("Heartbeats loop canceled")
+			return
+		case <-time.After(time.Minute):
+		}
+	}
+}
+
+func (c *Client) realtimeConnectLoop(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
+	log.Info().Msg("Starting realtime connection loop")
 	// Continually reconnect to the realtime connection endpoint until the
 	// context is done.
 	for {
 		select {
-		case <-c.realtimeCtx.Done():
+		case <-ctx.Done():
+			log.Info().Msg("Realtime connection loop canceled")
 			return
 		default:
 		}
 
-		req, err := http.NewRequestWithContext(c.realtimeCtx, http.MethodGet, linkedInRealtimeConnectURL, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, linkedInRealtimeConnectURL, nil)
 		if err != nil {
-			c.handlers.onRealtimeConnectError(c.realtimeCtx, err)
+			c.handlers.onRealtimeConnectError(ctx, err)
 			return
 		}
 		req.Header.Add("Accept", contentTypeTextEventStream)
@@ -156,15 +215,15 @@ func (c *Client) realtimeConnectLoop() {
 
 		c.realtimeResp, err = c.http.Do(req)
 		if err != nil {
-			c.handlers.onRealtimeConnectError(c.realtimeCtx, err)
+			c.handlers.onRealtimeConnectError(ctx, err)
 			return
 		}
 		if c.realtimeResp.StatusCode != http.StatusOK {
-			c.handlers.onRealtimeConnectError(c.realtimeCtx, fmt.Errorf("failed to connect due to status code %d", c.realtimeResp.StatusCode))
+			c.handlers.onRealtimeConnectError(ctx, fmt.Errorf("failed to connect due to status code %d", c.realtimeResp.StatusCode))
 			return
 		}
 
-		log.Info().Msg("Reading realtime stream")
+		log.Info().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Reading realtime stream")
 		reader := bufio.NewReader(c.realtimeResp.Body)
 		for {
 			line, err := reader.ReadBytes('\n')
@@ -175,7 +234,7 @@ func (c *Client) realtimeConnectLoop() {
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				c.handlers.onRealtimeConnectError(c.realtimeCtx, err)
+				c.handlers.onRealtimeConnectError(ctx, err)
 				continue
 			}
 
@@ -185,23 +244,24 @@ func (c *Client) realtimeConnectLoop() {
 
 			var realtimeEvent types.RealtimeEvent
 			if err = json.Unmarshal(line[6:], &realtimeEvent); err != nil {
-				c.handlers.onRealtimeConnectError(c.realtimeCtx, err)
+				c.handlers.onRealtimeConnectError(ctx, err)
 				continue
 			}
 
 			switch {
 			case realtimeEvent.Heartbeat != nil:
-				c.handlers.onHeartbeat(c.realtimeCtx)
+				c.handlers.onHeartbeat(ctx)
 			case realtimeEvent.ClientConnection != nil:
-				c.handlers.onClientConnection(c.realtimeCtx, realtimeEvent.ClientConnection)
+				c.realtimeSessionID = realtimeEvent.ClientConnection.ID
+				log.Debug().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Got new realtime session ID")
+				c.handlers.onClientConnection(ctx, realtimeEvent.ClientConnection)
 			case realtimeEvent.DecoratedEvent != nil:
 				log.Debug().
 					Stringer("topic", realtimeEvent.DecoratedEvent.Topic).
 					Str("payload_type", realtimeEvent.DecoratedEvent.Payload.Data.Type).
 					Msg("Received decorated event")
 				fmt.Printf("%s\n", line)
-				fmt.Printf("decoratedEvent %+v\n", realtimeEvent.DecoratedEvent)
-				c.handlers.onDecoratedEvent(c.realtimeCtx, realtimeEvent.DecoratedEvent)
+				c.handlers.onDecoratedEvent(ctx, realtimeEvent.DecoratedEvent)
 			}
 		}
 	}

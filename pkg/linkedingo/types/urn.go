@@ -47,6 +47,13 @@ func (u URN) MarshalJSON() ([]byte, error) {
 	return json.Marshal(u.String())
 }
 
-func (u *URN) NthPart(n int) string {
+func (u URN) NthPart(n int) string {
 	return u.parts[n]
+}
+
+// WithPrefix returns a URN with the given prefix but the same ID (last part)
+func (u URN) WithPrefix(prefix ...string) (n URN) {
+	n.parts = append(prefix, u.parts[len(u.parts)-1])
+	n.idParts = u.idParts
+	return
 }
