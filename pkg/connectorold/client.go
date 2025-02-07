@@ -12,18 +12,18 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	bridgeEvt "maunium.net/go/mautrix/event"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
 type LinkedInClient struct {
 	connector *LinkedInConnector
-	client    *linkedingo.Client
+	client    *linkedingoold.Client
 
 	userLogin *bridgev2.UserLogin
 
-	userCache   map[string]types.Member
+	userCache   map[string]typesold.Member
 	threadCache map[string]response.ThreadElement
 }
 
@@ -38,13 +38,13 @@ func NewLinkedInClient(ctx context.Context, tc *LinkedInConnector, login *bridge
 		Logger()
 
 	// meta := login.Metadata.(*UserLoginMetadata)
-	clientOpts := &linkedingo.ClientOpts{
+	clientOpts := &linkedingoold.ClientOpts{
 		// Cookies: cookies.NewCookiesFromString(meta.Cookies),
 	}
 	linClient := &LinkedInClient{
-		client:      linkedingo.NewClient(clientOpts, log),
+		client:      linkedingoold.NewClient(clientOpts, log),
 		userLogin:   login,
-		userCache:   make(map[string]types.Member),
+		userCache:   make(map[string]typesold.Member),
 		threadCache: make(map[string]response.ThreadElement),
 	}
 
@@ -107,7 +107,7 @@ func (lc *LinkedInClient) IsThisUser(_ context.Context, userID networkid.UserID)
 	return networkid.UserID(lc.client.GetCurrentUserID()) == userID
 }
 
-func (lc *LinkedInClient) GetCurrentUser() (user *types.UserLoginProfile, err error) {
+func (lc *LinkedInClient) GetCurrentUser() (user *typesold.UserLoginProfile, err error) {
 	user, err = lc.client.GetCurrentUserProfile()
 	return
 }

@@ -25,7 +25,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
@@ -76,7 +76,7 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 		return nil, err
 	}
 
-	loginClient := linkedingo2.NewClient(ctx, jar, linkedingo2.Handlers{})
+	loginClient := linkedingo.NewClient(ctx, jar, linkedingo.Handlers{})
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
 		return nil, err

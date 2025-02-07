@@ -2,217 +2,217 @@ package linkedingo
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"io"
 	"net/http"
-	"strings"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/event"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/event/raw"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
+	"github.com/rs/zerolog"
+	"go.mau.fi/util/exerrors"
+	"golang.org/x/net/html"
+
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
-
-	"github.com/google/uuid"
 )
 
-type RealtimeClient struct {
-	client     *Client
-	http       *http.Client
-	conn       *http.Response
-	cancelFunc context.CancelFunc
-	sessionID  string
+//go:embed x-li-recipe-map.json
+var realtimeRecipeMapJSON []byte
+
+//go:embed x-li-query-map.json
+var realtimeQueryMapJSON []byte
+
+var realtimeRecipeMap, realtimeQueryMap string
+
+func init() {
+	var x any
+	exerrors.PanicIfNotNil(json.Unmarshal(realtimeRecipeMapJSON, &x))
+	realtimeRecipeMap = string(exerrors.Must(json.Marshal(x)))
+	exerrors.PanicIfNotNil(json.Unmarshal(realtimeQueryMapJSON, &x))
+	realtimeQueryMap = string(exerrors.Must(json.Marshal(x)))
 }
 
-func (c *Client) newRealtimeClient() *RealtimeClient {
-	return &RealtimeClient{
-		client: c,
-		http: &http.Client{
-			Transport: &http.Transport{
-				Proxy: c.httpProxy,
-			},
-		},
-		sessionID: uuid.NewString(),
+func (c *Client) cacheMetaValues(ctx context.Context) error {
+	if c.clientPageInstanceID != "" && c.xLITrack != "" && c.i18nLocale != "" {
+		return nil
 	}
-}
 
-func (rc *RealtimeClient) Connect() error {
-	extraHeaders := map[string]string{
-		"accept":                string(types.ContentTypeTextEventStream),
-		"x-li-realtime-session": rc.sessionID,
-		"x-li-recipe-accept":    string(types.ContentTypeJSONLinkedInNormalized),
-		"x-li-query-accept":     string(types.ContentTypeGraphQL),
-		"x-li-accept":           string(types.ContentTypeJSONLinkedInNormalized),
-		"x-li-recipe-map":       `{"inAppAlertsTopic":"com.linkedin.voyager.dash.deco.identity.notifications.InAppAlert-51","professionalEventsTopic":"com.linkedin.voyager.dash.deco.events.ProfessionalEventDetailPage-57","topCardLiveVideoTopic":"com.linkedin.voyager.dash.deco.video.TopCardLiveVideo-9","tabBadgeUpdateTopic":"com.linkedin.voyager.dash.deco.notifications.RealtimeBadgingItemCountsEvent-1"}`,
-		"x-li-query-map":        `{"topicToGraphQLQueryParams":{"conversationsBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.dc0088938e4fd0220c7694cdc1e7e2f6","variables":{},"extensions":{}},"conversationsTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.dc0088938e4fd0220c7694cdc1e7e2f6","variables":{},"extensions":{}},"conversationDeletesBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.282abe5fa1a242cb76825c32dbbfaede","variables":{},"extensions":{}},"conversationDeletesTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.282abe5fa1a242cb76825c32dbbfaede","variables":{},"extensions":{}},"messageReactionSummariesBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.3173250b03ea4f9f9e138a145cf3d9b4","variables":{},"extensions":{}},"messageReactionSummariesTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.3173250b03ea4f9f9e138a145cf3d9b4","variables":{},"extensions":{}},"messageSeenReceiptsBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.56fd79ca10248ead05369fa7ab1868dc","variables":{},"extensions":{}},"messageSeenReceiptsTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.56fd79ca10248ead05369fa7ab1868dc","variables":{},"extensions":{}},"messagesBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.9a690a85b608d1212fdaed40be3a1465","variables":{},"extensions":{}},"messagesTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.9a690a85b608d1212fdaed40be3a1465","variables":{},"extensions":{}},"replySuggestionBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.412964c3f7f5a67fb0e56b6bb3a00028","variables":{},"extensions":{}},"replySuggestionTopicV2":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.412964c3f7f5a67fb0e56b6bb3a00028","variables":{},"extensions":{}},"typingIndicatorsBroadcastTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.ad2174343a09cd7ef53b2e6f633695fe","variables":{},"extensions":{}},"typingIndicatorsTopic":{"queryId":"voyagerMessagingDashMessengerRealtimeDecoration.ad2174343a09cd7ef53b2e6f633695fe","variables":{},"extensions":{}},"messagingSecondaryPreviewBannerTopic":{"queryId":"voyagerMessagingDashRealtimeDecoration.60068248c1f5c683ad2557f7ccfdf188","variables":{},"extensions":{}},"reactionsTopic":{"queryId":"liveVideoVoyagerSocialDashRealtimeDecoration.b8b33dedca7efbe34f1d7e84c3b3aa81","variables":{},"extensions":{}},"commentsTopic":{"queryId":"liveVideoVoyagerSocialDashRealtimeDecoration.c582028e0b04485c17e4324d3f463e11","variables":{},"extensions":{}},"reactionsOnCommentsTopic":{"queryId":"liveVideoVoyagerSocialDashRealtimeDecoration.0a181b05b3751f72ae3eb489b77e3245","variables":{},"extensions":{}},"socialPermissionsPersonalTopic":{"queryId":"liveVideoVoyagerSocialDashRealtimeDecoration.170bf3bfbcca1da322e34f34f37fb954","variables":{},"extensions":{}},"liveVideoPostTopic":{"queryId":"liveVideoVoyagerFeedDashLiveUpdatesRealtimeDecoration.ccc245beb0ba0d99bd1df96a1fc53abc","variables":{},"extensions":{}},"generatedJobDescriptionsTopic":{"queryId":"voyagerHiringDashRealtimeDecoration.58501bc70ea8ce6b858527fb1be95007","variables":{},"extensions":{}},"eventToastsTopic":{"queryId":"voyagerEventsDashProfessionalEventsRealtimeResource.6b42abd3511e267e84a6765257deea50","variables":{},"extensions":{}},"coachStreamingResponsesTopic":{"queryId":"voyagerCoachDashGaiRealtimeDecoration.c5707587cf5d95191185235cf15d5129","variables":{},"extensions":{}},"realtimeSearchResultClustersTopic":{"queryId":"voyagerSearchDashRealtimeDecoration.545edd9da8c728b0854505ab6df11870","variables":{},"extensions":{}}}}`,
-	}
-	headerOpts := types.HeaderOpts{
-		WithCookies:         true,
-		WithCsrfToken:       true,
-		WithXLiTrack:        true,
-		WithXLiPageInstance: true,
-		WithXLiProtocolVer:  true,
-		Extra:               extraHeaders,
-		Referer:             string(routing.LinkedInMessagingBaseURL) + "/",
-	}
-	headers := rc.client.buildHeaders(headerOpts)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	rc.cancelFunc = cancel
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, string(routing.LinkedInRealtimeConnectURL)+"?rc=1", nil) // ("GET", string(routing.REALTIME_CONNECT_URL) + "?rc=1", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, LinkedInMessagingBaseURL, nil)
 	if err != nil {
 		return err
 	}
-	req.Header = headers
+	req.Header.Add("Sec-Fetch-Dest", "document")
+	req.Header.Add("Sec-Fetch-Mode", "navigate")
+	req.Header.Add("Sec-Fetch-Site", "none")
+	req.Header.Add("Sec-Fetch-User", "?1")
+	req.Header.Add("Upgrade-Insecure-Requests", "1")
 
-	conn, err := rc.http.Do(req)
+	resp, err := c.http.Do(req)
 	if err != nil {
 		return err
 	}
-
-	if conn.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", conn.Status)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("messages page returned status code %d", resp.StatusCode)
 	}
 
-	rc.conn = conn
-	go rc.beginReadStream()
+	doc, err := html.Parse(resp.Body)
+	if err != nil {
+		return err
+	}
+	var crawl func(*html.Node) error
+	crawl = func(n *html.Node) error {
+		if n.Type == html.ElementNode && n.Data == "meta" {
+			var name, content string
+			for _, a := range n.Attr {
+				if a.Key == "name" {
+					name = a.Val
+				}
+				if a.Key == "content" {
+					content = a.Val
+				}
+			}
+			switch name {
+			case "clientPageInstanceId":
+				c.clientPageInstanceID = content
+			case "serviceVersion":
+				xLITrack, err := json.Marshal(map[string]any{
+					"clientVersion":    content,
+					"mpVersion":        content,
+					"osName":           "web",
+					"timezoneOffset":   2,                  // TODO scrutinize
+					"timezone":         "Europe/Stockholm", // TODO scrutinize
+					"deviceFormFactor": "DESKTOP",
+					"mpName":           "voyager-web",
+					"displayDensity":   1.125,
+					"displayWidth":     2560.5,
+					"displayHeight":    1440,
+				})
+				if err != nil {
+					return err
+				}
+				c.xLITrack = string(xLITrack)
+			case "i18nLocale":
+				c.i18nLocale = content
+			}
+		}
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			if err := crawl(child); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return crawl(doc)
+}
 
+func (c *Client) RealtimeConnect(ctx context.Context) error {
+	if err := c.cacheMetaValues(ctx); err != nil {
+		return err
+	}
+	log := zerolog.Ctx(ctx).With().
+		Str("loop", "realtime_connect").
+		Str("client_page_instance_id", c.clientPageInstanceID).
+		Logger()
+	ctx = log.WithContext(ctx)
+
+	log.Info().Msg("Starting realtime connection loop")
+
+	c.realtimeCtx, c.realtimeCancelFn = context.WithCancel(ctx)
+	// TODO run sendHeartbeat loop
+	go c.realtimeConnectLoop()
 	return nil
 }
 
-func (rc *RealtimeClient) beginReadStream() {
-	reader := bufio.NewReader(rc.conn.Body)
+func (c *Client) realtimeConnectLoop() {
+	log := zerolog.Ctx(c.realtimeCtx)
+	// Continually reconnect to the realtime connection endpoint until the
+	// context is done.
 	for {
-		line, err := reader.ReadString('\n')
+		select {
+		case <-c.realtimeCtx.Done():
+			return
+		default:
+		}
+
+		req, err := http.NewRequestWithContext(c.realtimeCtx, http.MethodGet, LinkedInRealtimeConnectURL, nil)
 		if err != nil {
-			if errors.Is(err, context.Canceled) { // currently only means that Disconnect() was called
-				break
-			}
-			log.Fatalf("error reading from event stream: %s", err.Error())
+			c.handlers.onRealtimeConnectError(c.realtimeCtx, err)
+			return
+		}
+		req.Header.Add("Accept", types.ContentTypeTextEventStream)
+		req.Header.Add("x-li-realtime-session", c.realtimeSessionID.String())
+		req.Header.Add("x-li-recipe-accept", types.ContentTypeJSONLinkedInNormalized)
+		req.Header.Add("x-li-query-accept", types.ContentTypeGraphQL)
+		req.Header.Add("x-li-accept", types.ContentTypeJSONLinkedInNormalized)
+		req.Header.Add("x-li-recipe-map", realtimeRecipeMap)
+		req.Header.Add("x-li-query-map", realtimeQueryMap)
+		req.Header.Add("csrf-token", c.getCSRFToken())
+		req.Header.Add("referer", LinkedInMessagingBaseURL+"/")
+		req.Header.Add("x-restli-protocol-version", "2.0.0")
+		req.Header.Add("x-li-track", c.xLITrack)
+		req.Header.Add("x-li-page-instance", "urn:li:page:messaging_index;"+c.clientPageInstanceID)
+
+		c.realtimeResp, err = c.http.Do(req)
+		if err != nil {
+			c.handlers.onRealtimeConnectError(c.realtimeCtx, err)
+			return
+		}
+		if c.realtimeResp.StatusCode != http.StatusOK {
+			c.handlers.onRealtimeConnectError(c.realtimeCtx, fmt.Errorf("failed to connect due to status code %d", c.realtimeResp.StatusCode))
+			return
 		}
 
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-
-		if strings.HasPrefix(line, "data: ") {
-			eventDataString := strings.TrimPrefix(line, "data: ")
-			var eventData map[types.RealtimeEvent]json.RawMessage
-			err = json.Unmarshal([]byte(eventDataString), &eventData)
+		log.Info().Msg("Reading realtime stream")
+		reader := bufio.NewReader(c.realtimeResp.Body)
+		for {
+			line, err := reader.ReadBytes('\n')
 			if err != nil {
-				log.Printf("error unmarshaling JSON event data: %v\n", err)
+				if errors.Is(err, context.Canceled) {
+					return
+				}
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				c.handlers.onRealtimeConnectError(c.realtimeCtx, err)
 				continue
 			}
 
-			rc.processEvents(eventData)
-		}
-	}
-}
-
-func (rc *RealtimeClient) Disconnect() error {
-	if rc.conn == nil {
-		return fmt.Errorf("realtime client is not connected yet")
-	}
-
-	if rc.cancelFunc == nil {
-		return fmt.Errorf("cancel func is somehow nil, can not disconnect real-time client")
-	}
-
-	rc.cancelFunc()
-
-	rc.conn = nil
-	rc.cancelFunc = nil
-	rc.sessionID = uuid.NewString()
-
-	if rc.client.eventHandler != nil {
-		rc.client.eventHandler(event.ConnectionClosed{
-			Reason: types.ConnectionClosedReasonSelfDisconnectIssued,
-		})
-	}
-
-	return nil
-}
-
-func (rc *RealtimeClient) processEvents(data map[types.RealtimeEvent]json.RawMessage) {
-	for eventType, eventDataBytes := range data {
-		switch eventType {
-		case types.RealtimeEventDecoratedEvent:
-			var decoratedEventResponse raw.DecoratedEventResponse
-			err := json.Unmarshal(eventDataBytes, &decoratedEventResponse)
-			if err != nil {
-				log.Fatalf("failed to unmarshal event bytes with type %s into raw.DecoratedEventResponse", eventType)
+			if !bytes.HasPrefix(line, []byte("data:")) {
+				continue
 			}
-			log.Println(string(eventDataBytes))
-			rc.processDecoratedEvent(decoratedEventResponse)
-		case types.RealtimeEventHeartbeat:
-			log.Println("received heartbeat")
-		case types.RealtimeEventClientConnection:
-			if rc.client.eventHandler != nil {
-				rc.client.eventHandler(event.ConnectionReady{})
+
+			var realtimeEvent types.RealtimeEvent
+			if err = json.Unmarshal(line[6:], &realtimeEvent); err != nil {
+				c.handlers.onRealtimeConnectError(c.realtimeCtx, err)
+				continue
 			}
-		default:
-			rc.client.Logger.Warn().Str("json_data", string(eventDataBytes)).Str("event_type", string(eventType)).Msg("Received unknown event")
+
+			switch {
+			case realtimeEvent.Heartbeat != nil:
+				c.handlers.onHeartbeat(c.realtimeCtx)
+			case realtimeEvent.ClientConnection != nil:
+				c.handlers.onClientConnection(c.realtimeCtx, realtimeEvent.ClientConnection)
+			case realtimeEvent.DecoratedEvent != nil:
+				log.Debug().
+					Str("topic", realtimeEvent.DecoratedEvent.Topic).
+					Str("payload_type", realtimeEvent.DecoratedEvent.Payload.Data.Type).
+					Msg("Received decorated event")
+				fmt.Printf("%s\n", line)
+				fmt.Printf("decoratedEvent %+v\n", realtimeEvent.DecoratedEvent)
+				switch {
+				case realtimeEvent.DecoratedEvent.Payload.Data.DecoratedMessage != nil:
+					c.handlers.onDecoratedMessage(c.realtimeCtx, realtimeEvent.DecoratedEvent.Payload.Data.DecoratedMessage)
+				default:
+				}
+			}
 		}
 	}
 }
 
-func (rc *RealtimeClient) processDecoratedEvent(data raw.DecoratedEventResponse) {
-	var evtData any
-	topic, topicChunks := parseRealtimeTopic(data.Topic)
-	switch topic {
-	case types.RealtimeEventTopicMessages:
-		renderFormat := data.Payload.Data.DecoratedMessage.Result.MessageBodyRenderFormat
-		switch renderFormat {
-		case response.RenderFormatDefault:
-			evtData = data.Payload.Data.ToMessageEvent()
-		case response.RenderFormatEdited:
-			evtData = data.Payload.Data.ToMessageEditedEvent()
-		case response.RenderFormatReCalled:
-			evtData = data.Payload.Data.ToMessageDeleteEvent()
-		case response.RenderFormatSystem:
-			evtData = data.Payload.Data.ToSystemMessageEvent()
-		default:
-			rc.client.Logger.Warn().Any("json_data", data.Payload).Str("format", string(renderFormat)).Msg("Received unknown message body render format")
-		}
-	case types.RealtimeEventTopicMessageReactionSummaries:
-		evtData = data.Payload.Data.ToMessageReactionEvent()
-	case types.RealtimeEventTopicTypingIndicators:
-		evtData = data.Payload.Data.ToTypingIndicatorEvent()
-	case types.RealtimeEventTopicPresenceStatus:
-		fsdProfileId := topicChunks[:-0]
-		log.Println("presence updated for user id:", fsdProfileId)
-		evtData = data.Payload.ToPresenceStatusUpdateEvent(fsdProfileId[0])
-	case types.RealtimeEventTopicMessageSeenReceipts:
-		evtData = data.Payload.Data.ToMessageSeenEvent()
-	case types.RealtimeEventTopicConversations:
-		evtData = data.Payload.Data.ToThreadUpdateEvent()
-	case types.RealtimeEventTopicConversationsDelete:
-		evtData = data.Payload.Data.ToThreadDeleteEvent()
-	/* Ignored event topics */
-	case types.RealtimeEventTopicJobPostingPersonal:
-	case types.RealtimeEventTopicSocialPermissionsPersonal:
-	case types.RealtimeEventTopicMessagingProgressIndicator:
-	case types.RealtimeEventTopicMessagingDataSync:
-	case types.RealtimeEventTopicInvitations:
-	case types.RealtimeEventTopicInAppAlerts:
-	case types.RealtimeEventTopicReplySuggestionV2:
-	case types.RealtimeEventTopicTabBadgeUpdate:
-		break
-	default:
-		rc.client.Logger.Warn().Any("json_data", data.Payload).Str("event_topic", string(data.Topic)).Msg("Received unknown event topic")
+func (c *Client) RealtimeDisconnect() {
+	if c.realtimeCancelFn != nil {
+		c.realtimeCancelFn()
 	}
-
-	if evtData != nil {
-		rc.client.eventHandler(evtData)
-	}
-}
-
-func parseRealtimeTopic(topic string) (types.RealtimeEventTopic, []string) {
-	topicChunks := strings.Split(topic, ":")
-	return types.RealtimeEventTopic(topicChunks[2]), topicChunks
 }

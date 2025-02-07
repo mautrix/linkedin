@@ -26,15 +26,15 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2/types2"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type LinkedInClient struct {
 	main      *LinkedInConnector
 	userID    networkid.UserID
 	userLogin *bridgev2.UserLogin
-	client    *linkedingo2.Client
+	client    *linkedingo.Client
 }
 
 var (
@@ -61,11 +61,11 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 		userID:    userID,
 		userLogin: login,
 	}
-	client.client = linkedingo2.NewClient(ctx, login.Metadata.(*UserLoginMetadata).Cookies, linkedingo2.Handlers{
+	client.client = linkedingo.NewClient(ctx, login.Metadata.(*UserLoginMetadata).Cookies, linkedingo.Handlers{
 		Heartbeat: func(ctx context.Context) {
 			login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 		},
-		ClientConnection: func(context.Context, *types2.ClientConnection) {
+		ClientConnection: func(context.Context, *types.ClientConnection) {
 			login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 		},
 		RealtimeConnectError: client.onRealtimeConnectError,
@@ -98,8 +98,8 @@ func (l *LinkedInClient) onRealtimeConnectError(ctx context.Context, err error) 
 	zerolog.Ctx(ctx).Err(err).Msg("failed to read from event stream")
 }
 
-func (l *LinkedInClient) onDecoratedMessage(ctx context.Context, msg *types2.DecoratedMessageRealtime) {
-	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Message[*types2.DecoratedMessageRealtime]{
+func (l *LinkedInClient) onDecoratedMessage(ctx context.Context, msg *types.DecoratedMessageRealtime) {
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Message[*types.DecoratedMessageRealtime]{
 		EventMeta: simplevent.EventMeta{
 			Type: bridgev2.RemoteEventMessage,
 			LogContext: func(c zerolog.Context) zerolog.Context {
@@ -171,7 +171,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 }
 
 func (l *LinkedInClient) IsLoggedIn() bool {
-	return l.userLogin.Metadata.(*UserLoginMetadata).Cookies.GetCookie(linkedingo2.LinkedInJSESSIONID) != ""
+	return l.userLogin.Metadata.(*UserLoginMetadata).Cookies.GetCookie(linkedingo.LinkedInJSESSIONID) != ""
 }
 
 func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID) bool {

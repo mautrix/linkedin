@@ -10,8 +10,8 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/event"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/payload"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
 var (
@@ -75,7 +75,7 @@ func (lc *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2
 			attachmentType = payload.MediaUploadTypePhotoAttachment
 		}
 
-		mediaMetadata, err := lc.client.UploadMedia(attachmentType, content.FileName, data, types.ContentTypeJSONPlaintextUTF8)
+		mediaMetadata, err := lc.client.UploadMedia(attachmentType, content.FileName, data, typesold.ContentTypeJSONPlaintextUTF8)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +85,7 @@ func (lc *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2
 			File: &payload.File{
 				AssetUrn:  mediaMetadata.Urn,
 				Name:      content.FileName,
-				MediaType: types.ContentType(content.Info.MimeType),
+				MediaType: typesold.ContentType(content.Info.MimeType),
 				ByteSize:  len(data),
 			},
 		})

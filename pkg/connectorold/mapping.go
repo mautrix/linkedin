@@ -15,10 +15,10 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	bridgeEvt "maunium.net/go/mautrix/event"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/payload"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/query"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/payload"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/response"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
 )
 
 func MakeAvatar(avatarURL string) *bridgev2.Avatar {
@@ -66,7 +66,7 @@ func (lc *LinkedInClient) ConversationTypeToRoomType(isGroupChat bool) *database
 	return &roomType
 }
 
-func (lc *LinkedInClient) ParticipantsToMemberList(participants []types.ConversationParticipant) *bridgev2.ChatMemberList {
+func (lc *LinkedInClient) ParticipantsToMemberList(participants []typesold.ConversationParticipant) *bridgev2.ChatMemberList {
 	selfUserId := lc.client.GetCurrentUserID()
 	memberMap := map[networkid.UserID]bridgev2.ChatMember{}
 	for _, participant := range participants {
@@ -80,7 +80,7 @@ func (lc *LinkedInClient) ParticipantsToMemberList(participants []types.Conversa
 	}
 }
 
-func (lc *LinkedInClient) ParticipantToChatMember(participant types.ConversationParticipant, isFromMe bool) bridgev2.ChatMember {
+func (lc *LinkedInClient) ParticipantToChatMember(participant typesold.ConversationParticipant, isFromMe bool) bridgev2.ChatMember {
 	member := participant.ParticipantType.Member
 	if participant.ParticipantType.Organization != nil || participant.ParticipantType.Custom != nil {
 		return bridgev2.ChatMember{}
@@ -102,7 +102,7 @@ func (lc *LinkedInClient) GetUserInfoBridge(userUrn string) *bridgev2.UserInfo {
 	return userinfo
 }
 
-func (lc *LinkedInClient) getUserInfoMember(member types.Member) *bridgev2.UserInfo {
+func (lc *LinkedInClient) getUserInfoMember(member typesold.Member) *bridgev2.UserInfo {
 	return &bridgev2.UserInfo{
 		Name:        ptr.Ptr(lc.connector.Config.FormatDisplayname(member.FirstName.Text, member.LastName.Text)),
 		Avatar:      MakeAvatar(member.ProfilePicture.RootURL),

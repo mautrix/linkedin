@@ -1,140 +1,93 @@
+// mautrix-linkedin - A Matrix-LinkedIn puppeting bridge.
+// Copyright (C) 2025 Sumner Evans
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 package linkedingo
 
 import (
 	"context"
-	"encoding/json"
-	"net"
 	"net/http"
-	"net/url"
-	"time"
 
-	"github.com/rs/zerolog"
-	"golang.org/x/net/proxy"
+	"github.com/google/uuid"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
-type EventHandler func(evt any)
-type ClientOpts struct {
-	EventHandler EventHandler
+type Handlers struct {
+	Heartbeat            func(context.Context)
+	ClientConnection     func(context.Context, *types.ClientConnection)
+	RealtimeConnectError func(context.Context, error)
+	DecoratedMessage     func(context.Context, *types.DecoratedMessageRealtime)
 }
+
+func (h Handlers) onHeartbeat(ctx context.Context) {
+	if h.Heartbeat != nil {
+		h.Heartbeat(ctx)
+	}
+}
+
+func (h Handlers) onClientConnection(ctx context.Context, conn *types.ClientConnection) {
+	if h.ClientConnection != nil {
+		h.ClientConnection(ctx, conn)
+	}
+}
+
+func (h Handlers) onRealtimeConnectError(ctx context.Context, err error) {
+	if h.RealtimeConnectError != nil {
+		h.RealtimeConnectError(ctx, err)
+	}
+}
+
+func (h Handlers) onDecoratedMessage(ctx context.Context, msg *types.DecoratedMessageRealtime) {
+	if h.DecoratedMessage != nil {
+		h.DecoratedMessage(ctx, msg)
+	}
+}
+
 type Client struct {
-	Logger       zerolog.Logger
-	PageLoader   *PageLoader
-	rc           *RealtimeClient
-	http         *http.Client
-	httpProxy    func(*http.Request) (*url.URL, error)
-	socksProxy   proxy.Dialer
-	eventHandler EventHandler
+	http *http.Client
+	jar  *stringcookiejar.Jar
+
+	realtimeSessionID uuid.UUID
+	realtimeCtx       context.Context
+	realtimeCancelFn  context.CancelFunc
+	realtimeResp      *http.Response
+
+	handlers Handlers
+
+	clientPageInstanceID string
+	xLITrack             string
+	i18nLocale           string
 }
 
-func NewClient(opts *ClientOpts, logger zerolog.Logger) *Client {
-	cli := Client{
+func NewClient(ctx context.Context, jar *stringcookiejar.Jar, handlers Handlers) *Client {
+	return &Client{
 		http: &http.Client{
-			Transport: &http.Transport{
-				DialContext:           (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
-				TLSHandshakeTimeout:   10 * time.Second,
-				ResponseHeaderTimeout: 40 * time.Second,
-				ForceAttemptHTTP2:     true,
+			Jar: jar,
+
+			// Disallow redirects entirely:
+			// https://stackoverflow.com/a/38150816/2319844
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
 			},
-			Timeout: 60 * time.Second,
 		},
-		Logger: logger,
+		jar: jar,
+
+		realtimeSessionID: uuid.New(),
+
+		handlers: handlers,
 	}
-
-	if opts.EventHandler != nil {
-		cli.SetEventHandler(opts.EventHandler)
-	}
-
-	// if opts.Cookies != nil {
-	// 	cli.cookies = opts.Cookies
-	// } else {
-	// 	cli.cookies = cookies.NewCookies()
-	// }
-
-	cli.rc = cli.newRealtimeClient()
-	cli.PageLoader = cli.newPageLoader()
-
-	return &cli
-}
-
-func (c *Client) Connect() error {
-	return c.rc.Connect()
-}
-
-func (c *Client) Disconnect() error {
-	return c.rc.Disconnect()
-}
-
-func (c *Client) GetCookieString() string {
-	// return c.cookies.String()
-	return ""
-}
-
-func (c *Client) LoadMessagesPage() error {
-	return c.PageLoader.LoadMessagesPage()
-}
-
-func (c *Client) GetCurrentUserID() string {
-	return c.PageLoader.CurrentUser.FsdProfileID
-}
-
-func (c *Client) GetCurrentUserProfile() (*types.UserLoginProfile, error) {
-	headers := c.buildHeaders(types.HeaderOpts{
-		WithCookies:         true,
-		WithCsrfToken:       true,
-		WithXLiTrack:        true,
-		WithXLiPageInstance: true,
-		WithXLiProtocolVer:  true,
-		WithXLiLang:         true,
-	})
-
-	_, data, err := c.MakeRequest(string(routing.LinkedInVoyagerCommonMeURL), http.MethodGet, headers, make([]byte, 0), types.ContentTypeJSONLinkedInNormalized)
-	if err != nil {
-		return nil, err
-	}
-
-	response := &types.UserLoginProfile{}
-
-	err = json.Unmarshal(data, response)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
-}
-
-func (c *Client) SetProxy(proxyAddr string) error {
-	proxyParsed, err := url.Parse(proxyAddr)
-	if err != nil {
-		return err
-	}
-
-	if proxyParsed.Scheme == "http" || proxyParsed.Scheme == "https" {
-		c.httpProxy = http.ProxyURL(proxyParsed)
-		c.http.Transport.(*http.Transport).Proxy = c.httpProxy
-	} else if proxyParsed.Scheme == "socks5" {
-		c.socksProxy, err = proxy.FromURL(proxyParsed, &net.Dialer{Timeout: 20 * time.Second})
-		if err != nil {
-			return err
-		}
-		c.http.Transport.(*http.Transport).DialContext = func(ctx context.Context, network string, addr string) (net.Conn, error) {
-			return c.socksProxy.Dial(network, addr)
-		}
-		contextDialer, ok := c.socksProxy.(proxy.ContextDialer)
-		if ok {
-			c.http.Transport.(*http.Transport).DialContext = contextDialer.DialContext
-		}
-	}
-
-	c.Logger.Debug().
-		Str("scheme", proxyParsed.Scheme).
-		Str("host", proxyParsed.Host).
-		Msg("Using proxy")
-	return nil
-}
-
-func (c *Client) SetEventHandler(handler EventHandler) {
-	c.eventHandler = handler
 }

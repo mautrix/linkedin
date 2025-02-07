@@ -8,7 +8,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/query"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routing/query"
 )
 
 var _ bridgev2.BackfillingNetworkAPI = (*LinkedInClient)(nil)
