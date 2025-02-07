@@ -20,12 +20,13 @@ import (
 	"context"
 	"fmt"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2"
-	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2"
+	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
 type CookieLogin struct {

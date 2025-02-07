@@ -1,8 +1,9 @@
 package types2
 
 import (
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
 	"go.mau.fi/util/jsontime"
+
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/routing/response"
 )
 
 type RealtimeEvent struct {

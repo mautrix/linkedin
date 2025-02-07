@@ -1,9 +1,10 @@
 package connector
 
 import (
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2/types2"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2/types2"
 )
 
 func (l *LinkedInClient) makePortalKey(backendURN types2.URN) (key networkid.PortalKey) {

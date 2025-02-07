@@ -17,8 +17,9 @@
 package connector
 
 import (
-	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 	"maunium.net/go/mautrix/bridgev2/database"
+
+	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
 func (lc *LinkedInConnector) GetDBMetaTypes() database.MetaTypes {

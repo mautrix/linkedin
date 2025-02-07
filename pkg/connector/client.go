@@ -21,12 +21,13 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2/types2"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
+
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2/types2"
 )
 
 type LinkedInClient struct {

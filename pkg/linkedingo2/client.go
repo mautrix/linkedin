@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo2/types2"
 	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
