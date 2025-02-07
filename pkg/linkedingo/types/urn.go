@@ -40,8 +40,7 @@ func (u URN) String() string {
 
 func (u *URN) UnmarshalJSON(data []byte) (err error) {
 	var urn string
-	err = json.Unmarshal(data, &urn)
-	if err != nil {
+	if err = json.Unmarshal(data, &urn); err != nil {
 		return err
 	}
 	parts := strings.Split(urn, ":")

@@ -26,11 +26,11 @@ import (
 )
 
 func (c *Client) getCSRFToken() string {
-	return c.jar.GetCookie(LinkedInJSESSIONID)
+	return c.jar.GetCookie(LinkedInCookieJSESSIONID)
 }
 
 func (c *Client) GetCurrentUserProfile(ctx context.Context) (*types.UserProfile, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, LinkedInVoyagerCommonMeURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, linkedInVoyagerCommonMeURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (c *Client) GetCurrentUserProfile(ctx context.Context) (*types.UserProfile,
 func (c *Client) Logout(ctx context.Context) error {
 	params := url.Values{}
 	params.Add("csrfToken", c.getCSRFToken())
-	url, err := url.Parse(LinkedInLogoutURL)
+	url, err := url.Parse(linkedInLogoutURL)
 	if err != nil {
 		return err
 	}

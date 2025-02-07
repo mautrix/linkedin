@@ -208,7 +208,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 }
 
 func (l *LinkedInClient) IsLoggedIn() bool {
-	return l.userLogin.Metadata.(*UserLoginMetadata).Cookies.GetCookie(linkedingo.LinkedInJSESSIONID) != ""
+	return l.userLogin.Metadata.(*UserLoginMetadata).Cookies.GetCookie(linkedingo.LinkedInCookieJSESSIONID) != ""
 }
 
 func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID) bool {

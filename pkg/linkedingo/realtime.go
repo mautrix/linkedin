@@ -39,7 +39,7 @@ func (c *Client) cacheMetaValues(ctx context.Context) error {
 		return nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, LinkedInMessagingBaseURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, linkedInMessagingBaseURL, nil)
 	if err != nil {
 		return err
 	}
@@ -136,20 +136,20 @@ func (c *Client) realtimeConnectLoop() {
 		default:
 		}
 
-		req, err := http.NewRequestWithContext(c.realtimeCtx, http.MethodGet, LinkedInRealtimeConnectURL, nil)
+		req, err := http.NewRequestWithContext(c.realtimeCtx, http.MethodGet, linkedInRealtimeConnectURL, nil)
 		if err != nil {
 			c.handlers.onRealtimeConnectError(c.realtimeCtx, err)
 			return
 		}
-		req.Header.Add("Accept", types.ContentTypeTextEventStream)
+		req.Header.Add("Accept", contentTypeTextEventStream)
 		req.Header.Add("x-li-realtime-session", c.realtimeSessionID.String())
-		req.Header.Add("x-li-recipe-accept", types.ContentTypeJSONLinkedInNormalized)
-		req.Header.Add("x-li-query-accept", types.ContentTypeGraphQL)
-		req.Header.Add("x-li-accept", types.ContentTypeJSONLinkedInNormalized)
+		req.Header.Add("x-li-recipe-accept", contentTypeJSONLinkedInNormalized)
+		req.Header.Add("x-li-query-accept", contentTypeGraphQL)
+		req.Header.Add("x-li-accept", contentTypeJSONLinkedInNormalized)
 		req.Header.Add("x-li-recipe-map", realtimeRecipeMap)
 		req.Header.Add("x-li-query-map", realtimeQueryMap)
 		req.Header.Add("csrf-token", c.getCSRFToken())
-		req.Header.Add("referer", LinkedInMessagingBaseURL+"/")
+		req.Header.Add("referer", linkedInMessagingBaseURL+"/")
 		req.Header.Add("x-restli-protocol-version", "2.0.0")
 		req.Header.Add("x-li-track", c.xLITrack)
 		req.Header.Add("x-li-page-instance", "urn:li:page:messaging_index;"+c.clientPageInstanceID)

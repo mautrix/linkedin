@@ -26,37 +26,6 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
-type Handlers struct {
-	Heartbeat            func(context.Context)
-	ClientConnection     func(context.Context, *types.ClientConnection)
-	RealtimeConnectError func(context.Context, error)
-	DecoratedMessage     func(context.Context, *types.Message)
-}
-
-func (h Handlers) onHeartbeat(ctx context.Context) {
-	if h.Heartbeat != nil {
-		h.Heartbeat(ctx)
-	}
-}
-
-func (h Handlers) onClientConnection(ctx context.Context, conn *types.ClientConnection) {
-	if h.ClientConnection != nil {
-		h.ClientConnection(ctx, conn)
-	}
-}
-
-func (h Handlers) onRealtimeConnectError(ctx context.Context, err error) {
-	if h.RealtimeConnectError != nil {
-		h.RealtimeConnectError(ctx, err)
-	}
-}
-
-func (h Handlers) onDecoratedMessage(ctx context.Context, msg *types.Message) {
-	if h.DecoratedMessage != nil {
-		h.DecoratedMessage(ctx, msg)
-	}
-}
-
 type Client struct {
 	http *http.Client
 	jar  *stringcookiejar.Jar
@@ -89,5 +58,36 @@ func NewClient(ctx context.Context, jar *stringcookiejar.Jar, handlers Handlers)
 		realtimeSessionID: uuid.New(),
 
 		handlers: handlers,
+	}
+}
+
+type Handlers struct {
+	Heartbeat            func(context.Context)
+	ClientConnection     func(context.Context, *types.ClientConnection)
+	RealtimeConnectError func(context.Context, error)
+	DecoratedMessage     func(context.Context, *types.Message)
+}
+
+func (h Handlers) onHeartbeat(ctx context.Context) {
+	if h.Heartbeat != nil {
+		h.Heartbeat(ctx)
+	}
+}
+
+func (h Handlers) onClientConnection(ctx context.Context, conn *types.ClientConnection) {
+	if h.ClientConnection != nil {
+		h.ClientConnection(ctx, conn)
+	}
+}
+
+func (h Handlers) onRealtimeConnectError(ctx context.Context, err error) {
+	if h.RealtimeConnectError != nil {
+		h.RealtimeConnectError(ctx, err)
+	}
+}
+
+func (h Handlers) onDecoratedMessage(ctx context.Context, msg *types.Message) {
+	if h.DecoratedMessage != nil {
+		h.DecoratedMessage(ctx, msg)
 	}
 }

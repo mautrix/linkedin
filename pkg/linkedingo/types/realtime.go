@@ -29,8 +29,6 @@ type DecoratedEvent struct {
 
 type DecoratedEventPayload struct {
 	Data DecoratedEventData `json:"data,omitempty"`
-	// LastActiveAt int64                            `json:"lastActiveAt,omitempty"`
-	// Availability types.PresenceAvailabilityStatus `json:"availability,omitempty"`
 }
 
 type DecoratedEventData struct {

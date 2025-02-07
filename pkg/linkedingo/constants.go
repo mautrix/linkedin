@@ -14,13 +14,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package types
+package linkedingo
 
 const (
-	ContentTypeJSON                   = "application/json"
-	ContentTypeJSONPlaintextUTF8      = "application/json; charset=UTF-8"
-	ContentTypeJSONLinkedInNormalized = "application/vnd.linkedin.normalized+json+2.1"
-	ContentTypeGraphQL                = "application/graphql"
-	ContentTypeTextEventStream        = "text/event-stream"
-	ContentTypePlaintextUTF8          = "text/plain;charset=UTF-8"
+	linkedInMessagingBaseURL   = "https://www.linkedin.com/messaging"
+	linkedInVoyagerCommonMeURL = "https://www.linkedin.com/voyager/api/me"
+	linkedInRealtimeConnectURL = "https://www.linkedin.com/realtime/connect?rc=1"
+	linkedInLogoutURL          = "https://www.linkedin.com/uas/logout"
+)
+
+const LinkedInCookieJSESSIONID = "JSESSIONID"
+
+const (
+	contentTypeJSONLinkedInNormalized = "application/vnd.linkedin.normalized+json+2.1"
+	contentTypeGraphQL                = "application/graphql"
+	contentTypeTextEventStream        = "text/event-stream"
+	contentTypePlaintextUTF8          = "text/plain;charset=UTF-8"
 )
