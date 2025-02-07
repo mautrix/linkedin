@@ -203,7 +203,8 @@ func (c *Client) realtimeConnectLoop() {
 				fmt.Printf("decoratedEvent %+v\n", realtimeEvent.DecoratedEvent)
 				switch {
 				case realtimeEvent.DecoratedEvent.Payload.Data.DecoratedMessage != nil:
-					c.handlers.onDecoratedMessage(c.realtimeCtx, realtimeEvent.DecoratedEvent.Payload.Data.DecoratedMessage)
+					// TODO might need a multiplex here
+					c.handlers.onDecoratedMessage(c.realtimeCtx, &realtimeEvent.DecoratedEvent.Payload.Data.DecoratedMessage.Result)
 				default:
 				}
 			}

@@ -46,8 +46,10 @@ type DecoratedEventData struct {
 
 // Conversation represents a com.linkedin.messenger.Conversation object
 type Conversation struct {
-	BackendURN URN `json:"backendUrn,omitempty"`
+	Title      string `json:"title,omitempty"`
+	BackendURN URN    `json:"backendUrn,omitempty"`
 	// EntityURN                URN                    `json:"entityUrn,omitempty"`
+	GroupChat                bool                   `json:"groupChat,omitempty"`
 	ConversationParticipants []MessagingParticipant `json:"conversationParticipants,omitempty"`
 }
 

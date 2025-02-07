@@ -19,12 +19,17 @@ package connector
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
+	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
@@ -98,60 +103,92 @@ func (l *LinkedInClient) onRealtimeConnectError(ctx context.Context, err error) 
 	zerolog.Ctx(ctx).Err(err).Msg("failed to read from event stream")
 }
 
-func (l *LinkedInClient) onDecoratedMessage(ctx context.Context, msg *types.DecoratedMessageRealtime) {
-	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Message[*types.DecoratedMessageRealtime]{
-		EventMeta: simplevent.EventMeta{
-			Type: bridgev2.RemoteEventMessage,
-			LogContext: func(c zerolog.Context) zerolog.Context {
-				return c.
-					Stringer("backend_urn", msg.Result.BackendURN).
-					Stringer("sender", msg.Result.Sender.BackendURN)
-			},
-			PortalKey:    l.makePortalKey(msg.Result.BackendURN),
-			CreatePortal: true,
-			Sender:       l.makeSender(msg.Result.Sender),
-			Timestamp:    msg.Result.DeliveredAt.Time,
+func (l *LinkedInClient) onDecoratedMessage(ctx context.Context, msg *types.Message) {
+	meta := simplevent.EventMeta{
+		LogContext: func(c zerolog.Context) zerolog.Context {
+			return c.
+				Stringer("backend_urn", msg.BackendURN).
+				Stringer("sender", msg.Sender.BackendURN)
 		},
-		ID:                 networkid.MessageID(msg.Result.BackendURN.ID()),
+		PortalKey:    l.makePortalKey(msg.BackendURN),
+		CreatePortal: true,
+		Sender:       l.makeSender(msg.Sender),
+		Timestamp:    msg.DeliveredAt.Time,
+	}
+
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
+		EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
+		ChatInfo:        ptr.Ptr(l.conversationToChatInfo(msg.Conversation)),
+		LatestMessageTS: msg.DeliveredAt.Time,
+	})
+
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Message[*types.Message]{
+		EventMeta:          meta.WithType(bridgev2.RemoteEventMessage),
+		ID:                 networkid.MessageID(msg.BackendURN.ID()),
 		Data:               msg,
 		ConvertMessageFunc: l.convertToMatrix,
 	})
+}
 
-	// msg.Result.Sender.EntityUrn
-	// sender := message.Sender
-	// isFromMe := sender.HostIdentityUrn == string(lc.userLogin.ID)
-	//
-	// msgType := bridgev2.RemoteEventMessage
-	// switch rawEvt.(type) {
-	// case event.MessageEditedEvent:
-	// 	msgType = bridgev2.RemoteEventEdit
-	// }
-	//
-	// lc.connector.br.QueueRemoteEvent(lc.userLogin, &simplevent.Message[*response.MessageElement]{
-	// 	EventMeta: simplevent.EventMeta{
-	// 		Type: msgType,
-	// 		LogContext: func(c zerolog.Context) zerolog.Context {
-	// 			return c.
-	// 				Str("message_id", message.EntityUrn).
-	// 				Str("sender", sender.HostIdentityUrn).
-	// 				Str("sender_login", path.Base(sender.ParticipantType.Member.ProfileURL)).
-	// 				Bool("is_from_me", isFromMe)
-	// 		},
-	// 		PortalKey:    lc.MakePortalKey(lc.threadCache[message.Conversation.EntityUrn]),
-	// 		CreatePortal: false, // todo debate
-	// 		Sender: bridgev2.EventSender{
-	// 			IsFromMe:    isFromMe,
-	// 			SenderLogin: networkid.UserLoginID(sender.HostIdentityUrn),
-	// 			Sender:      networkid.UserID(sender.HostIdentityUrn),
-	// 		},
-	// 		Timestamp: time.UnixMilli(message.DeliveredAt),
-	// 	},
-	// 	ID:                 networkid.MessageID(message.EntityUrn),
-	// 	TargetMessage:      networkid.MessageID(message.EntityUrn),
-	// 	Data:               &message,
-	// 	ConvertMessageFunc: lc.convertToMatrix,
-	// 	ConvertEditFunc:    lc.convertEditToMatrix,
-	// })
+func (l *LinkedInClient) getAvatar(img types.VectorImage) (avatar bridgev2.Avatar) {
+	avatar.ID = networkid.AvatarID(img.RootURL)
+	avatar.Remove = img.RootURL == ""
+	avatar.Get = func(ctx context.Context) ([]byte, error) {
+		var largestVersion types.VectorArtifact
+		for _, a := range img.Artifacts {
+			if a.Height > largestVersion.Height {
+				largestVersion = a
+			}
+		}
+
+		resp, err := http.DefaultClient.Get(img.RootURL + largestVersion.FileIdentifyingURLPathSegment)
+		if err != nil {
+			return nil, err
+		}
+		return io.ReadAll(resp.Body)
+	}
+	return
+}
+
+func (l *LinkedInClient) getMessagingParticipantUserInfo(participant types.MessagingParticipant) (ui bridgev2.UserInfo) {
+	ui.Name = ptr.Ptr(fmt.Sprintf("%s %s", participant.ParticipantType.Member.FirstName.Text, participant.ParticipantType.Member.LastName.Text)) // TODO use a displayname template
+	ui.Avatar = ptr.Ptr(l.getAvatar(participant.ParticipantType.Member.ProfilePicture))
+	ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.BackendURN.ID())}
+	return
+}
+
+func (l *LinkedInClient) conversationToChatInfo(conv types.Conversation) (ci bridgev2.ChatInfo) {
+	if conv.Title != "" {
+		ci.Name = &conv.Title
+	}
+
+	// TODO: topic is probably headlineText of the conversation, or set it to the headline of the other user in the chat
+
+	// TODO: avatar
+
+	ci.Type = ptr.Ptr(database.RoomTypeDM)
+	if conv.GroupChat {
+		ci.Type = ptr.Ptr(database.RoomTypeGroupDM)
+	} else {
+	}
+
+	ci.CanBackfill = true
+
+	ci.Members = &bridgev2.ChatMemberList{
+		IsFull:           true,
+		TotalMemberCount: len(conv.ConversationParticipants),
+		MemberMap:        map[networkid.UserID]bridgev2.ChatMember{},
+	}
+	for _, participant := range conv.ConversationParticipants {
+		sender := l.makeSender(participant)
+		ci.Members.MemberMap[sender.Sender] = bridgev2.ChatMember{
+			EventSender: sender,
+			Membership:  event.MembershipJoin,
+			UserInfo:    ptr.Ptr(l.getMessagingParticipantUserInfo(participant)),
+		}
+	}
+
+	return
 }
 
 func (l *LinkedInClient) Disconnect() {
