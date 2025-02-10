@@ -82,9 +82,10 @@ const (
 )
 
 type RenderContent struct {
-	VectorImage   *VectorImage    `json:"vectorImage,omitempty"`
-	File          *FileAttachment `json:"file,omitempty"`
-	ExternalMedia *ExternalMedia  `json:"externalMedia,omitempty"`
+	VectorImage   *VectorImage       `json:"vectorImage,omitempty"`
+	File          *FileAttachment    `json:"file,omitempty"`
+	ExternalMedia *ExternalMedia     `json:"externalMedia,omitempty"`
+	Video         *VideoPlayMetadata `json:"video,omitempty"`
 }
 
 // Message represents a com.linkedin.messenger.Message object.

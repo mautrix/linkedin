@@ -42,6 +42,8 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 			part, err = l.convertFileToMatrix(ctx, portal, intent, rc.File)
 		case rc.ExternalMedia != nil:
 			part, err = l.convertExternalMediaToMatrix(ctx, portal, intent, rc.ExternalMedia)
+		case rc.Video != nil:
+			part, err = l.convertVideoToMatrix(ctx, portal, intent, rc.Video)
 		default:
 		}
 		if err != nil {
@@ -123,15 +125,57 @@ func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridge
 	}, err
 }
 
-func (l *LinkedInClient) convertExternalMediaToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, attachment *types.ExternalMedia) (cmp *bridgev2.ConvertedMessagePart, err error) {
+func (l *LinkedInClient) convertExternalMediaToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, media *types.ExternalMedia) (cmp *bridgev2.ConvertedMessagePart, err error) {
 	content := event.MessageEventContent{
 		Info:    &event.FileInfo{MimeType: "image/gif"},
 		MsgType: event.MsgImage,
-		Body:    attachment.Title,
+		Body:    media.Title,
 	}
 
 	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, 0, true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
-		err := l.client.Download(ctx, w, attachment.Media.URL)
+		err := l.client.Download(ctx, w, media.Media.URL)
+		return &bridgev2.FileStreamResult{MimeType: content.Info.MimeType}, err
+	})
+
+	return &bridgev2.ConvertedMessagePart{
+		Type:    event.EventMessage,
+		Content: &content,
+	}, err
+}
+
+func (l *LinkedInClient) convertVideoToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, video *types.VideoPlayMetadata) (cmp *bridgev2.ConvertedMessagePart, err error) {
+	if len(video.ProgressiveStreams) == 0 {
+		return nil, fmt.Errorf("VideoPlayMetadata had no ProgressiveStreams")
+	}
+	stream := video.ProgressiveStreams[0]
+	if len(stream.StreamingLocations) == 0 {
+		return nil, fmt.Errorf("VideoPlayMetadata had no StreamingLocations")
+	}
+
+	content := event.MessageEventContent{
+		Info: &event.FileInfo{
+			MimeType: stream.MediaType,
+			Width:    stream.Width,
+			Height:   stream.Height,
+			Duration: int(video.Duration.Milliseconds()),
+			Size:     stream.Size,
+		},
+		MsgType: event.MsgVideo,
+		Body:    "video",
+	}
+
+	if video.Thumbnail != nil {
+		part, err := l.convertVectorImageToMatrix(ctx, portal, intent, video.Thumbnail)
+		if err != nil {
+			return nil, err
+		}
+		content.Info.ThumbnailInfo = part.Content.Info
+		content.Info.ThumbnailURL = part.Content.URL
+		content.Info.ThumbnailFile = part.Content.File
+	}
+
+	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, 0, true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
+		err := l.client.Download(ctx, w, stream.StreamingLocations[0].URL)
 		return &bridgev2.FileStreamResult{MimeType: content.Info.MimeType}, err
 	})
 

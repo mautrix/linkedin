@@ -56,3 +56,31 @@ type ExternalMedia struct {
 	EntityURN    URN                `json:"entityUrn,omitempty"`
 	PreviewMedia ExternalProxyImage `json:"previewMedia,omitempty"`
 }
+
+// VideoPlayMetadata represents a com.linkedin.videocontent.VideoPlayMetadata
+// object.
+type VideoPlayMetadata struct {
+	Thumbnail          *VectorImage                  `json:"thumbnail,omitempty"`
+	ProgressiveStreams []ProgressiveDownloadMetadata `json:"progressiveStreams,omitempty"`
+	AspectRatio        float64                       `json:"aspectRatio,omitempty"`
+	Media              URN                           `json:"media,omitempty"`
+	Duration           jsontime.Milliseconds         `json:"duration,omitempty"`
+	EntityURN          URN                           `json:"entityUrn,omitempty"`
+}
+
+// ProgressiveDownloadMetadata represents a
+// com.linkedin.videocontent.ProgressiveDownloadMetadata object.
+type ProgressiveDownloadMetadata struct {
+	StreamingLocations []StreamingLocation `json:"streamingLocations,omitempty"`
+	Size               int                 `json:"size,omitempty"`
+	BitRate            int                 `json:"bitRate,omitempty"`
+	Width              int                 `json:"width,omitempty"`
+	MediaType          string              `json:"mediaType,omitempty"`
+	Height             int                 `json:"height,omitempty"`
+}
+
+// StreamingLocation represents a com.linkedin.videocontent.StreamingLocation
+// object.
+type StreamingLocation struct {
+	URL string `json:"url,omitempty"`
+}

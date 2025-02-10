@@ -44,6 +44,10 @@ func (c *Client) GetVectorImageFileInfo(ctx context.Context, vi *types.VectorIma
 	}
 	info.MimeType = headResp.Header.Get("Content-Type")
 	info.Size = int(headResp.ContentLength)
-	_, params, err := mime.ParseMediaType(headResp.Header.Get("Content-Disposition"))
-	return info, params["filename"], err
+	_, params, _ := mime.ParseMediaType(headResp.Header.Get("Content-Disposition"))
+	filename = params["filename"]
+	if filename == "" {
+		filename = "image"
+	}
+	return
 }
