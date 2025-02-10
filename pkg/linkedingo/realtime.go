@@ -236,7 +236,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 					break
 				}
 				c.handlers.onRealtimeConnectError(ctx, err)
-				continue
+				break
 			}
 
 			if !bytes.HasPrefix(line, []byte("data:")) {
@@ -246,7 +246,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			var realtimeEvent types.RealtimeEvent
 			if err = json.Unmarshal(line[6:], &realtimeEvent); err != nil {
 				c.handlers.onRealtimeConnectError(ctx, err)
-				continue
+				break
 			}
 
 			switch {
