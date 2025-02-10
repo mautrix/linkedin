@@ -37,7 +37,9 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 		var part *bridgev2.ConvertedMessagePart
 		switch {
 		case rc.VectorImage != nil:
-			part, err = l.convertVectorImageToMatrix(ctx, portal, intent, *rc.VectorImage)
+			part, err = l.convertVectorImageToMatrix(ctx, portal, intent, rc.VectorImage)
+		case rc.File != nil:
+			part, err = l.convertFileToMatrix(ctx, portal, intent, rc.File)
 		default:
 		}
 		if err != nil {
@@ -52,22 +54,21 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 	return &cm, nil
 }
 
-func (l *LinkedInClient) convertVectorImageToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, img types.VectorImage) (cmp *bridgev2.ConvertedMessagePart, err error) {
-	info, err := l.client.GetFileInfo(ctx, img)
+func (l *LinkedInClient) convertVectorImageToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, img *types.VectorImage) (cmp *bridgev2.ConvertedMessagePart, err error) {
+	info, filename, err := l.client.GetVectorImageFileInfo(ctx, img)
 	if err != nil {
 		return nil, err
 	}
 	content := event.MessageEventContent{
 		Info:    &info,
 		MsgType: event.MsgImage,
+		Body:    filename,
 	}
 
-	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, int64(info.Size), true, func(file io.Writer) (*bridgev2.FileStreamResult, error) {
-		reader, err := l.client.Download(ctx, img)
-		if err != nil {
-			return nil, err
-		}
-		_, err = io.Copy(file, reader)
+	// TODO use smallest artifact version for thumbnail?
+
+	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, int64(info.Size), true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
+		err := l.client.Download(ctx, w, img.GetLargestArtifactURL())
 		return &bridgev2.FileStreamResult{MimeType: content.Info.MimeType}, err
 	})
 
@@ -94,4 +95,28 @@ func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridge
 		convertedEdit.ModifiedParts = append(convertedEdit.ModifiedParts, part.ToEditPart(existing[i]))
 	}
 	return &convertedEdit, nil
+}
+
+func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, attachment *types.FileAttachment) (cmp *bridgev2.ConvertedMessagePart, err error) {
+	content := event.MessageEventContent{
+		Info: &event.FileInfo{
+			MimeType: attachment.MediaType,
+			Size:     attachment.ByteSize,
+		},
+		MsgType: event.MsgFile,
+		Body:    attachment.Name,
+	}
+
+	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, int64(attachment.ByteSize), true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
+		err := l.client.Download(ctx, w, attachment.URL)
+		return &bridgev2.FileStreamResult{
+			FileName: attachment.Name,
+			MimeType: content.Info.MimeType,
+		}, err
+	})
+
+	return &bridgev2.ConvertedMessagePart{
+		Type:    event.EventMessage,
+		Content: &content,
+	}, err
 }

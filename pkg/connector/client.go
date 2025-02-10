@@ -168,10 +168,12 @@ func (l *LinkedInClient) onRealtimeEventTopicMessages(ctx context.Context, msg t
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
 }
 
-func (l *LinkedInClient) getAvatar(img types.VectorImage) (avatar bridgev2.Avatar) {
+func (l *LinkedInClient) getAvatar(img *types.VectorImage) (avatar bridgev2.Avatar) {
 	avatar.ID = networkid.AvatarID(img.RootURL)
 	avatar.Remove = img.RootURL == ""
-	avatar.Get = func(ctx context.Context) ([]byte, error) { return l.client.DownloadBytes(ctx, img) }
+	avatar.Get = func(ctx context.Context) ([]byte, error) {
+		return l.client.DownloadBytes(ctx, img.GetLargestArtifactURL())
+	}
 	return
 }
 

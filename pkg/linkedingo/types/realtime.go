@@ -56,7 +56,7 @@ type MemberParticipantInfo struct {
 	ProfileURL     string         `json:"profileUrl,omitempty"`
 	FirstName      AttributedText `json:"firstName,omitempty"`
 	LastName       AttributedText `json:"lastName,omitempty"`
-	ProfilePicture VectorImage    `json:"profilePicture,omitempty"`
+	ProfilePicture *VectorImage   `json:"profilePicture,omitempty"`
 	Pronoun        any            `json:"pronoun,omitempty"`
 	Headline       AttributedText `json:"headline,omitempty"`
 }
@@ -82,7 +82,8 @@ const (
 )
 
 type RenderContent struct {
-	VectorImage *VectorImage `json:"vectorImage,omitempty"`
+	VectorImage *VectorImage    `json:"vectorImage,omitempty"`
+	File        *FileAttachment `json:"file,omitempty"`
 }
 
 // Message represents a com.linkedin.messenger.Message object.

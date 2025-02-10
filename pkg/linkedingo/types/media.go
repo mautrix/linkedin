@@ -18,15 +18,25 @@ type VectorImage struct {
 	Artifacts []VectorArtifact `json:"artifacts,omitempty"`
 }
 
-func (vi VectorImage) GetLargestArtifact() (largestVersion VectorArtifact) {
+func (vi VectorImage) GetLargestArtifactURL() string {
+	var largestVersion VectorArtifact
 	for _, a := range vi.Artifacts {
 		if a.Height > largestVersion.Height {
 			largestVersion = a
 		}
 	}
-	return
+	return vi.RootURL + largestVersion.FileIdentifyingURLPathSegment
 }
 
 type Picture struct {
 	VectorImage *VectorImage `json:"com.linkedin.common.VectorImage,omitempty"`
+}
+
+// FileAttachment represents a com.linkedin.messenger.FileAttachment object.
+type FileAttachment struct {
+	AssetURN  URN    `json:"assetUrn,omitempty"`
+	ByteSize  int    `json:"byteSize,omitempty"`
+	MediaType string `json:"mediaType,omitempty"`
+	Name      string `json:"name,omitempty"`
+	URL       string `json:"url,omitempty"`
 }
