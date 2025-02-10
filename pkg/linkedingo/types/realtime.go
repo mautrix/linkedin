@@ -81,6 +81,10 @@ const (
 	MessageBodyRenderFormatSystem   MessageBodyRenderFormat = "SYSTEM"
 )
 
+type RenderContent struct {
+	VectorImage *VectorImage `json:"vectorImage,omitempty"`
+}
+
 // Message represents a com.linkedin.messenger.Message object.
 type Message struct {
 	Body                    AttributedText          `json:"body,omitempty"`
@@ -91,6 +95,7 @@ type Message struct {
 	MessageBodyRenderFormat MessageBodyRenderFormat `json:"messageBodyRenderFormat,omitempty"`
 	BackendConversationURN  URN                     `json:"backendConversationUrn,omitempty"`
 	Conversation            Conversation            `json:"conversation,omitempty"`
+	RenderContent           []RenderContent         `json:"renderContent,omitempty"`
 }
 
 // ActionResponse represents a com.linkedin.restli.common.ActionResponse

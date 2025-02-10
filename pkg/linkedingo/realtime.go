@@ -197,6 +197,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, linkedInRealtimeConnectURL, nil)
 		if err != nil {
+			log.Err(err).Msg("make request failed")
 			c.handlers.onRealtimeConnectError(ctx, err)
 			return
 		}

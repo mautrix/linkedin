@@ -19,8 +19,6 @@ package connector
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ptr"
@@ -173,20 +171,7 @@ func (l *LinkedInClient) onRealtimeEventTopicMessages(ctx context.Context, msg t
 func (l *LinkedInClient) getAvatar(img types.VectorImage) (avatar bridgev2.Avatar) {
 	avatar.ID = networkid.AvatarID(img.RootURL)
 	avatar.Remove = img.RootURL == ""
-	avatar.Get = func(ctx context.Context) ([]byte, error) {
-		var largestVersion types.VectorArtifact
-		for _, a := range img.Artifacts {
-			if a.Height > largestVersion.Height {
-				largestVersion = a
-			}
-		}
-
-		resp, err := http.DefaultClient.Get(img.RootURL + largestVersion.FileIdentifyingURLPathSegment)
-		if err != nil {
-			return nil, err
-		}
-		return io.ReadAll(resp.Body)
-	}
+	avatar.Get = func(ctx context.Context) ([]byte, error) { return l.client.DownloadBytes(ctx, img) }
 	return
 }
 
