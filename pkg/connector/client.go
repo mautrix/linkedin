@@ -121,6 +121,8 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *t
 		l.onRealtimeMessage(ctx, decoratedEvent.Payload.Data.DecoratedMessage.Result)
 	case linkedingo.RealtimeEventTopicTypingIndicators:
 		l.onRealtimeTypingIndicator(decoratedEvent)
+	case linkedingo.RealtimeEventTopicMessageSeenReceipts:
+		l.onRealtimeMessageSeenReceipts(ctx, decoratedEvent.Payload.Data.DecoratedSeenReceipt.Result)
 	default:
 		fmt.Printf("UNSUPPORTED %q %+v\n", decoratedEvent.Topic, decoratedEvent)
 	}
@@ -131,7 +133,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
-				Stringer("backend_urn", msg.BackendURN).
+				Stringer("entity_urn", msg.EntityURN).
 				Stringer("sender", msg.Sender.BackendURN)
 		},
 		PortalKey:    l.makePortalKey(msg.Conversation.EntityURN),
@@ -147,8 +149,8 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 	})
 
 	evt := simplevent.Message[types.Message]{
-		ID:                 networkid.MessageID(msg.BackendURN.ID()),
-		TargetMessage:      networkid.MessageID(msg.BackendURN.ID()),
+		ID:                 networkid.MessageID(msg.EntityURN.String()),
+		TargetMessage:      networkid.MessageID(msg.EntityURN.String()),
 		Data:               msg,
 		ConvertMessageFunc: l.convertToMatrix,
 		ConvertEditFunc:    l.convertEditToMatrix,
@@ -161,7 +163,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 	case types.MessageBodyRenderFormatRecalled:
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
 			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove),
-			TargetMessage: networkid.MessageID(msg.BackendURN.ID()),
+			TargetMessage: networkid.MessageID(msg.EntityURN.String()),
 		})
 		return
 	case types.MessageBodyRenderFormatSystem:
@@ -169,10 +171,6 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 		log.Warn().Str("message_body_render_format", string(msg.MessageBodyRenderFormat)).Msg("Unknown render format")
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
-	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Typing{
-		EventMeta: meta.WithType(bridgev2.RemoteEventTyping),
-		Type:      bridgev2.TypingTypeText,
-	})
 }
 
 func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *types.DecoratedEvent) {
@@ -193,6 +191,32 @@ func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *types.Decorat
 		EventMeta: meta,
 		Timeout:   10 * time.Second,
 		Type:      bridgev2.TypingTypeText,
+	})
+}
+
+func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, receipt types.SeenReceipt) {
+	log := zerolog.Ctx(ctx)
+	part, err := l.main.Bridge.DB.Message.GetLastPartByID(ctx, l.userLogin.ID, networkid.MessageID(receipt.Message.EntityURN.String()))
+	if err != nil {
+		log.Err(err).Msg("failed to get read message")
+	} else if part == nil {
+		log.Warn().Msg("couldn't find read message")
+		return
+	}
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Receipt{
+		EventMeta: simplevent.EventMeta{
+			Type: bridgev2.RemoteEventReadReceipt,
+			LogContext: func(c zerolog.Context) zerolog.Context {
+				return c.
+					Time("seen_at", receipt.SeenAt.Time).
+					Stringer("message_urn", receipt.Message.EntityURN).
+					Stringer("typing_participant_urn", receipt.SeenByParticipant.BackendURN)
+			},
+			PortalKey: part.Room,
+			Sender:    l.makeSender(receipt.SeenByParticipant),
+			Timestamp: receipt.SeenAt.Time,
+		},
+		LastTarget: networkid.MessageID(receipt.Message.EntityURN.String()),
 	})
 }
 

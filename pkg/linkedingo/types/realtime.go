@@ -34,6 +34,7 @@ type DecoratedEventData struct {
 	Type                     string                    `json:"_type,omitempty"`
 	DecoratedMessage         *DecoratedMessage         `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
 	DecoratedTypingIndicator *DecoratedTypingIndicator `json:"doDecorateTypingIndicatorMessengerRealtimeDecoration,omitempty"`
+	DecoratedSeenReceipt     *DecoratedSeenReceipt     `json:"doDecorateSeenReceiptMessengerRealtimeDecoration,omitempty"`
 }
 
 // Conversation represents a com.linkedin.messenger.Conversation object
@@ -95,7 +96,6 @@ type DecoratedMessage struct {
 // Message represents a com.linkedin.messenger.Message object.
 type Message struct {
 	Body                    AttributedText          `json:"body,omitempty"`
-	BackendURN              URN                     `json:"backendUrn,omitempty"`
 	DeliveredAt             jsontime.UnixMilli      `json:"deliveredAt,omitempty"`
 	EntityURN               URN                     `json:"entityUrn,omitempty"`
 	Sender                  MessagingParticipant    `json:"sender,omitempty"`
@@ -114,4 +114,15 @@ type DecoratedTypingIndicator struct {
 type RealtimeTypingIndicator struct {
 	TypingParticipant MessagingParticipant `json:"typingParticipant,omitempty"`
 	Conversation      Conversation         `json:"conversation,omitempty"`
+}
+
+type DecoratedSeenReceipt struct {
+	Result SeenReceipt `json:"result,omitempty"`
+}
+
+// SeenReceipt represents a com.linkedin.messenger.SeenReceipt object.
+type SeenReceipt struct {
+	SeenAt            jsontime.UnixMilli   `json:"seenAt,omitempty"`
+	Message           Message              `json:"message,omitempty"`
+	SeenByParticipant MessagingParticipant `json:"seenByParticipant,omitempty"`
 }
