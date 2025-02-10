@@ -40,6 +40,8 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 			part, err = l.convertVectorImageToMatrix(ctx, portal, intent, rc.VectorImage)
 		case rc.File != nil:
 			part, err = l.convertFileToMatrix(ctx, portal, intent, rc.File)
+		case rc.ExternalMedia != nil:
+			part, err = l.convertExternalMediaToMatrix(ctx, portal, intent, rc.ExternalMedia)
 		default:
 		}
 		if err != nil {
@@ -113,6 +115,24 @@ func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridge
 			FileName: attachment.Name,
 			MimeType: content.Info.MimeType,
 		}, err
+	})
+
+	return &bridgev2.ConvertedMessagePart{
+		Type:    event.EventMessage,
+		Content: &content,
+	}, err
+}
+
+func (l *LinkedInClient) convertExternalMediaToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, attachment *types.ExternalMedia) (cmp *bridgev2.ConvertedMessagePart, err error) {
+	content := event.MessageEventContent{
+		Info:    &event.FileInfo{MimeType: "image/gif"},
+		MsgType: event.MsgImage,
+		Body:    attachment.Title,
+	}
+
+	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, 0, true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
+		err := l.client.Download(ctx, w, attachment.Media.URL)
+		return &bridgev2.FileStreamResult{MimeType: content.Info.MimeType}, err
 	})
 
 	return &bridgev2.ConvertedMessagePart{

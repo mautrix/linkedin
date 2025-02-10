@@ -40,3 +40,19 @@ type FileAttachment struct {
 	Name      string `json:"name,omitempty"`
 	URL       string `json:"url,omitempty"`
 }
+
+// ExternalProxyImage represents a com.linkedin.messenger.ExternalProxyImage
+// object.
+type ExternalProxyImage struct {
+	OriginalHeight int    `json:"originalHeight,omitempty"`
+	OriginalWidth  int    `json:"originalWidth,omitempty"`
+	URL            string `json:"url,omitempty"`
+}
+
+// ExternalMedia represents a com.linkedin.messenger.ExternalMedia object.
+type ExternalMedia struct {
+	Media        ExternalProxyImage `json:"media,omitempty"`
+	Title        string             `json:"title,omitempty"`
+	EntityURN    URN                `json:"entityUrn,omitempty"`
+	PreviewMedia ExternalProxyImage `json:"previewMedia,omitempty"`
+}
