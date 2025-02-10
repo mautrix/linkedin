@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ptr"
@@ -117,13 +118,15 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *t
 	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
 	switch decoratedEvent.Topic.NthPart(2) {
 	case linkedingo.RealtimeEventTopicMessages:
-		l.onRealtimeEventTopicMessages(ctx, decoratedEvent.Payload.Data.DecoratedMessage.Result)
+		l.onRealtimeMessage(ctx, decoratedEvent.Payload.Data.DecoratedMessage.Result)
+	case linkedingo.RealtimeEventTopicTypingIndicators:
+		l.onRealtimeTypingIndicator(decoratedEvent)
 	default:
 		fmt.Printf("UNSUPPORTED %q %+v\n", decoratedEvent.Topic, decoratedEvent)
 	}
 }
 
-func (l *LinkedInClient) onRealtimeEventTopicMessages(ctx context.Context, msg types.Message) {
+func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Message) {
 	log := zerolog.Ctx(ctx)
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
@@ -131,7 +134,7 @@ func (l *LinkedInClient) onRealtimeEventTopicMessages(ctx context.Context, msg t
 				Stringer("backend_urn", msg.BackendURN).
 				Stringer("sender", msg.Sender.BackendURN)
 		},
-		PortalKey:    l.makePortalKey(msg.Conversation.BackendURN),
+		PortalKey:    l.makePortalKey(msg.Conversation.EntityURN),
 		CreatePortal: true,
 		Sender:       l.makeSender(msg.Sender),
 		Timestamp:    msg.DeliveredAt.Time,
@@ -166,6 +169,31 @@ func (l *LinkedInClient) onRealtimeEventTopicMessages(ctx context.Context, msg t
 		log.Warn().Str("message_body_render_format", string(msg.MessageBodyRenderFormat)).Msg("Unknown render format")
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Typing{
+		EventMeta: meta.WithType(bridgev2.RemoteEventTyping),
+		Type:      bridgev2.TypingTypeText,
+	})
+}
+
+func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *types.DecoratedEvent) {
+	typingIndicator := decoratedEvent.Payload.Data.DecoratedTypingIndicator.Result
+	meta := simplevent.EventMeta{
+		Type: bridgev2.RemoteEventTyping,
+		LogContext: func(c zerolog.Context) zerolog.Context {
+			return c.
+				Stringer("conversation_urn", typingIndicator.Conversation.EntityURN).
+				Stringer("typing_participant_urn", typingIndicator.TypingParticipant.BackendURN)
+		},
+		PortalKey: l.makePortalKey(typingIndicator.Conversation.EntityURN),
+		Sender:    l.makeSender(typingIndicator.TypingParticipant),
+		Timestamp: decoratedEvent.LeftServerAt.Time,
+	}
+
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Typing{
+		EventMeta: meta,
+		Timeout:   10 * time.Second,
+		Type:      bridgev2.TypingTypeText,
+	})
 }
 
 func (l *LinkedInClient) getAvatar(img *types.VectorImage) (avatar bridgev2.Avatar) {

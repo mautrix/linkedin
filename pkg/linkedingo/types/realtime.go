@@ -31,15 +31,15 @@ type DecoratedEventPayload struct {
 }
 
 type DecoratedEventData struct {
-	Type             string          `json:"_type,omitempty"`
-	DecoratedMessage *ActionResponse `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
+	Type                     string                    `json:"_type,omitempty"`
+	DecoratedMessage         *DecoratedMessage         `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
+	DecoratedTypingIndicator *DecoratedTypingIndicator `json:"doDecorateTypingIndicatorMessengerRealtimeDecoration,omitempty"`
 }
 
 // Conversation represents a com.linkedin.messenger.Conversation object
 type Conversation struct {
-	Title      string `json:"title,omitempty"`
-	BackendURN URN    `json:"backendUrn,omitempty"`
-	// EntityURN                URN                    `json:"entityUrn,omitempty"`
+	Title                    string                 `json:"title,omitempty"`
+	EntityURN                URN                    `json:"entityUrn,omitempty"`
 	GroupChat                bool                   `json:"groupChat,omitempty"`
 	ConversationParticipants []MessagingParticipant `json:"conversationParticipants,omitempty"`
 }
@@ -88,6 +88,10 @@ type RenderContent struct {
 	Video         *VideoPlayMetadata `json:"video,omitempty"`
 }
 
+type DecoratedMessage struct {
+	Result Message `json:"result,omitempty"`
+}
+
 // Message represents a com.linkedin.messenger.Message object.
 type Message struct {
 	Body                    AttributedText          `json:"body,omitempty"`
@@ -101,8 +105,13 @@ type Message struct {
 	RenderContent           []RenderContent         `json:"renderContent,omitempty"`
 }
 
-// ActionResponse represents a com.linkedin.restli.common.ActionResponse
-// object.
-type ActionResponse struct {
-	Result Message `json:"result,omitempty"`
+type DecoratedTypingIndicator struct {
+	Result RealtimeTypingIndicator `json:"result,omitempty"`
+}
+
+// RealtimeTypingIndicator represents a
+// com.linkedin.messenger.RealtimeTypingIndicator object.
+type RealtimeTypingIndicator struct {
+	TypingParticipant MessagingParticipant `json:"typingParticipant,omitempty"`
+	Conversation      Conversation         `json:"conversation,omitempty"`
 }

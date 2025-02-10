@@ -7,8 +7,8 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
-func (l *LinkedInClient) makePortalKey(backendURN types.URN) (key networkid.PortalKey) {
-	key.ID = networkid.PortalID(backendURN.ID())
+func (l *LinkedInClient) makePortalKey(entityURN types.URN) (key networkid.PortalKey) {
+	key.ID = networkid.PortalID(entityURN.String())
 	if l.main.Bridge.Config.SplitPortals {
 		key.Receiver = l.userLogin.ID
 	}
