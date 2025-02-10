@@ -33,38 +33,39 @@
   * [ ] Message content
     * [x] Text
     * [ ] Media
-      * [ ] Files
-      * [ ] Images
-      * [ ] GIFs
+      * [x] Files
+      * [x] Images
+      * [x] GIFs
+      * [x] Videos
       * [ ] Voice Messages
     * [ ] Mentions
   * [x] Message edits
   * [x] Message delete
   * [ ] Message reactions
   * [ ] Message history
-  * [ ] Real-time messages
+  * [x] Real-time messages
   * [ ] ~~Presence~~ (impossible for now, see https://github.com/mautrix/go/issues/295)
   * [ ] Typing notifications
   * [ ] Read receipts
   * [ ] Admin status
   * [ ] Membership actions
-    * [ ] Add member
-    * [ ] Remove member
+    * [x] Add member
+    * [x] Remove member
     * [ ] Leave
-  * [ ] Chat metadata changes
-    * [ ] Title
-    * [ ] Avatar
-  * [ ] Initial chat metadata
-  * [ ] User metadata
-    * [ ] Name
-    * [ ] Avatar
+  * [x] Chat metadata changes
+    * [x] Title
+    * [ ] ~Avatar~ (group chats don't have avatars in LinkedIn)
+  * [x] Initial chat metadata
+  * [x] User metadata
+    * [x] Name
+    * [x] Avatar
 * Misc
   * [ ] Multi-user support
   * [ ] Shared group chat portals
   * [ ] Automatic portal creation
     * [ ] At startup
     * [ ] When added to chat
-    * [ ] When receiving message (not supported)
+    * [x] When receiving message
   * [ ] Private chat creation by inviting Matrix puppet of LinkedIn user to new room
   * [ ] Option to use own Matrix account for messages sent from other LinkedIn clients (relay mode)
   * [ ] Split portal support
