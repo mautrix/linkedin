@@ -35,6 +35,7 @@ type DecoratedEventData struct {
 	DecoratedMessage         *DecoratedMessage         `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
 	DecoratedTypingIndicator *DecoratedTypingIndicator `json:"doDecorateTypingIndicatorMessengerRealtimeDecoration,omitempty"`
 	DecoratedSeenReceipt     *DecoratedSeenReceipt     `json:"doDecorateSeenReceiptMessengerRealtimeDecoration,omitempty"`
+	DecoratedReactionSummary *DecoratedReactionSummary `json:"doDecorateRealtimeReactionSummaryMessengerRealtimeDecoration,omitempty"`
 }
 
 // Conversation represents a com.linkedin.messenger.Conversation object
@@ -144,4 +145,25 @@ type SeenReceipt struct {
 	SeenAt            jsontime.UnixMilli   `json:"seenAt,omitempty"`
 	Message           Message              `json:"message,omitempty"`
 	SeenByParticipant MessagingParticipant `json:"seenByParticipant,omitempty"`
+}
+
+type DecoratedReactionSummary struct {
+	Result RealtimeReactionSummary `json:"result,omitempty"`
+}
+
+// RealtimeReactionSummary represents a
+// com.linkedin.messenger.RealtimeReactionSummary object.
+type RealtimeReactionSummary struct {
+	ReactionAdded   bool                 `json:"reactionAdded"`
+	Actor           MessagingParticipant `json:"actor"`
+	Message         Message              `json:"message"`
+	ReactionSummary ReactionSummary      `json:"reactionSummary"`
+}
+
+// ReactionSummary represents a com.linkedin.messenger.ReactionSummary object.
+type ReactionSummary struct {
+	Count          int    `json:"count,omitempty"`
+	FirstReactedAt int64  `json:"firstReactedAt,omitempty"`
+	Emoji          string `json:"emoji,omitempty"`
+	ViewerReacted  bool   `json:"viewerReacted"`
 }

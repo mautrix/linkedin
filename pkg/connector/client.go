@@ -140,6 +140,8 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *t
 		l.onRealtimeTypingIndicator(decoratedEvent)
 	case linkedingo.RealtimeEventTopicMessageSeenReceipts:
 		l.onRealtimeMessageSeenReceipts(ctx, decoratedEvent.Payload.Data.DecoratedSeenReceipt.Result)
+	case linkedingo.RealtimeEventTopicMessageReactionSummaries:
+		l.onRealtimeReactionSummaries(ctx, decoratedEvent.Payload.Data.DecoratedReactionSummary.Result)
 	default:
 		fmt.Printf("UNSUPPORTED %q %+v\n", decoratedEvent.Topic, decoratedEvent)
 	}
@@ -236,6 +238,36 @@ func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, rece
 			Timestamp: receipt.SeenAt.Time,
 		},
 		LastTarget: networkid.MessageID(receipt.Message.EntityURN.String()),
+	})
+}
+
+func (l *LinkedInClient) onRealtimeReactionSummaries(ctx context.Context, summary types.RealtimeReactionSummary) {
+	messageData, err := l.main.Bridge.DB.Message.GetFirstPartByID(context.TODO(), l.userLogin.ID, networkid.MessageID(summary.Message.EntityURN.String()))
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("failed to get reacted to message")
+		return
+	}
+
+	meta := simplevent.EventMeta{
+		Type: bridgev2.RemoteEventReaction,
+		LogContext: func(c zerolog.Context) zerolog.Context {
+			return c.
+				Stringer("message_id", summary.Message.EntityURN).
+				Stringer("sender", summary.Actor.EntityURN)
+		},
+		PortalKey: messageData.Room,
+		Timestamp: time.Now(),
+		Sender:    l.makeSender(summary.Actor),
+	}
+	if !summary.ReactionAdded {
+		meta.Type = bridgev2.RemoteEventReactionRemove
+	}
+
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Reaction{
+		EventMeta:     meta,
+		EmojiID:       networkid.EmojiID(summary.ReactionSummary.Emoji),
+		Emoji:         summary.ReactionSummary.Emoji,
+		TargetMessage: networkid.MessageID(summary.Message.EntityURN.String()),
 	})
 }
 
