@@ -16,7 +16,7 @@ func (l *LinkedInClient) makePortalKey(entityURN types.URN) (key networkid.Porta
 }
 
 func (l *LinkedInClient) makeSender(participant types.MessagingParticipant) (sender bridgev2.EventSender) {
-	id := participant.BackendURN.ID()
+	id := participant.EntityURN.ID()
 	sender.IsFromMe = id == string(l.userID)
 	sender.Sender = networkid.UserID(id)
 	sender.SenderLogin = networkid.UserLoginID(id)

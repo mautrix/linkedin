@@ -29,16 +29,19 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 	"maunium.net/go/mautrix/event"
+	"maunium.net/go/mautrix/id"
 
+	"go.mau.fi/mautrix-linkedin/pkg/connector/linkedinfmt"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type LinkedInClient struct {
-	main      *LinkedInConnector
-	userID    networkid.UserID
-	userLogin *bridgev2.UserLogin
-	client    *linkedingo.Client
+	main              *LinkedInConnector
+	userID            networkid.UserID
+	userLogin         *bridgev2.UserLogin
+	client            *linkedingo.Client
+	linkedinFmtParams linkedinfmt.FormatParams
 }
 
 var (
@@ -67,7 +70,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 	}
 	client.client = linkedingo.NewClient(
 		ctx,
-		login.Metadata.(*UserLoginMetadata).EntityURN,
+		types.NewURN(string(login.ID)),
 		login.Metadata.(*UserLoginMetadata).Cookies,
 		linkedingo.Handlers{
 			Heartbeat: func(ctx context.Context) {
@@ -80,6 +83,20 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			DecoratedEvent:       client.onDecoratedEvent,
 		},
 	)
+
+	client.linkedinFmtParams = linkedinfmt.FormatParams{
+		GetMXIDByURN: func(ctx context.Context, entityURN types.URN) (id.UserID, error) {
+			ghost, err := lc.Bridge.GetGhostByID(ctx, networkid.UserID(entityURN.ID()))
+			if err != nil {
+				return "", err
+			}
+			// FIXME this should look for user logins by ID, not hardcode the current user
+			if networkid.UserID(entityURN.ID()) == client.userID {
+				return client.userLogin.UserMXID, nil
+			}
+			return ghost.Intent.GetMXID(), nil
+		},
+	}
 	return client
 }
 
@@ -134,7 +151,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
 				Stringer("entity_urn", msg.EntityURN).
-				Stringer("sender", msg.Sender.BackendURN)
+				Stringer("sender", msg.Sender.EntityURN)
 		},
 		PortalKey:    l.makePortalKey(msg.Conversation.EntityURN),
 		CreatePortal: true,
@@ -182,7 +199,7 @@ func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *types.Decorat
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
 				Stringer("conversation_urn", typingIndicator.Conversation.EntityURN).
-				Stringer("typing_participant_urn", typingIndicator.TypingParticipant.BackendURN)
+				Stringer("typing_participant_urn", typingIndicator.TypingParticipant.EntityURN)
 		},
 		PortalKey: l.makePortalKey(typingIndicator.Conversation.EntityURN),
 		Sender:    l.makeSender(typingIndicator.TypingParticipant),
@@ -212,7 +229,7 @@ func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, rece
 				return c.
 					Time("seen_at", receipt.SeenAt.Time).
 					Stringer("message_urn", receipt.Message.EntityURN).
-					Stringer("typing_participant_urn", receipt.SeenByParticipant.BackendURN)
+					Stringer("typing_participant_urn", receipt.SeenByParticipant.EntityURN)
 			},
 			PortalKey: part.Room,
 			Sender:    l.makeSender(receipt.SeenByParticipant),
@@ -234,7 +251,7 @@ func (l *LinkedInClient) getAvatar(img *types.VectorImage) (avatar bridgev2.Avat
 func (l *LinkedInClient) getMessagingParticipantUserInfo(participant types.MessagingParticipant) (ui bridgev2.UserInfo) {
 	ui.Name = ptr.Ptr(fmt.Sprintf("%s %s", participant.ParticipantType.Member.FirstName.Text, participant.ParticipantType.Member.LastName.Text)) // TODO use a displayname template
 	ui.Avatar = ptr.Ptr(l.getAvatar(participant.ParticipantType.Member.ProfilePicture))
-	ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.BackendURN.ID())}
+	ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
 	return
 }
 

@@ -30,15 +30,15 @@
     * [ ] Avatar
     * [ ] Per-room user nick
 * LinkedIn → Matrix
-  * [ ] Message content
+  * [x] Message content
     * [x] Text
-    * [ ] Media
+    * [x] Media
       * [x] Files
       * [x] Images
       * [x] GIFs
       * [x] Videos
       * [x] Voice Messages
-    * [ ] Mentions
+    * [x] Mentions
   * [x] Message edits
   * [x] Message delete
   * [ ] Message reactions

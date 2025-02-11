@@ -87,11 +87,8 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 	ul, err := c.user.NewLogin(
 		ctx,
 		&database.UserLogin{
-			ID: networkid.UserLoginID(profile.MiniProfile.ObjectURN.ID()),
-			Metadata: &UserLoginMetadata{
-				Cookies:   jar,
-				EntityURN: profile.MiniProfile.EntityURN,
-			},
+			ID:         networkid.UserLoginID(profile.MiniProfile.EntityURN.ID()),
+			Metadata:   &UserLoginMetadata{Cookies: jar},
 			RemoteName: remoteName,
 			RemoteProfile: status.RemoteProfile{
 				Name: remoteName,

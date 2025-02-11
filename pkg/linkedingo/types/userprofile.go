@@ -24,7 +24,6 @@ type MiniProfile struct {
 	Memorialized     bool   `json:"memorialized"`
 
 	EntityURN     URN `json:"entityUrn"`
-	ObjectURN     URN `json:"objectUrn"`
 	DashEntityURN URN `json:"dashEntityUrn"`
 
 	TrackingID string `json:"trackingId"`

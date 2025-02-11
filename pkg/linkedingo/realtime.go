@@ -129,7 +129,7 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 	isFirst := true
 	userURN := c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String()
 
-	log := zerolog.Ctx(ctx).With().Str("usr_urn", userURN).Logger()
+	log := zerolog.Ctx(ctx).With().Str("user_urn", userURN).Logger()
 	log.Info().Msg("Starting heartbeats loop")
 	for {
 		log.Debug().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Sending heartbeat")
