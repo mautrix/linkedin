@@ -167,6 +167,8 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 		})
 		return
 	case types.MessageBodyRenderFormatSystem:
+		log.Info().Msg("Ignoring system message")
+		return
 	default:
 		log.Warn().Str("message_body_render_format", string(msg.MessageBodyRenderFormat)).Msg("Unknown render format")
 	}

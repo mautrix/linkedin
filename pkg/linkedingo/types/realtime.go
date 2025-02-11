@@ -83,9 +83,10 @@ const (
 )
 
 type RenderContent struct {
-	VectorImage   *VectorImage       `json:"vectorImage,omitempty"`
-	File          *FileAttachment    `json:"file,omitempty"`
+	Audio         *AudioMetadata     `json:"audio,omitempty"`
 	ExternalMedia *ExternalMedia     `json:"externalMedia,omitempty"`
+	File          *FileAttachment    `json:"file,omitempty"`
+	VectorImage   *VectorImage       `json:"vectorImage,omitempty"`
 	Video         *VideoPlayMetadata `json:"video,omitempty"`
 }
 

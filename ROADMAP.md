@@ -37,7 +37,7 @@
       * [x] Images
       * [x] GIFs
       * [x] Videos
-      * [ ] Voice Messages
+      * [x] Voice Messages
     * [ ] Mentions
   * [x] Message edits
   * [x] Message delete
@@ -45,8 +45,8 @@
   * [ ] Message history
   * [x] Real-time messages
   * [ ] ~~Presence~~ (impossible for now, see https://github.com/mautrix/go/issues/295)
-  * [ ] Typing notifications
-  * [ ] Read receipts
+  * [x] Typing notifications
+  * [x] Read receipts
   * [ ] Admin status
   * [ ] Membership actions
     * [x] Add member

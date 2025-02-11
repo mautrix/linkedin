@@ -84,3 +84,9 @@ type ProgressiveDownloadMetadata struct {
 type StreamingLocation struct {
 	URL string `json:"url,omitempty"`
 }
+
+// AudioMetadata represents a com.linkedin.messenger.AudioMetadata object.
+type AudioMetadata struct {
+	Duration jsontime.Milliseconds `json:"duration,omitempty"`
+	URL      string                `json:"url,omitempty"`
+}
