@@ -52,6 +52,7 @@ func (a *authedRequest) WithCSRF() *authedRequest {
 
 func (a *authedRequest) WithJSONPayload(payload any) *authedRequest {
 	a.body = bytes.NewReader(exerrors.Must(json.Marshal(payload)))
+	fmt.Printf("%s\n", exerrors.Must(json.Marshal(payload)))
 	return a
 }
 

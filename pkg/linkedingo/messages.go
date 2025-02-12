@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/random"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
@@ -22,10 +23,10 @@ type SendMessagePayload struct {
 }
 
 type SendMessage struct {
-	Body                SendMessageBody `json:"body,omitempty"`
-	RenderContentUnions []any           `json:"renderContentUnions,omitempty"`
-	ConversationURN     types.URN       `json:"conversationUrn,omitempty"`
-	OriginToken         uuid.UUID       `json:"originToken,omitempty"`
+	Body                SendMessageBody     `json:"body,omitempty"`
+	RenderContentUnions []SendRenderContent `json:"renderContentUnions,omitempty"`
+	ConversationURN     types.URN           `json:"conversationUrn,omitempty"`
+	OriginToken         uuid.UUID           `json:"originToken,omitempty"`
 }
 
 type SendMessageBody struct {
@@ -37,6 +38,17 @@ type SendMessageAttribute struct {
 	Start              int                 `json:"start"`
 	Length             int                 `json:"length"`
 	AttributeKindUnion types.AttributeKind `json:"attributeKindUnion"`
+}
+
+type SendRenderContent struct {
+	RepliedMessageContent *SendRepliedMessage `json:"repliedMessageContent,omitempty"`
+}
+
+type SendRepliedMessage struct {
+	OriginalSenderURN  types.URN            `json:"originalSenderUrn"`
+	OriginalSentAt     jsontime.UnixMilli   `json:"originalSendAt"`
+	OriginalMessageURN types.URN            `json:"originalMessageUrn"`
+	MessageBody        types.AttributedText `json:"messageBody"`
 }
 
 type AttributeType struct {
