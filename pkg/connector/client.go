@@ -32,16 +32,19 @@ import (
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/linkedinfmt"
+	"go.mau.fi/mautrix-linkedin/pkg/connector/matrixfmt"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type LinkedInClient struct {
-	main              *LinkedInConnector
-	userID            networkid.UserID
-	userLogin         *bridgev2.UserLogin
-	client            *linkedingo.Client
+	main      *LinkedInConnector
+	userID    networkid.UserID
+	userLogin *bridgev2.UserLogin
+	client    *linkedingo.Client
+
 	linkedinFmtParams linkedinfmt.FormatParams
+	matrixParser      *matrixfmt.HTMLParser
 }
 
 var (
@@ -95,6 +98,17 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 				return client.userLogin.UserMXID, nil
 			}
 			return ghost.Intent.GetMXID(), nil
+		},
+	}
+	client.matrixParser = &matrixfmt.HTMLParser{
+		GetGhostDetails: func(ctx context.Context, ui id.UserID) (networkid.UserID, string, bool) {
+			if userID, ok := lc.Bridge.Matrix.ParseGhostMXID(ui); !ok {
+				return "", "", false
+			} else if ghost, err := lc.Bridge.DB.Ghost.GetByID(ctx, userID); err != nil {
+				return "", "", false
+			} else {
+				return userID, ghost.Name, true
+			}
 		},
 	}
 	return client
@@ -339,13 +353,16 @@ func (l *LinkedInClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost)
 	return nil, nil
 }
 
-func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (message *bridgev2.MatrixMessageResponse, err error) {
+func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (*bridgev2.MatrixMessageResponse, error) {
 	conversationURN := types.NewURN(string(msg.Portal.ID))
 
+	message, attrs := matrixfmt.Parse(ctx, l.matrixParser, msg.Content)
+
 	sendMessagePayload := linkedingo.SendMessagePayload{
-		Message: linkedingo.SendMessageData{
-			Body: types.AttributedText{
-				Text: msg.Content.Body,
+		Message: linkedingo.SendMessage{
+			Body: linkedingo.SendMessageBody{
+				Attributes: attrs,
+				Text:       message,
 			},
 			ConversationURN: conversationURN,
 		},
@@ -408,8 +425,6 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("%+v\n", resp)
 
 	return &bridgev2.MatrixMessageResponse{
 		DB: &database.Message{

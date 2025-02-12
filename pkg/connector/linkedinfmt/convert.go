@@ -22,6 +22,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"golang.org/x/exp/maps"
+	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
@@ -70,17 +71,18 @@ func Parse(ctx context.Context, message string, attributes []types.Attribute, pa
 		}.TruncateEnd(maxLength)
 		switch {
 		case a.AttributeKind.Entity != nil:
+			urn := a.AttributeKind.Entity.URN
 			var userInfo UserInfo
-			userInfo.MXID, err = params.GetMXIDByURN(ctx, a.AttributeKind.Entity.URN)
+			userInfo.MXID, err = params.GetMXIDByURN(ctx, urn)
 			if err != nil {
 				log.Warn().Err(err).
-					Stringer("mentioned_user", a.AttributeKind.Entity.URN).
+					Stringer("mentioned_user", urn).
 					Msg("Failed to get user info for mention")
 				continue // Skip this mention
 			}
 			userInfo.Name = utf16Message[a.Start+1 : a.Start+a.Length].String()
 			mentions[userInfo.MXID] = struct{}{}
-			br.Value = Mention(userInfo)
+			br.Value = Mention{userInfo, networkid.UserID(urn.ID())}
 		default:
 			log.Warn().Msg("Unhandled attribute")
 		}

@@ -13,19 +13,34 @@ import (
 )
 
 type SendMessagePayload struct {
-	Message                      SendMessageData `json:"message,omitempty"`
-	MailboxURN                   types.URN       `json:"mailboxUrn,omitempty"`
-	TrackingID                   string          `json:"trackingId,omitempty"`
-	DedupeByClientGeneratedToken bool            `json:"dedupeByClientGeneratedToken"`
-	HostRecipientURNs            []types.URN     `json:"hostRecipientUrns,omitempty"`
-	ConversationTitle            string          `json:"conversationTitle,omitempty"`
+	Message                      SendMessage `json:"message,omitempty"`
+	MailboxURN                   types.URN   `json:"mailboxUrn,omitempty"`
+	TrackingID                   string      `json:"trackingId,omitempty"`
+	DedupeByClientGeneratedToken bool        `json:"dedupeByClientGeneratedToken"`
+	HostRecipientURNs            []types.URN `json:"hostRecipientUrns,omitempty"`
+	ConversationTitle            string      `json:"conversationTitle,omitempty"`
 }
 
-type SendMessageData struct {
-	Body types.AttributedText `json:"body,omitempty"`
-	// RenderContentUnions []types.RenderContent `json:"renderContentUnions,omitempty"`
-	ConversationURN types.URN `json:"conversationUrn,omitempty"`
-	OriginToken     uuid.UUID `json:"originToken,omitempty"`
+type SendMessage struct {
+	Body                SendMessageBody `json:"body,omitempty"`
+	RenderContentUnions []any           `json:"renderContentUnions,omitempty"`
+	ConversationURN     types.URN       `json:"conversationUrn,omitempty"`
+	OriginToken         uuid.UUID       `json:"originToken,omitempty"`
+}
+
+type SendMessageBody struct {
+	Text       string                 `json:"text"`
+	Attributes []SendMessageAttribute `json:"attributes,omitempty"`
+}
+
+type SendMessageAttribute struct {
+	Start              int                 `json:"start"`
+	Length             int                 `json:"length"`
+	AttributeKindUnion types.AttributeKind `json:"attributeKindUnion"`
+}
+
+type AttributeType struct {
+	Entity *types.Entity `json:"com.linkedin.pemberly.text.Entity,omitempty"`
 }
 
 type MessageSentResponse struct {

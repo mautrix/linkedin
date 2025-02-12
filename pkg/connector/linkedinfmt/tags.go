@@ -19,6 +19,7 @@ package linkedinfmt
 import (
 	"fmt"
 
+	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/id"
 )
 
@@ -28,7 +29,10 @@ type BodyRangeValue interface {
 	IsCode() bool
 }
 
-type Mention UserInfo
+type Mention struct {
+	UserInfo
+	UserID networkid.UserID
+}
 
 var _ BodyRangeValue = Mention{}
 
