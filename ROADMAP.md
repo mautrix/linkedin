@@ -2,7 +2,7 @@
 
 * Matrix → LinkedIn
   * [ ] Message content
-    * [ ] Text
+    * [x] Text
     * [ ] Media
       * [ ] Files
       * [ ] Images
@@ -12,9 +12,9 @@
       * [ ] ~~Stickers~~ (unsupported)
     * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
     * [ ] Replies
-    * [ ] Mentions
+    * [x] Mentions
     * [ ] Emotes
-  * [ ] Message edits
+  * [x] Message edits
   * [ ] Message redactions
   * [ ] Message reactions
   * [ ] Presence

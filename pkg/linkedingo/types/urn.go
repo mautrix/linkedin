@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 )
 
@@ -30,6 +31,10 @@ func (u URN) ID() string {
 
 func (u URN) String() string {
 	return strings.Join(u.parts, ":")
+}
+
+func (u URN) URLEscaped() string {
+	return url.PathEscape(u.String())
 }
 
 func (u URN) IsEmpty() bool {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/google/uuid"
 	"go.mau.fi/util/random"
@@ -69,4 +70,36 @@ func (c *Client) SendMessage(ctx context.Context, payload SendMessagePayload) (*
 
 	var messageSentResponse MessageSentResponse
 	return &messageSentResponse, json.NewDecoder(resp.Body).Decode(&messageSentResponse)
+}
+
+type GraphQLPatchBody struct {
+	Patch Patch `json:"patch,omitempty"`
+}
+
+// TODO: genericise?
+type Patch struct {
+	Set any `json:"$set,omitempty"`
+}
+
+type EditMessagePayload struct {
+	Body SendMessageBody `json:"body,omitempty"`
+}
+
+func (c *Client) EditMessage(ctx context.Context, messageURN types.URN, p SendMessageBody) error {
+	url, err := url.JoinPath(linkedInVoyagerMessagingDashMessengerMessagesURL, messageURN.URLEscaped())
+	if err != nil {
+		return err
+	}
+	resp, err := c.newAuthedRequest(http.MethodPost, url).
+		WithCSRF().
+		WithJSONPayload(GraphQLPatchBody{Patch: Patch{Set: EditMessagePayload{Body: p}}}).
+		WithHeader("accept", contentTypeJSON).
+		WithRealtimeHeaders().
+		Do(ctx)
+	if err != nil {
+		return err
+	} else if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to edit message with urn %s (statusCode=%d)", messageURN, resp.StatusCode)
+	}
+	return nil
 }

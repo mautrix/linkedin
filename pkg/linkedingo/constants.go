@@ -28,6 +28,7 @@ const (
 const LinkedInCookieJSESSIONID = "JSESSIONID"
 
 const (
+	contentTypeJSON                   = "application/json"
 	contentTypeJSONLinkedInNormalized = "application/vnd.linkedin.normalized+json+2.1"
 	contentTypeGraphQL                = "application/graphql"
 	contentTypeTextEventStream        = "text/event-stream"

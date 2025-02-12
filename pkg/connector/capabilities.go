@@ -48,7 +48,7 @@ var formattingCaps = event.FormattingFeatureMap{
 	event.FmtSyntaxHighlighting: event.CapLevelDropped,
 	event.FmtBlockquote:         event.CapLevelDropped,
 	event.FmtInlineLink:         event.CapLevelDropped,
-	event.FmtUserLink:           event.CapLevelDropped,
+	event.FmtUserLink:           event.CapLevelFullySupported,
 	event.FmtUnorderedList:      event.CapLevelDropped,
 	event.FmtOrderedList:        event.CapLevelDropped,
 	event.FmtListStart:          event.CapLevelDropped,
@@ -145,7 +145,7 @@ func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Por
 		MaxTextLength:       MaxTextLength,
 		LocationMessage:     event.CapLevelDropped,
 		Reply:               event.CapLevelDropped,
-		Edit:                event.CapLevelDropped,
+		Edit:                event.CapLevelFullySupported, // TODO note that edits are restricted to specific msgtypes
 		Delete:              event.CapLevelDropped,
 		Reaction:            event.CapLevelDropped,
 		ReactionCount:       1,
