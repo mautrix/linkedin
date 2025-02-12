@@ -20,10 +20,13 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/url"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
+
+type Picture struct {
+	VectorImage *types.VectorImage `json:"com.linkedin.common.VectorImage,omitempty"`
+}
 
 type MiniProfile struct {
 	FirstName        string `json:"firstName"`
@@ -37,7 +40,7 @@ type MiniProfile struct {
 
 	TrackingID string `json:"trackingId"`
 
-	Picture types.Picture `json:"picture,omitempty"`
+	Picture Picture `json:"picture,omitempty"`
 }
 
 type UserProfile struct {
@@ -45,7 +48,7 @@ type UserProfile struct {
 }
 
 func (c *Client) GetCurrentUserProfile(ctx context.Context) (*UserProfile, error) {
-	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerCommonMeURL, nil).WithCSRF().Do(ctx)
+	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerCommonMeURL).WithCSRF().Do(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,14 +58,8 @@ func (c *Client) GetCurrentUserProfile(ctx context.Context) (*UserProfile, error
 }
 
 func (c *Client) Logout(ctx context.Context) error {
-	params := url.Values{}
-	params.Add("csrfToken", c.getCSRFToken())
-	url, err := url.Parse(linkedInLogoutURL)
-	if err != nil {
-		return err
-	}
-	url.RawQuery = params.Encode()
-
-	_, err = c.newAuthedRequest(http.MethodGet, url.String(), nil).Do(ctx)
+	_, err := c.newAuthedRequest(http.MethodGet, linkedInLogoutURL).
+		WithParam("csrfToken", c.getCSRFToken()).
+		Do(ctx)
 	return err
 }

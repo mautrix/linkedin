@@ -17,11 +17,12 @@
 package linkedingo
 
 const (
-	linkedInMessagingBaseURL     = "https://www.linkedin.com/messaging"
-	linkedInVoyagerCommonMeURL   = "https://www.linkedin.com/voyager/api/me"
-	linkedInRealtimeConnectURL   = "https://www.linkedin.com/realtime/connect?rc=1"
-	linkedInRealtimeHeartbeatURL = "https://www.linkedin.com/realtime/realtimeFrontendClientConnectivityTracking?action=sendHeartbeat"
-	linkedInLogoutURL            = "https://www.linkedin.com/uas/logout"
+	linkedInMessagingBaseURL                         = "https://www.linkedin.com/messaging"
+	linkedInVoyagerCommonMeURL                       = "https://www.linkedin.com/voyager/api/me"
+	linkedInRealtimeConnectURL                       = "https://www.linkedin.com/realtime/connect?rc=1"
+	linkedInRealtimeHeartbeatURL                     = "https://www.linkedin.com/realtime/realtimeFrontendClientConnectivityTracking?action=sendHeartbeat"
+	linkedInLogoutURL                                = "https://www.linkedin.com/uas/logout"
+	linkedInVoyagerMessagingDashMessengerMessagesURL = "https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages"
 )
 
 const LinkedInCookieJSESSIONID = "JSESSIONID"

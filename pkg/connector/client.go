@@ -337,7 +337,86 @@ func (l *LinkedInClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost)
 }
 
 func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (message *bridgev2.MatrixMessageResponse, err error) {
-	panic("unimplemented")
+	conversationURN := types.NewURN(string(msg.Portal.ID))
+
+	sendMessagePayload := linkedingo.SendMessagePayload{
+		Message: linkedingo.SendMessageData{
+			Body: types.AttributedText{
+				Text: msg.Content.Body,
+			},
+			ConversationURN: conversationURN,
+		},
+	}
+
+	// if msg.ReplyTo != nil {
+	// 	sendMessagePayload.Message.RenderContentUnions = append(
+	// 		sendMessagePayload.Message.RenderContentUnions,
+	// 		payloadold.RenderContent{
+	// 			RepliedMessageContent: &payloadold.RepliedMessageContent{
+	// 				OriginalSenderUrn:  string(msg.ReplyTo.SenderID),
+	// 				OriginalMessageUrn: string(msg.ReplyTo.ID),
+	// 				OriginalSendAt:     msg.ReplyTo.Timestamp.UnixMilli(),
+	// 				//MessageBody:        "", // todo add at some point
+	// 			},
+	// 		},
+	// 	)
+	// }
+
+	// content := msg.Content
+	//
+	// switch content.MsgType {
+	// case event.MsgText:
+	// 	break
+	// case event.MsgVideo, event.MsgImage:
+	// 	if content.Body == content.FileName {
+	// 		sendMessagePayload.Message.Body.Text = ""
+	// 	}
+	//
+	// 	file := content.GetFile()
+	// 	data, err := lc.connector.br.Bot.DownloadMedia(ctx, file.URL, file)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	//
+	// 	attachmentType := payloadold.MediaUploadFileAttachment
+	// 	if content.MsgType == event.MsgImage {
+	// 		attachmentType = payloadold.MediaUploadTypePhotoAttachment
+	// 	}
+	//
+	// 	mediaMetadata, err := lc.client.UploadMedia(attachmentType, content.FileName, data, typesold.ContentTypeJSONPlaintextUTF8)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	//
+	// 	lc.client.Logger.Debug().Any("media_metadata", mediaMetadata).Msg("Successfully uploaded media to LinkedIn's servers")
+	// 	sendMessagePayload.Message.RenderContentUnions = append(sendMessagePayload.Message.RenderContentUnions, payloadold.RenderContent{
+	// 		File: &payloadold.File{
+	// 			AssetUrn:  mediaMetadata.Urn,
+	// 			Name:      content.FileName,
+	// 			MediaType: typesold.ContentType(content.Info.MimeType),
+	// 			ByteSize:  len(data),
+	// 		},
+	// 	})
+	// default:
+	// 	return nil, fmt.Errorf("%w %s", bridgev2.ErrUnsupportedMessageType, content.MsgType)
+	// }
+	//
+	resp, err := l.client.SendMessage(ctx, sendMessagePayload)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("%+v\n", resp)
+
+	return &bridgev2.MatrixMessageResponse{
+		DB: &database.Message{
+			ID:        resp.Data.MessageID(),
+			MXID:      msg.Event.ID,
+			Room:      msg.Portal.PortalKey,
+			SenderID:  l.userID,
+			Timestamp: resp.Data.DeliveredAt.Time,
+		},
+	}, nil
 }
 
 func (l *LinkedInClient) IsLoggedIn() bool {

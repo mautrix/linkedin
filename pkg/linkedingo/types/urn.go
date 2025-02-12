@@ -32,6 +32,10 @@ func (u URN) String() string {
 	return strings.Join(u.parts, ":")
 }
 
+func (u URN) IsEmpty() bool {
+	return len(u.parts) == 0
+}
+
 func (u *URN) UnmarshalJSON(data []byte) (err error) {
 	var urn string
 	if err = json.Unmarshal(data, &urn); err != nil {

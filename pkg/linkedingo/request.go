@@ -1,10 +1,15 @@
 package linkedingo
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+
+	"go.mau.fi/util/exerrors"
 )
 
 func (c *Client) getCSRFToken() string {
@@ -16,12 +21,19 @@ type authedRequest struct {
 	url    string
 	body   io.Reader
 	header http.Header
+	params url.Values
 
 	client *Client
 }
 
-func (c *Client) newAuthedRequest(method, url string, body io.Reader) *authedRequest {
-	return &authedRequest{method, url, body, http.Header{}, c}
+func (c *Client) newAuthedRequest(method, url string) *authedRequest {
+	return &authedRequest{
+		method: method,
+		url:    url,
+		header: http.Header{},
+		params: map[string][]string{},
+		client: c,
+	}
 }
 
 func (a *authedRequest) WithHeader(key, value string) *authedRequest {
@@ -29,8 +41,22 @@ func (a *authedRequest) WithHeader(key, value string) *authedRequest {
 	return a
 }
 
+func (a *authedRequest) WithParam(key, value string) *authedRequest {
+	a.params.Add(key, value)
+	return a
+}
+
 func (a *authedRequest) WithCSRF() *authedRequest {
 	return a.WithHeader("csrf-token", a.client.getCSRFToken())
+}
+
+func (a *authedRequest) WithJSONPayload(payload any) *authedRequest {
+	a.body = bytes.NewReader(exerrors.Must(json.Marshal(payload)))
+	return a
+}
+
+func (a *authedRequest) WithContentType(contentType string) *authedRequest {
+	return a.WithHeader("content-type", contentType)
 }
 
 func (a *authedRequest) WithRealtimeHeaders() *authedRequest {
@@ -57,7 +83,12 @@ func (a *authedRequest) WithWebpageHeaders() *authedRequest {
 }
 
 func (a *authedRequest) Do(ctx context.Context) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, a.method, a.url, a.body)
+	u, err := url.Parse(a.url)
+	if err != nil {
+		return nil, err
+	}
+	u.RawQuery = a.params.Encode()
+	req, err := http.NewRequestWithContext(ctx, a.method, u.String(), a.body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to perform authed request %s %s: %w", a.method, a.url, err)
 	}

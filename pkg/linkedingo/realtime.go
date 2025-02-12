@@ -91,7 +91,7 @@ func (c *Client) cacheMetaValues(ctx context.Context) error {
 		return nil
 	}
 
-	resp, err := c.newAuthedRequest(http.MethodGet, linkedInMessagingBaseURL, nil).
+	resp, err := c.newAuthedRequest(http.MethodGet, linkedInMessagingBaseURL).
 		WithWebpageHeaders().
 		Do(ctx)
 	if err != nil {
@@ -177,22 +177,17 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 	for {
 		log.Debug().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Sending heartbeat")
 
-		body, err := json.Marshal(map[string]any{
-			"isFirstHeartbeat":  !isFirst,
-			"isLastHeartbeat":   false,
-			"realtimeSessionId": c.realtimeSessionID.String(),
-			"mpName":            "voyager-web",
-			"mpVersion":         c.serviceVersion,
-			"clientId":          "voyager-web",
-			"actorUrn":          userURN,
-			"contextUrns":       []string{userURN},
-		})
-		if err != nil {
-			log.Err(err).Msg("Failed to create heartbeat request body")
-			return
-		}
-
-		_, err = c.newAuthedRequest(http.MethodPost, linkedInRealtimeHeartbeatURL, bytes.NewReader(body)).
+		_, err := c.newAuthedRequest(http.MethodPost, linkedInRealtimeHeartbeatURL).
+			WithJSONPayload(map[string]any{
+				"isFirstHeartbeat":  !isFirst,
+				"isLastHeartbeat":   false,
+				"realtimeSessionId": c.realtimeSessionID.String(),
+				"mpName":            "voyager-web",
+				"mpVersion":         c.serviceVersion,
+				"clientId":          "voyager-web",
+				"actorUrn":          userURN,
+				"contextUrns":       []string{userURN},
+			}).
 			WithCSRF().
 			WithRealtimeHeaders().
 			Do(ctx)
@@ -225,7 +220,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 		}
 
 		var err error
-		c.realtimeResp, err = c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL, nil).
+		c.realtimeResp, err = c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL).
 			WithCSRF().
 			WithRealtimeHeaders().
 			WithHeader("Accept", contentTypeTextEventStream).

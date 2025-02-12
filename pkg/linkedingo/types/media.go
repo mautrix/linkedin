@@ -28,10 +28,6 @@ func (vi VectorImage) GetLargestArtifactURL() string {
 	return vi.RootURL + largestVersion.FileIdentifyingURLPathSegment
 }
 
-type Picture struct {
-	VectorImage *VectorImage `json:"com.linkedin.common.VectorImage,omitempty"`
-}
-
 // FileAttachment represents a com.linkedin.messenger.FileAttachment object.
 type FileAttachment struct {
 	AssetURN  URN    `json:"assetUrn,omitempty"`
