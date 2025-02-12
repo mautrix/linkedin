@@ -48,27 +48,26 @@ func toLinkedInAttribute(br linkedinfmt.BodyRange) linkedingo.SendMessageAttribu
 	}
 }
 
-func Parse(ctx context.Context, parser *HTMLParser, content *event.MessageEventContent) (string, []linkedingo.SendMessageAttribute) {
+func Parse(ctx context.Context, parser *HTMLParser, content *event.MessageEventContent) (body linkedingo.SendMessageBody) {
 	if content.MsgType.IsMedia() && (content.FileName == "" || content.FileName == content.Body) {
 		// The body is the filename.
-		return "", nil
+		return
 	}
 
 	if content.Format != event.FormatHTML {
-		return content.Body, nil
+		body.Text = content.Body
+		return
 	}
 	parseCtx := NewContext(ctx)
 	parseCtx.AllowedMentions = content.Mentions
 	parsed := parser.Parse(content.FormattedBody, parseCtx)
 	if parsed == nil {
-		return "", nil
+		return
 	}
-	var entities []linkedingo.SendMessageAttribute
-	if len(parsed.Entities) > 0 {
-		entities = make([]linkedingo.SendMessageAttribute, len(parsed.Entities))
-		for i, ent := range parsed.Entities {
-			entities[i] = toLinkedInAttribute(ent)
-		}
+	body.Text = parsed.String.String()
+	body.Attributes = make([]linkedingo.SendMessageAttribute, len(parsed.Entities))
+	for i, ent := range parsed.Entities {
+		body.Attributes[i] = toLinkedInAttribute(ent)
 	}
-	return parsed.String.String(), entities
+	return
 }

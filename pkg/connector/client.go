@@ -356,14 +356,9 @@ func (l *LinkedInClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost)
 func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (*bridgev2.MatrixMessageResponse, error) {
 	conversationURN := types.NewURN(string(msg.Portal.ID))
 
-	message, attrs := matrixfmt.Parse(ctx, l.matrixParser, msg.Content)
-
 	sendMessagePayload := linkedingo.SendMessagePayload{
 		Message: linkedingo.SendMessage{
-			Body: linkedingo.SendMessageBody{
-				Attributes: attrs,
-				Text:       message,
-			},
+			Body:            matrixfmt.Parse(ctx, l.matrixParser, msg.Content),
 			ConversationURN: conversationURN,
 		},
 	}
