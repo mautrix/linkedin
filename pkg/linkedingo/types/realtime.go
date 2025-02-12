@@ -5,27 +5,6 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 )
 
-type DecoratedEvent struct {
-	Topic               URN                   `json:"topic,omitempty"`
-	LeftServerAt        jsontime.UnixMilli    `json:"leftServerAt,omitempty"`
-	ID                  string                `json:"id,omitempty"`
-	Payload             DecoratedEventPayload `json:"payload,omitempty"`
-	TrackingID          string                `json:"trackingId,omitempty"`
-	PublisherTrackingID string                `json:"publisherTrackingId,omitempty"`
-}
-
-type DecoratedEventPayload struct {
-	Data DecoratedEventData `json:"data,omitempty"`
-}
-
-type DecoratedEventData struct {
-	Type                     string                    `json:"_type,omitempty"`
-	DecoratedMessage         *DecoratedMessage         `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
-	DecoratedTypingIndicator *DecoratedTypingIndicator `json:"doDecorateTypingIndicatorMessengerRealtimeDecoration,omitempty"`
-	DecoratedSeenReceipt     *DecoratedSeenReceipt     `json:"doDecorateSeenReceiptMessengerRealtimeDecoration,omitempty"`
-	DecoratedReactionSummary *DecoratedReactionSummary `json:"doDecorateRealtimeReactionSummaryMessengerRealtimeDecoration,omitempty"`
-}
-
 // Conversation represents a com.linkedin.messenger.Conversation object
 type Conversation struct {
 	Title                    string                 `json:"title,omitempty"`
@@ -97,10 +76,6 @@ type RenderContent struct {
 	Video         *VideoPlayMetadata `json:"video,omitempty"`
 }
 
-type DecoratedMessage struct {
-	Result Message `json:"result,omitempty"`
-}
-
 // Message represents a com.linkedin.messenger.Message object.
 type Message struct {
 	Body                    AttributedText          `json:"body,omitempty"`
@@ -117,10 +92,6 @@ func (m Message) MessageID() networkid.MessageID {
 	return networkid.MessageID(m.EntityURN.String())
 }
 
-type DecoratedTypingIndicator struct {
-	Result RealtimeTypingIndicator `json:"result,omitempty"`
-}
-
 // RealtimeTypingIndicator represents a
 // com.linkedin.messenger.RealtimeTypingIndicator object.
 type RealtimeTypingIndicator struct {
@@ -128,19 +99,11 @@ type RealtimeTypingIndicator struct {
 	Conversation      Conversation         `json:"conversation,omitempty"`
 }
 
-type DecoratedSeenReceipt struct {
-	Result SeenReceipt `json:"result,omitempty"`
-}
-
 // SeenReceipt represents a com.linkedin.messenger.SeenReceipt object.
 type SeenReceipt struct {
 	SeenAt            jsontime.UnixMilli   `json:"seenAt,omitempty"`
 	Message           Message              `json:"message,omitempty"`
 	SeenByParticipant MessagingParticipant `json:"seenByParticipant,omitempty"`
-}
-
-type DecoratedReactionSummary struct {
-	Result RealtimeReactionSummary `json:"result,omitempty"`
 }
 
 // RealtimeReactionSummary represents a

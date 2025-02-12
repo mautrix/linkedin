@@ -50,12 +50,40 @@ type ClientConnection struct {
 }
 
 type DecoratedEvent struct {
-	Topic               types.URN                   `json:"topic,omitempty"`
-	LeftServerAt        jsontime.UnixMilli          `json:"leftServerAt,omitempty"`
-	ID                  string                      `json:"id,omitempty"`
-	Payload             types.DecoratedEventPayload `json:"payload,omitempty"`
-	TrackingID          string                      `json:"trackingId,omitempty"`
-	PublisherTrackingID string                      `json:"publisherTrackingId,omitempty"`
+	Topic               types.URN             `json:"topic,omitempty"`
+	LeftServerAt        jsontime.UnixMilli    `json:"leftServerAt,omitempty"`
+	ID                  string                `json:"id,omitempty"`
+	Payload             DecoratedEventPayload `json:"payload,omitempty"`
+	TrackingID          string                `json:"trackingId,omitempty"`
+	PublisherTrackingID string                `json:"publisherTrackingId,omitempty"`
+}
+
+type DecoratedEventPayload struct {
+	Data DecoratedEventData `json:"data,omitempty"`
+}
+
+type DecoratedEventData struct {
+	Type                     string                    `json:"_type,omitempty"`
+	DecoratedMessage         *DecoratedMessage         `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
+	DecoratedTypingIndicator *DecoratedTypingIndicator `json:"doDecorateTypingIndicatorMessengerRealtimeDecoration,omitempty"`
+	DecoratedSeenReceipt     *DecoratedSeenReceipt     `json:"doDecorateSeenReceiptMessengerRealtimeDecoration,omitempty"`
+	DecoratedReactionSummary *DecoratedReactionSummary `json:"doDecorateRealtimeReactionSummaryMessengerRealtimeDecoration,omitempty"`
+}
+
+type DecoratedMessage struct {
+	Result types.Message `json:"result,omitempty"`
+}
+
+type DecoratedTypingIndicator struct {
+	Result types.RealtimeTypingIndicator `json:"result,omitempty"`
+}
+
+type DecoratedSeenReceipt struct {
+	Result types.SeenReceipt `json:"result,omitempty"`
+}
+
+type DecoratedReactionSummary struct {
+	Result types.RealtimeReactionSummary `json:"result,omitempty"`
 }
 
 func (c *Client) cacheMetaValues(ctx context.Context) error {
