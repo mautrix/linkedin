@@ -66,9 +66,9 @@ func NewClient(ctx context.Context, userEntityURN types.URN, jar *stringcookieja
 
 type Handlers struct {
 	Heartbeat            func(context.Context)
-	ClientConnection     func(context.Context, *types.ClientConnection)
+	ClientConnection     func(context.Context, *ClientConnection)
 	RealtimeConnectError func(context.Context, error)
-	DecoratedEvent       func(context.Context, *types.DecoratedEvent)
+	DecoratedEvent       func(context.Context, *DecoratedEvent)
 }
 
 func (h Handlers) onHeartbeat(ctx context.Context) {
@@ -77,7 +77,7 @@ func (h Handlers) onHeartbeat(ctx context.Context) {
 	}
 }
 
-func (h Handlers) onClientConnection(ctx context.Context, conn *types.ClientConnection) {
+func (h Handlers) onClientConnection(ctx context.Context, conn *ClientConnection) {
 	if h.ClientConnection != nil {
 		h.ClientConnection(ctx, conn)
 	}
@@ -89,7 +89,7 @@ func (h Handlers) onRealtimeConnectError(ctx context.Context, err error) {
 	}
 }
 
-func (h Handlers) onDecoratedEvent(ctx context.Context, decoratedEvent *types.DecoratedEvent) {
+func (h Handlers) onDecoratedEvent(ctx context.Context, decoratedEvent *DecoratedEvent) {
 	if h.DecoratedEvent != nil {
 		h.DecoratedEvent(ctx, decoratedEvent)
 	}

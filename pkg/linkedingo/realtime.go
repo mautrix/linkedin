@@ -12,8 +12,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exerrors"
+	"go.mau.fi/util/jsontime"
 	"golang.org/x/net/html"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
@@ -35,22 +37,35 @@ func init() {
 	realtimeQueryMap = string(exerrors.Must(json.Marshal(x)))
 }
 
+type RealtimeEvent struct {
+	Heartbeat        *Heartbeat        `json:"com.linkedin.realtimefrontend.Heartbeat,omitempty"`
+	ClientConnection *ClientConnection `json:"com.linkedin.realtimefrontend.ClientConnection,omitempty"`
+	DecoratedEvent   *DecoratedEvent   `json:"com.linkedin.realtimefrontend.DecoratedEvent,omitempty"`
+}
+
+type Heartbeat struct{}
+
+type ClientConnection struct {
+	ID uuid.UUID `json:"id"`
+}
+
+type DecoratedEvent struct {
+	Topic               types.URN                   `json:"topic,omitempty"`
+	LeftServerAt        jsontime.UnixMilli          `json:"leftServerAt,omitempty"`
+	ID                  string                      `json:"id,omitempty"`
+	Payload             types.DecoratedEventPayload `json:"payload,omitempty"`
+	TrackingID          string                      `json:"trackingId,omitempty"`
+	PublisherTrackingID string                      `json:"publisherTrackingId,omitempty"`
+}
+
 func (c *Client) cacheMetaValues(ctx context.Context) error {
 	if c.clientPageInstanceID != "" && c.xLITrack != "" && c.i18nLocale != "" {
 		return nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, linkedInMessagingBaseURL, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Sec-Fetch-Dest", "document")
-	req.Header.Add("Sec-Fetch-Mode", "navigate")
-	req.Header.Add("Sec-Fetch-Site", "none")
-	req.Header.Add("Sec-Fetch-User", "?1")
-	req.Header.Add("Upgrade-Insecure-Requests", "1")
-
-	resp, err := c.http.Do(req)
+	resp, err := c.newAuthedRequest(http.MethodGet, linkedInMessagingBaseURL, nil).
+		WithWebpageHeaders().
+		Do(ctx)
 	if err != nil {
 		return err
 	}
@@ -149,24 +164,10 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 			return
 		}
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, linkedInRealtimeHeartbeatURL, bytes.NewReader(body))
-		if err != nil {
-			log.Err(err).Msg("Failed to create heartbeat request")
-			return
-		}
-		req.Header.Add("csrf-token", c.getCSRFToken())
-		req.Header.Add("referer", linkedInMessagingBaseURL+"/")
-		req.Header.Add("x-li-accept", contentTypeJSONLinkedInNormalized)
-		req.Header.Add("x-li-page-instance", "urn:li:page:messaging_index;"+c.clientPageInstanceID)
-		req.Header.Add("x-li-query-accept", contentTypeGraphQL)
-		req.Header.Add("x-li-query-map", realtimeQueryMap)
-		req.Header.Add("x-li-realtime-session", c.realtimeSessionID.String())
-		req.Header.Add("x-li-recipe-accept", contentTypeJSONLinkedInNormalized)
-		req.Header.Add("x-li-recipe-map", realtimeRecipeMap)
-		req.Header.Add("x-li-track", c.xLITrack)
-		req.Header.Add("x-restli-protocol-version", "2.0.0")
-
-		_, err = c.http.Do(req)
+		_, err = c.newAuthedRequest(http.MethodPost, linkedInRealtimeHeartbeatURL, bytes.NewReader(body)).
+			WithCSRF().
+			WithRealtimeHeaders().
+			Do(ctx)
 		if err != nil {
 			log.Err(err).Msg("Failed to send heartbeat")
 			return
@@ -195,26 +196,12 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 		default:
 		}
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, linkedInRealtimeConnectURL, nil)
-		if err != nil {
-			log.Err(err).Msg("make request failed")
-			c.handlers.onRealtimeConnectError(ctx, err)
-			return
-		}
-		req.Header.Add("Accept", contentTypeTextEventStream)
-		req.Header.Add("x-li-realtime-session", c.realtimeSessionID.String())
-		req.Header.Add("x-li-recipe-accept", contentTypeJSONLinkedInNormalized)
-		req.Header.Add("x-li-query-accept", contentTypeGraphQL)
-		req.Header.Add("x-li-accept", contentTypeJSONLinkedInNormalized)
-		req.Header.Add("x-li-recipe-map", realtimeRecipeMap)
-		req.Header.Add("x-li-query-map", realtimeQueryMap)
-		req.Header.Add("csrf-token", c.getCSRFToken())
-		req.Header.Add("referer", linkedInMessagingBaseURL+"/")
-		req.Header.Add("x-restli-protocol-version", "2.0.0")
-		req.Header.Add("x-li-track", c.xLITrack)
-		req.Header.Add("x-li-page-instance", "urn:li:page:messaging_index;"+c.clientPageInstanceID)
-
-		c.realtimeResp, err = c.http.Do(req)
+		var err error
+		c.realtimeResp, err = c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL, nil).
+			WithCSRF().
+			WithRealtimeHeaders().
+			WithHeader("Accept", contentTypeTextEventStream).
+			Do(ctx)
 		if err != nil {
 			c.handlers.onRealtimeConnectError(ctx, err)
 			return
@@ -243,7 +230,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				continue
 			}
 
-			var realtimeEvent types.RealtimeEvent
+			var realtimeEvent RealtimeEvent
 			if err = json.Unmarshal(line[6:], &realtimeEvent); err != nil {
 				c.handlers.onRealtimeConnectError(ctx, err)
 				break

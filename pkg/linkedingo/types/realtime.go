@@ -1,22 +1,9 @@
 package types
 
 import (
-	"github.com/google/uuid"
 	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 )
-
-type RealtimeEvent struct {
-	Heartbeat        *Heartbeat        `json:"com.linkedin.realtimefrontend.Heartbeat,omitempty"`
-	ClientConnection *ClientConnection `json:"com.linkedin.realtimefrontend.ClientConnection,omitempty"`
-	DecoratedEvent   *DecoratedEvent   `json:"com.linkedin.realtimefrontend.DecoratedEvent,omitempty"`
-}
-
-type Heartbeat struct{}
-
-type ClientConnection struct {
-	ID uuid.UUID `json:"id"`
-}
 
 type DecoratedEvent struct {
 	Topic               URN                   `json:"topic,omitempty"`

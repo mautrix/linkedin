@@ -25,23 +25,32 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
-func (c *Client) getCSRFToken() string {
-	return c.jar.GetCookie(LinkedInCookieJSESSIONID)
+type MiniProfile struct {
+	FirstName        string `json:"firstName"`
+	LastName         string `json:"lastName"`
+	Occupation       string `json:"occupation"`
+	PublicIdentifier string `json:"publicIdentifier"`
+	Memorialized     bool   `json:"memorialized"`
+
+	EntityURN     types.URN `json:"entityUrn"`
+	DashEntityURN types.URN `json:"dashEntityUrn"`
+
+	TrackingID string `json:"trackingId"`
+
+	Picture types.Picture `json:"picture,omitempty"`
 }
 
-func (c *Client) GetCurrentUserProfile(ctx context.Context) (*types.UserProfile, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, linkedInVoyagerCommonMeURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Add("csrf-token", c.getCSRFToken())
+type UserProfile struct {
+	MiniProfile MiniProfile `json:"miniProfile"`
+}
 
-	resp, err := c.http.Do(req)
+func (c *Client) GetCurrentUserProfile(ctx context.Context) (*UserProfile, error) {
+	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerCommonMeURL, nil).WithCSRF().Do(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var profile types.UserProfile
+	var profile UserProfile
 	return &profile, json.NewDecoder(resp.Body).Decode(&profile)
 }
 
@@ -54,10 +63,6 @@ func (c *Client) Logout(ctx context.Context) error {
 	}
 	url.RawQuery = params.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
-	if err != nil {
-		return err
-	}
-	_, err = c.http.Do(req)
+	_, err = c.newAuthedRequest(http.MethodGet, url.String(), nil).Do(ctx)
 	return err
 }

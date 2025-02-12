@@ -76,7 +76,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			Heartbeat: func(ctx context.Context) {
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 			},
-			ClientConnection: func(context.Context, *types.ClientConnection) {
+			ClientConnection: func(context.Context, *linkedingo.ClientConnection) {
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 			},
 			RealtimeConnectError: client.onRealtimeConnectError,
@@ -131,7 +131,7 @@ func (l *LinkedInClient) onRealtimeConnectError(ctx context.Context, err error) 
 	l.Disconnect()
 }
 
-func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *types.DecoratedEvent) {
+func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *linkedingo.DecoratedEvent) {
 	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
 	switch decoratedEvent.Topic.NthPart(2) {
 	case linkedingo.RealtimeEventTopicMessages:
@@ -194,7 +194,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
 }
 
-func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *types.DecoratedEvent) {
+func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *linkedingo.DecoratedEvent) {
 	typingIndicator := decoratedEvent.Payload.Data.DecoratedTypingIndicator.Result
 	meta := simplevent.EventMeta{
 		Type: bridgev2.RemoteEventTyping,

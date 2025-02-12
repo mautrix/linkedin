@@ -13,12 +13,7 @@ import (
 )
 
 func (c *Client) Download(ctx context.Context, w io.Writer, url string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.http.Do(req)
+	resp, err := c.newAuthedRequest(http.MethodGet, url, nil).Do(ctx)
 	if err != nil {
 		return err
 	}
@@ -33,12 +28,7 @@ func (c *Client) DownloadBytes(ctx context.Context, url string) ([]byte, error) 
 }
 
 func (c *Client) getFileInfoFromHeadRequest(ctx context.Context, url string) (info event.FileInfo, filename string, err error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
-	if err != nil {
-		return info, "", err
-	}
-
-	headResp, err := c.http.Do(req)
+	headResp, err := c.newAuthedRequest(http.MethodHead, url, nil).Do(ctx)
 	if err != nil {
 		return info, "", err
 	}

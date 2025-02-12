@@ -23,12 +23,7 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 		}
 
 		cm.Parts = []*bridgev2.ConvertedMessagePart{
-			{
-				Type: event.EventMessage,
-
-				// TODO handle the attributes
-				Content: content,
-			},
+			{Type: event.EventMessage, Content: content},
 		}
 	}
 
