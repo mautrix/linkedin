@@ -102,6 +102,9 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 	}
 	client.matrixParser = &matrixfmt.HTMLParser{
 		GetGhostDetails: func(ctx context.Context, ui id.UserID) (networkid.UserID, string, bool) {
+			if ui == client.userLogin.UserMXID {
+				return client.userID, client.userLogin.RemoteName, true
+			}
 			if userID, ok := lc.Bridge.Matrix.ParseGhostMXID(ui); !ok {
 				return "", "", false
 			} else if ghost, err := lc.Bridge.DB.Ghost.GetByID(ctx, userID); err != nil {
@@ -355,6 +358,16 @@ func (l *LinkedInClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost)
 
 func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (*bridgev2.MatrixMessageResponse, error) {
 	conversationURN := types.NewURN(msg.Portal.ID)
+
+	if msg.Content.MsgType == event.MsgEmote {
+		if msg.Content.FormattedBody == "" {
+			msg.Content.FormattedBody = msg.Content.Body
+		}
+		msg.Content.Format = event.FormatHTML
+		msg.Content.Body = fmt.Sprintf("* %s %s", l.userLogin.RemoteName, msg.Content.Body)
+		msg.Content.FormattedBody = fmt.Sprintf(`* <a href="https://matrix.to/#/%s">%s</a> %s`, l.userLogin.UserMXID, l.userLogin.RemoteName, msg.Content.FormattedBody)
+		msg.Content.Mentions = &event.Mentions{UserIDs: []id.UserID{l.userLogin.UserMXID}}
+	}
 
 	sendMessagePayload := linkedingo.SendMessagePayload{
 		Message: linkedingo.SendMessage{

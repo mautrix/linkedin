@@ -13,9 +13,9 @@
     * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
     * [ ] Replies
     * [x] Mentions
-    * [ ] Emotes
+    * [x] Emotes
   * [x] Message edits
-  * [ ] Message redactions
+  * [x] Message redactions
   * [ ] Message reactions
   * [ ] Presence
   * [ ] Typing notifications
