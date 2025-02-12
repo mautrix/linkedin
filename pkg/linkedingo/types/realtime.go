@@ -45,11 +45,12 @@ const (
 )
 
 type RenderContent struct {
-	Audio         *AudioMetadata     `json:"audio,omitempty"`
-	ExternalMedia *ExternalMedia     `json:"externalMedia,omitempty"`
-	File          *FileAttachment    `json:"file,omitempty"`
-	VectorImage   *VectorImage       `json:"vectorImage,omitempty"`
-	Video         *VideoPlayMetadata `json:"video,omitempty"`
+	Audio                 *AudioMetadata     `json:"audio,omitempty"`
+	ExternalMedia         *ExternalMedia     `json:"externalMedia,omitempty"`
+	File                  *FileAttachment    `json:"file,omitempty"`
+	RepliedMessageContent *RepliedMessage    `json:"repliedMessageContent,omitempty"`
+	VectorImage           *VectorImage       `json:"vectorImage,omitempty"`
+	Video                 *VideoPlayMetadata `json:"video,omitempty"`
 }
 
 // Message represents a com.linkedin.messenger.Message object.
@@ -66,6 +67,11 @@ type Message struct {
 
 func (m Message) MessageID() networkid.MessageID {
 	return networkid.MessageID(m.EntityURN.String())
+}
+
+// RepliedMessage represents a com.linkedin.messenger.RepliedMessage object.
+type RepliedMessage struct {
+	OriginalMessage Message `json:"originalMessage,omitempty"`
 }
 
 // RealtimeTypingIndicator represents a

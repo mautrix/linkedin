@@ -7,6 +7,7 @@ import (
 
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
+	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/linkedinfmt"
@@ -37,6 +38,10 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 			part, err = l.convertExternalMediaToMatrix(ctx, portal, intent, rc.ExternalMedia)
 		case rc.File != nil:
 			part, err = l.convertFileToMatrix(ctx, portal, intent, rc.File)
+		case rc.RepliedMessageContent != nil:
+			cm.ReplyTo = &networkid.MessageOptionalPartID{
+				MessageID: rc.RepliedMessageContent.OriginalMessage.MessageID(),
+			}
 		case rc.VectorImage != nil:
 			part, err = l.convertVectorImageToMatrix(ctx, portal, intent, rc.VectorImage)
 		case rc.Video != nil:
