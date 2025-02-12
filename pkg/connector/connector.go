@@ -24,7 +24,7 @@ import (
 
 type LinkedInConnector struct {
 	Bridge *bridgev2.Bridge
-	Config LinkedInConfig
+	Config Config
 }
 
 var _ bridgev2.NetworkConnector = (*LinkedInConnector)(nil)

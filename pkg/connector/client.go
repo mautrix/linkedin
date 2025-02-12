@@ -281,7 +281,10 @@ func (l *LinkedInClient) getAvatar(img *types.VectorImage) (avatar bridgev2.Avat
 }
 
 func (l *LinkedInClient) getMessagingParticipantUserInfo(participant types.MessagingParticipant) (ui bridgev2.UserInfo) {
-	ui.Name = ptr.Ptr(fmt.Sprintf("%s %s", participant.ParticipantType.Member.FirstName.Text, participant.ParticipantType.Member.LastName.Text)) // TODO use a displayname template
+	ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
+		FirstName: participant.ParticipantType.Member.FirstName.Text,
+		LastName:  participant.ParticipantType.Member.LastName.Text,
+	}))
 	ui.Avatar = ptr.Ptr(l.getAvatar(participant.ParticipantType.Member.ProfilePicture))
 	ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
 	return
