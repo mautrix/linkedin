@@ -202,27 +202,6 @@ func (c *Client) StartTyping(conversationUrn string) error {
 	return nil
 }
 
-func (c *Client) DeleteMessage(messageUrn string) error {
-	actionQuery := queryold.DoActionQuery{
-		Action: queryold.ActionRecall,
-	}
-
-	deleteMsgPayload := payloadold.DeleteMessagePayload{
-		MessageUrn: messageUrn,
-	}
-
-	resp, _, err := c.MakeRoutingRequest(routingold.LinkedInVoyagerMessagingDashMessengerMessagesURL, deleteMsgPayload, actionQuery)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode > 204 {
-		return fmt.Errorf("failed to delete message with message urn %s (statusCode=%d)", messageUrn, resp.StatusCode)
-	}
-
-	return nil
-}
-
 // this endpoint allows you to mark multiple threads as read/unread at a time
 // pass false to second arg to unread all conversations and true to read all of them
 func (c *Client) MarkThreadRead(conversationUrns []string, read bool) (*responseold.MarkThreadReadResponse, error) {

@@ -69,14 +69,6 @@ func (p StartTypingPayload) Encode() ([]byte, error) {
 	return json.Marshal(p)
 }
 
-type DeleteMessagePayload struct {
-	MessageUrn string `json:"messageUrn,omitempty"`
-}
-
-func (p DeleteMessagePayload) Encode() ([]byte, error) {
-	return json.Marshal(p)
-}
-
 type RenderContent struct {
 	Audio                         *Audio                   `json:"audio,omitempty"`
 	AwayMessage                   any                      `json:"awayMessage,omitempty"`

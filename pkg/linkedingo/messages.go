@@ -103,3 +103,18 @@ func (c *Client) EditMessage(ctx context.Context, messageURN types.URN, p SendMe
 	}
 	return nil
 }
+
+func (c *Client) RecallMessage(ctx context.Context, messageURN types.URN) error {
+	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
+		WithParam("action", "recall").
+		WithCSRF().
+		WithRealtimeHeaders().
+		WithJSONPayload(map[string]any{"messageUrn": messageURN}).
+		Do(ctx)
+	if err != nil {
+		return err
+	} else if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to edit message with urn %s (statusCode=%d)", messageURN, resp.StatusCode)
+	}
+	return nil
+}

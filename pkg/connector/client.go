@@ -51,7 +51,7 @@ var (
 	_ bridgev2.NetworkAPI             = (*LinkedInClient)(nil)
 	_ bridgev2.EditHandlingNetworkAPI = (*LinkedInClient)(nil)
 	// _ bridgev2.ReactionHandlingNetworkAPI      = (*LinkedInClient)(nil)
-	// _ bridgev2.RedactionHandlingNetworkAPI     = (*LinkedInClient)(nil)
+	_ bridgev2.RedactionHandlingNetworkAPI = (*LinkedInClient)(nil)
 	// _ bridgev2.ReadReceiptHandlingNetworkAPI   = (*LinkedInClient)(nil)
 	// _ bridgev2.TypingHandlingNetworkAPI        = (*LinkedInClient)(nil)
 	// _ bridgev2.BackfillingNetworkAPI           = (*LinkedInClient)(nil)
@@ -434,6 +434,10 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 
 func (l *LinkedInClient) HandleMatrixEdit(ctx context.Context, msg *bridgev2.MatrixEdit) error {
 	return l.client.EditMessage(ctx, types.NewURN(string(msg.EditTarget.ID)), matrixfmt.Parse(ctx, l.matrixParser, msg.Content))
+}
+
+func (l *LinkedInClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2.MatrixMessageRemove) error {
+	return l.client.RecallMessage(ctx, types.NewURN(string(msg.TargetMessage.ID)))
 }
 
 func (l *LinkedInClient) IsLoggedIn() bool {
