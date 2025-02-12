@@ -139,12 +139,12 @@ func init() {
 
 func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
 	return &event.RoomFeatures{
-		ID:                  "fi.mau.linkedin.capabilities.2025_01_21",
+		ID:                  "fi.mau.linkedin.capabilities.2025_02_12",
 		Formatting:          formattingCaps,
 		File:                fileCaps,
 		MaxTextLength:       MaxTextLength,
 		LocationMessage:     event.CapLevelDropped,
-		Reply:               event.CapLevelDropped,
+		Reply:               event.CapLevelFullySupported,
 		Edit:                event.CapLevelDropped,
 		Delete:              event.CapLevelDropped,
 		Reaction:            event.CapLevelDropped,

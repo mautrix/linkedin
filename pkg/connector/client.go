@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
@@ -363,19 +364,21 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 		},
 	}
 
-	// if msg.ReplyTo != nil {
-	// 	sendMessagePayload.Message.RenderContentUnions = append(
-	// 		sendMessagePayload.Message.RenderContentUnions,
-	// 		payloadold.RenderContent{
-	// 			RepliedMessageContent: &payloadold.RepliedMessageContent{
-	// 				OriginalSenderUrn:  string(msg.ReplyTo.SenderID),
-	// 				OriginalMessageUrn: string(msg.ReplyTo.ID),
-	// 				OriginalSendAt:     msg.ReplyTo.Timestamp.UnixMilli(),
-	// 				//MessageBody:        "", // todo add at some point
-	// 			},
-	// 		},
-	// 	)
-	// }
+	if msg.ReplyTo != nil {
+		sendMessagePayload.Message.RenderContentUnions = append(
+			sendMessagePayload.Message.RenderContentUnions,
+			linkedingo.SendRenderContent{
+				RepliedMessageContent: &linkedingo.SendRepliedMessage{
+					OriginalSenderURN:  types.NewURN(string(msg.ReplyTo.SenderID)).WithPrefix("urn:li:msg_messagingParticipant:urn:li:fsd_profile"),
+					OriginalSentAt:     jsontime.UnixMilli{Time: msg.ReplyTo.Timestamp},
+					OriginalMessageURN: types.NewURN(string(msg.ReplyTo.ID)),
+					MessageBody: types.AttributedText{
+						Text: "this is the fake content",
+					},
+				},
+			},
+		)
+	}
 
 	// content := msg.Content
 	//
