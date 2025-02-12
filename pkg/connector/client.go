@@ -73,7 +73,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 	}
 	client.client = linkedingo.NewClient(
 		ctx,
-		types.NewURN(string(login.ID)),
+		types.NewURN(login.ID),
 		login.Metadata.(*UserLoginMetadata).Cookies,
 		linkedingo.Handlers{
 			Heartbeat: func(ctx context.Context) {
@@ -354,7 +354,7 @@ func (l *LinkedInClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost)
 }
 
 func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (*bridgev2.MatrixMessageResponse, error) {
-	conversationURN := types.NewURN(string(msg.Portal.ID))
+	conversationURN := types.NewURN(msg.Portal.ID)
 
 	sendMessagePayload := linkedingo.SendMessagePayload{
 		Message: linkedingo.SendMessage{
@@ -433,11 +433,11 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 }
 
 func (l *LinkedInClient) HandleMatrixEdit(ctx context.Context, msg *bridgev2.MatrixEdit) error {
-	return l.client.EditMessage(ctx, types.NewURN(string(msg.EditTarget.ID)), matrixfmt.Parse(ctx, l.matrixParser, msg.Content))
+	return l.client.EditMessage(ctx, types.NewURN(msg.EditTarget.ID), matrixfmt.Parse(ctx, l.matrixParser, msg.Content))
 }
 
 func (l *LinkedInClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2.MatrixMessageRemove) error {
-	return l.client.RecallMessage(ctx, types.NewURN(string(msg.TargetMessage.ID)))
+	return l.client.RecallMessage(ctx, types.NewURN(msg.TargetMessage.ID))
 }
 
 func (l *LinkedInClient) IsLoggedIn() bool {

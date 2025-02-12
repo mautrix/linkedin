@@ -34,7 +34,7 @@ func toLinkedInAttribute(br linkedinfmt.BodyRange) linkedingo.SendMessageAttribu
 			Length: br.Length,
 			AttributeKindUnion: types.AttributeKind{
 				Entity: &types.Entity{
-					URN: types.NewURN(string(val.UserID)).WithPrefix("urn", "li", "fsd_profile"),
+					URN: types.NewURN(val.UserID).WithPrefix("urn", "li", "fsd_profile"),
 				},
 			},
 		}

@@ -12,8 +12,8 @@ type URN struct {
 	idParts []string
 }
 
-func NewURN(urnStr string) (u URN) {
-	u.parts = strings.Split(urnStr, ":")
+func NewURN[T ~string](s T) (u URN) {
+	u.parts = strings.Split(string(s), ":")
 	u.idParts = strings.Split(strings.Trim(u.parts[len(u.parts)-1], "()"), ",")
 	return
 }
