@@ -168,8 +168,8 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 	})
 
 	evt := simplevent.Message[types.Message]{
-		ID:                 networkid.MessageID(msg.EntityURN.String()),
-		TargetMessage:      networkid.MessageID(msg.EntityURN.String()),
+		ID:                 msg.MessageID(),
+		TargetMessage:      msg.MessageID(),
 		Data:               msg,
 		ConvertMessageFunc: l.convertToMatrix,
 		ConvertEditFunc:    l.convertEditToMatrix,
@@ -182,7 +182,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 	case types.MessageBodyRenderFormatRecalled:
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
 			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove),
-			TargetMessage: networkid.MessageID(msg.EntityURN.String()),
+			TargetMessage: msg.MessageID(),
 		})
 		return
 	case types.MessageBodyRenderFormatSystem:
@@ -217,7 +217,7 @@ func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *types.Decorat
 
 func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, receipt types.SeenReceipt) {
 	log := zerolog.Ctx(ctx)
-	part, err := l.main.Bridge.DB.Message.GetLastPartByID(ctx, l.userLogin.ID, networkid.MessageID(receipt.Message.EntityURN.String()))
+	part, err := l.main.Bridge.DB.Message.GetLastPartByID(ctx, l.userLogin.ID, receipt.Message.MessageID())
 	if err != nil {
 		log.Err(err).Msg("failed to get read message")
 	} else if part == nil {
@@ -237,12 +237,12 @@ func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, rece
 			Sender:    l.makeSender(receipt.SeenByParticipant),
 			Timestamp: receipt.SeenAt.Time,
 		},
-		LastTarget: networkid.MessageID(receipt.Message.EntityURN.String()),
+		LastTarget: receipt.Message.MessageID(),
 	})
 }
 
 func (l *LinkedInClient) onRealtimeReactionSummaries(ctx context.Context, summary types.RealtimeReactionSummary) {
-	messageData, err := l.main.Bridge.DB.Message.GetFirstPartByID(context.TODO(), l.userLogin.ID, networkid.MessageID(summary.Message.EntityURN.String()))
+	messageData, err := l.main.Bridge.DB.Message.GetFirstPartByID(context.TODO(), l.userLogin.ID, summary.Message.MessageID())
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("failed to get reacted to message")
 		return
@@ -267,7 +267,7 @@ func (l *LinkedInClient) onRealtimeReactionSummaries(ctx context.Context, summar
 		EventMeta:     meta,
 		EmojiID:       networkid.EmojiID(summary.ReactionSummary.Emoji),
 		Emoji:         summary.ReactionSummary.Emoji,
-		TargetMessage: networkid.MessageID(summary.Message.EntityURN.String()),
+		TargetMessage: summary.Message.MessageID(),
 	})
 }
 

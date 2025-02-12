@@ -3,6 +3,7 @@ package types
 import (
 	"github.com/google/uuid"
 	"go.mau.fi/util/jsontime"
+	"maunium.net/go/mautrix/bridgev2/networkid"
 )
 
 type RealtimeEvent struct {
@@ -123,6 +124,10 @@ type Message struct {
 	BackendConversationURN  URN                     `json:"backendConversationUrn,omitempty"`
 	Conversation            Conversation            `json:"conversation,omitempty"`
 	RenderContent           []RenderContent         `json:"renderContent,omitempty"`
+}
+
+func (m Message) MessageID() networkid.MessageID {
+	return networkid.MessageID(m.EntityURN.String())
 }
 
 type DecoratedTypingIndicator struct {
