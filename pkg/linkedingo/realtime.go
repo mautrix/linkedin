@@ -263,8 +263,6 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			case realtimeEvent.Heartbeat != nil:
 				c.handlers.onHeartbeat(ctx)
 			case realtimeEvent.ClientConnection != nil:
-				c.realtimeSessionID = realtimeEvent.ClientConnection.ID
-				log.Debug().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Got new realtime session ID")
 				c.handlers.onClientConnection(ctx, realtimeEvent.ClientConnection)
 			case realtimeEvent.DecoratedEvent != nil:
 				log.Debug().

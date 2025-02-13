@@ -23,12 +23,14 @@ const (
 	linkedInRealtimeHeartbeatURL                     = "https://www.linkedin.com/realtime/realtimeFrontendClientConnectivityTracking?action=sendHeartbeat"
 	linkedInLogoutURL                                = "https://www.linkedin.com/uas/logout"
 	linkedInVoyagerMessagingDashMessengerMessagesURL = "https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages"
+	linkedInVoyagerMediaUploadMetadataURL            = "https://www.linkedin.com/voyager/api/voyagerVideoDashMediaUploadMetadata"
 )
 
 const LinkedInCookieJSESSIONID = "JSESSIONID"
 
 const (
 	contentTypeJSON                   = "application/json"
+	contentTypeJSONPlaintextUTF8      = "application/json; charset=UTF-8"
 	contentTypeJSONLinkedInNormalized = "application/vnd.linkedin.normalized+json+2.1"
 	contentTypeGraphQL                = "application/graphql"
 	contentTypeTextEventStream        = "text/event-stream"

@@ -13,7 +13,7 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
-type SendMessagePayload struct {
+type sendMessagePayload struct {
 	Message                      SendMessage `json:"message,omitempty"`
 	MailboxURN                   types.URN   `json:"mailboxUrn,omitempty"`
 	TrackingID                   string      `json:"trackingId,omitempty"`
@@ -23,10 +23,10 @@ type SendMessagePayload struct {
 }
 
 type SendMessage struct {
-	Body                SendMessageBody `json:"body,omitempty"`
-	RenderContentUnions []any           `json:"renderContentUnions,omitempty"`
-	ConversationURN     types.URN       `json:"conversationUrn,omitempty"`
-	OriginToken         uuid.UUID       `json:"originToken,omitempty"`
+	Body                SendMessageBody     `json:"body,omitempty"`
+	RenderContentUnions []SendRenderContent `json:"renderContentUnions,omitempty"`
+	ConversationURN     types.URN           `json:"conversationUrn,omitempty"`
+	OriginToken         uuid.UUID           `json:"originToken,omitempty"`
 }
 
 type SendMessageBody struct {
@@ -44,14 +44,32 @@ type AttributeType struct {
 	Entity *types.Entity `json:"com.linkedin.pemberly.text.Entity,omitempty"`
 }
 
+type SendRenderContent struct {
+	File *SendFile `json:"file,omitempty"`
+}
+
+type SendFile struct {
+	AssetURN  types.URN `json:"assetUrn,omitempty"`
+	ByteSize  int       `json:"byteSize,omitempty"`
+	MediaType string    `json:"mediaType,omitempty"`
+	Name      string    `json:"name,omitempty"`
+}
+
 type MessageSentResponse struct {
 	Data types.Message `json:"value,omitempty"`
 }
 
-func (c *Client) SendMessage(ctx context.Context, payload SendMessagePayload) (*MessageSentResponse, error) {
-	payload.MailboxURN = c.userEntityURN.WithPrefix("urn", "li", "fsd_profile")
-	payload.TrackingID = random.String(16)
-	payload.Message.OriginToken = uuid.New()
+func (c *Client) SendMessage(ctx context.Context, conversationURN types.URN, body SendMessageBody, renderContent []SendRenderContent) (*MessageSentResponse, error) {
+	payload := sendMessagePayload{
+		Message: SendMessage{
+			Body:                body,
+			RenderContentUnions: renderContent,
+			ConversationURN:     conversationURN,
+			OriginToken:         uuid.New(),
+		},
+		MailboxURN: c.userEntityURN.WithPrefix("urn", "li", "fsd_profile"),
+		TrackingID: random.String(16),
+	}
 
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
 		WithJSONPayload(payload).

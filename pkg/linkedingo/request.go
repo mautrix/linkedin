@@ -17,23 +17,22 @@ func (c *Client) getCSRFToken() string {
 }
 
 type authedRequest struct {
+	parseErr error
+
 	method string
-	url    string
-	body   io.Reader
+	url    *url.URL
 	header http.Header
 	params url.Values
+	body   io.Reader
 
 	client *Client
 }
 
-func (c *Client) newAuthedRequest(method, url string) *authedRequest {
-	return &authedRequest{
-		method: method,
-		url:    url,
-		header: http.Header{},
-		params: map[string][]string{},
-		client: c,
-	}
+func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {
+	ar := authedRequest{header: http.Header{}, method: method, client: c}
+	ar.url, ar.parseErr = url.Parse(urlStr)
+	ar.params = ar.url.Query()
+	return &ar
 }
 
 func (a *authedRequest) WithHeader(key, value string) *authedRequest {
@@ -52,6 +51,11 @@ func (a *authedRequest) WithCSRF() *authedRequest {
 
 func (a *authedRequest) WithJSONPayload(payload any) *authedRequest {
 	a.body = bytes.NewReader(exerrors.Must(json.Marshal(payload)))
+	return a
+}
+
+func (a *authedRequest) WithBody(r io.Reader) *authedRequest {
+	a.body = r
 	return a
 }
 
@@ -83,12 +87,12 @@ func (a *authedRequest) WithWebpageHeaders() *authedRequest {
 }
 
 func (a *authedRequest) Do(ctx context.Context) (*http.Response, error) {
-	u, err := url.Parse(a.url)
-	if err != nil {
-		return nil, err
+	if a.parseErr != nil {
+		return nil, a.parseErr
 	}
-	u.RawQuery = a.params.Encode()
-	req, err := http.NewRequestWithContext(ctx, a.method, u.String(), a.body)
+	a.url.RawQuery = a.params.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), a.body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to perform authed request %s %s: %w", a.method, a.url, err)
 	}
