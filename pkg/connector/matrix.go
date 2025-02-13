@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
@@ -21,15 +20,6 @@ func getMediaFilename(content *event.MessageEventContent) (filename string) {
 		filename = content.FileName
 	} else {
 		filename = content.Body
-	}
-	if filename == "" {
-		return "image.jpg" // Assume it's a JPEG image
-	}
-	if content.MsgType == event.MsgImage && (!strings.HasSuffix(filename, ".jpg") && !strings.HasSuffix(filename, ".jpeg") && !strings.HasSuffix(filename, ".png")) {
-		if content.Info != nil && content.Info.MimeType != "" {
-			return filename + strings.TrimPrefix(content.Info.MimeType, "image/")
-		}
-		return filename + ".jpg" // Assume it's a JPEG
 	}
 	return filename
 }
@@ -49,10 +39,13 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	}
 
 	var renderContent []linkedingo.SendRenderContent
-	switch msg.Content.MsgType {
-	case event.MsgImage:
+	if msg.Content.MsgType.IsMedia() {
 		err := l.main.Bridge.Bot.DownloadMediaToFile(ctx, msg.Content.URL, msg.Content.File, false, func(f *os.File) error {
 			attachmentType := linkedingo.MediaUploadTypePhotoAttachment
+			if msg.Content.MsgType != event.MsgImage {
+				attachmentType = linkedingo.MediaUploadTypeFileAttachment
+			}
+
 			filename := getMediaFilename(msg.Content)
 			urn, err := l.client.UploadMedia(ctx, attachmentType, filename, msg.Content.Info.MimeType, msg.Content.Info.Size, f)
 			if err != nil {
@@ -72,45 +65,6 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 			return nil, err
 		}
 	}
-
-	// content := msg.Content
-	//
-	// switch content.MsgType {
-	// case event.MsgText:
-	// 	break
-	// case event.MsgVideo, event.MsgImage:
-	// 	if content.Body == content.FileName {
-	// 		sendMessagePayload.Message.Body.Text = ""
-	// 	}
-	//
-	// 	file := content.GetFile()
-	// 	data, err := lc.connector.br.Bot.DownloadMedia(ctx, file.URL, file)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	//
-	// 	attachmentType := payloadold.MediaUploadFileAttachment
-	// 	if content.MsgType == event.MsgImage {
-	// 		attachmentType = payloadold.MediaUploadTypePhotoAttachment
-	// 	}
-	//
-	// 	mediaMetadata, err := lc.client.UploadMedia(attachmentType, content.FileName, data, typesold.ContentTypeJSONPlaintextUTF8)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	//
-	// 	lc.client.Logger.Debug().Any("media_metadata", mediaMetadata).Msg("Successfully uploaded media to LinkedIn's servers")
-	// 	sendMessagePayload.Message.RenderContentUnions = append(sendMessagePayload.Message.RenderContentUnions, payloadold.RenderContent{
-	// 		File: &payloadold.File{
-	// 			AssetUrn:  mediaMetadata.Urn,
-	// 			Name:      content.FileName,
-	// 			MediaType: typesold.ContentType(content.Info.MimeType),
-	// 			ByteSize:  len(data),
-	// 		},
-	// 	})
-	// default:
-	// 	return nil, fmt.Errorf("%w %s", bridgev2.ErrUnsupportedMessageType, content.MsgType)
-	// }
 
 	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent)
 	if err != nil {

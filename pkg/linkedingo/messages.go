@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
+	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/random"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
@@ -45,7 +46,14 @@ type AttributeType struct {
 }
 
 type SendRenderContent struct {
-	File *SendFile `json:"file,omitempty"`
+	Audio *SendAudio `json:"audio,omitempty"`
+	File  *SendFile  `json:"file,omitempty"`
+}
+
+type SendAudio struct {
+	AssetURN types.URN             `json:"assetUrn,omitempty"`
+	ByteSize int                   `json:"byteSize,omitempty"`
+	Duration jsontime.Milliseconds `json:"duration,omitempty"`
 }
 
 type SendFile struct {

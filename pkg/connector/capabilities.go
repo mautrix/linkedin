@@ -63,7 +63,8 @@ var fileCaps = event.FileFeatureMap{
 	event.MsgImage: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
 			"image/jpeg": event.CapLevelFullySupported,
-			"image/png":  event.CapLevelPartialSupport,
+			"image/png":  event.CapLevelFullySupported,
+			"image/webp": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
 		MaxCaptionLength: MaxCaptionLength,
