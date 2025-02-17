@@ -121,3 +121,10 @@ func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridg
 	_, err := l.client.MarkConversationRead(ctx, types.NewURN(msg.Portal.ID))
 	return err
 }
+
+func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
+	if msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
+		return l.client.StartTyping(ctx, types.NewURN(msg.Portal.ID))
+	}
+	return nil
+}

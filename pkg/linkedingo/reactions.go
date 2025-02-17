@@ -22,11 +22,11 @@ func (c *Client) doReactAction(ctx context.Context, messageURN types.URN, emoji,
 		WithContentType(contentTypePlaintextUTF8).
 		WithCSRF().
 		WithHeader("accept", contentTypeJSON).
+		WithXLIHeaders().
 		WithJSONPayload(map[string]any{
 			"messageUrn": messageURN,
 			"emoji":      emoji,
 		}).
-		WithXLIHeaders().
 		Do(ctx)
 	if err != nil {
 		return err

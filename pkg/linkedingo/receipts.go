@@ -41,12 +41,12 @@ func (c *Client) doMarkConversationRead(ctx context.Context, read bool, convURNs
 
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInMessagingDashMessengerConversationsURL).
 		WithRawQuery(fmt.Sprintf("ids=List(%s)", strings.Join(conversationList, ","))). // Using raw query here because escaping the outer ()s makes this break
-		WithJSONPayload(PatchEntitiesPayload{Entities: entities}).
 		WithContentType(contentTypePlaintextUTF8).
 		WithHeader("accept", contentTypeJSON).
 		WithHeader("origin", "https://www.linkedin.com").
 		WithCSRF().
 		WithXLIHeaders().
+		WithJSONPayload(PatchEntitiesPayload{Entities: entities}).
 		Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mark conversation read: %w", err)
