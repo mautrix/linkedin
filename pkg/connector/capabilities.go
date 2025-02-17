@@ -148,8 +148,7 @@ func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Por
 		Reply:               event.CapLevelDropped,
 		Edit:                event.CapLevelFullySupported, // TODO note that edits are restricted to specific msgtypes
 		Delete:              event.CapLevelDropped,
-		Reaction:            event.CapLevelDropped,
-		ReactionCount:       1,
+		Reaction:            event.CapLevelFullySupported,
 		ReadReceipts:        true,
 		TypingNotifications: true,
 	}

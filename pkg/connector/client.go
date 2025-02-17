@@ -48,9 +48,9 @@ type LinkedInClient struct {
 }
 
 var (
-	_ bridgev2.NetworkAPI             = (*LinkedInClient)(nil)
-	_ bridgev2.EditHandlingNetworkAPI = (*LinkedInClient)(nil)
-	// _ bridgev2.ReactionHandlingNetworkAPI      = (*LinkedInClient)(nil)
+	_ bridgev2.NetworkAPI                  = (*LinkedInClient)(nil)
+	_ bridgev2.EditHandlingNetworkAPI      = (*LinkedInClient)(nil)
+	_ bridgev2.ReactionHandlingNetworkAPI  = (*LinkedInClient)(nil)
 	_ bridgev2.RedactionHandlingNetworkAPI = (*LinkedInClient)(nil)
 	// _ bridgev2.ReadReceiptHandlingNetworkAPI   = (*LinkedInClient)(nil)
 	// _ bridgev2.TypingHandlingNetworkAPI        = (*LinkedInClient)(nil)

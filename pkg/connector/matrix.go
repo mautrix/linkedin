@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
+	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
+
+	"go.mau.fi/util/variationselector"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/matrixfmt"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
@@ -87,4 +91,28 @@ func (l *LinkedInClient) HandleMatrixEdit(ctx context.Context, msg *bridgev2.Mat
 
 func (l *LinkedInClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2.MatrixMessageRemove) error {
 	return l.client.RecallMessage(ctx, types.NewURN(msg.TargetMessage.ID))
+}
+
+func (l *LinkedInClient) PreHandleMatrixReaction(ctx context.Context, msg *bridgev2.MatrixReaction) (bridgev2.MatrixReactionPreResponse, error) {
+	emojiID := networkid.EmojiID(msg.Content.RelatesTo.Key)
+	zerolog.Ctx(ctx).Debug().
+		Str("conversion_direction", "to_linkedin").
+		Str("handler", "pre_handle_matrix_reaction").
+		Str("key", msg.Content.RelatesTo.Key).
+		Str("emoji_id", string(emojiID)).
+		Msg("Pre-handled reaction")
+
+	return bridgev2.MatrixReactionPreResponse{
+		SenderID: l.userID,
+		EmojiID:  emojiID,
+		Emoji:    variationselector.FullyQualify(msg.Content.RelatesTo.Key),
+	}, nil
+}
+
+func (l *LinkedInClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2.MatrixReaction) (reaction *database.Reaction, err error) {
+	return &database.Reaction{}, l.client.SendReaction(ctx, types.NewURN(msg.TargetMessage.ID), msg.PreHandleResp.Emoji)
+}
+
+func (l *LinkedInClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev2.MatrixReactionRemove) error {
+	return l.client.RemoveReaction(ctx, types.NewURN(msg.TargetReaction.MessageID), msg.TargetReaction.Emoji)
 }
