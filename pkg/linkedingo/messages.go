@@ -84,7 +84,7 @@ func (c *Client) SendMessage(ctx context.Context, conversationURN types.URN, bod
 		WithParam("action", "createMessage").
 		WithCSRF().
 		WithContentType(contentTypePlaintextUTF8).
-		WithRealtimeHeaders().
+		WithXLIHeaders().
 		Do(ctx)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (c *Client) EditMessage(ctx context.Context, messageURN types.URN, p SendMe
 		WithCSRF().
 		WithJSONPayload(GraphQLPatchBody{Patch: Patch{Set: EditMessagePayload{Body: p}}}).
 		WithHeader("accept", contentTypeJSON).
-		WithRealtimeHeaders().
+		WithXLIHeaders().
 		Do(ctx)
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func (c *Client) RecallMessage(ctx context.Context, messageURN types.URN) error 
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
 		WithParam("action", "recall").
 		WithCSRF().
-		WithRealtimeHeaders().
+		WithXLIHeaders().
 		WithJSONPayload(map[string]any{"messageUrn": messageURN}).
 		Do(ctx)
 	if err != nil {

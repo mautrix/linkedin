@@ -92,7 +92,7 @@ func (c *Client) UploadMedia(ctx context.Context, mediaUploadType MediaUploadTyp
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMediaUploadMetadataURL).
 		WithParam("action", "upload").
 		WithCSRF().
-		WithRealtimeHeaders().
+		WithXLIHeaders().
 		WithHeader("accept", contentTypeJSONLinkedInNormalized).
 		WithContentType(contentTypeJSONPlaintextUTF8).
 		WithJSONPayload(UploadMediaMetadataPayload{

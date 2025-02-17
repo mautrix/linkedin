@@ -178,6 +178,12 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 		log.Debug().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Sending heartbeat")
 
 		_, err := c.newAuthedRequest(http.MethodPost, linkedInRealtimeHeartbeatURL).
+			WithHeader("accept", "*/*").
+			WithContentType(contentTypePlaintextUTF8).
+			WithCSRF().
+			WithHeader("origin", "https://www.linkedin.com").
+			WithHeader("Priority", "u=1, i").
+			WithXLIHeaders().
 			WithJSONPayload(map[string]any{
 				"isFirstHeartbeat":  !isFirst,
 				"isLastHeartbeat":   false,
@@ -188,8 +194,6 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 				"actorUrn":          userURN,
 				"contextUrns":       []string{userURN},
 			}).
-			WithCSRF().
-			WithRealtimeHeaders().
 			Do(ctx)
 		if err != nil {
 			log.Err(err).Msg("Failed to send heartbeat")
@@ -222,7 +226,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 		var err error
 		c.realtimeResp, err = c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL).
 			WithCSRF().
-			WithRealtimeHeaders().
+			WithRealtimeConnectHeaders().
 			WithHeader("Accept", contentTypeTextEventStream).
 			Do(ctx)
 		if err != nil {

@@ -46,7 +46,10 @@ type Client struct {
 
 func NewClient(ctx context.Context, userEntityURN types.URN, jar *stringcookiejar.Jar, handlers Handlers) *Client {
 	return &Client{
-		userEntityURN: userEntityURN,
+		userEntityURN:     userEntityURN,
+		jar:               jar,
+		realtimeSessionID: uuid.New(),
+		handlers:          handlers,
 		http: &http.Client{
 			Jar: jar,
 
@@ -56,11 +59,6 @@ func NewClient(ctx context.Context, userEntityURN types.URN, jar *stringcookieja
 				return http.ErrUseLastResponse
 			},
 		},
-		jar: jar,
-
-		realtimeSessionID: uuid.New(),
-
-		handlers: handlers,
 	}
 }
 

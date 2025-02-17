@@ -72,7 +72,7 @@ var fileCaps = event.FileFeatureMap{
 	},
 	event.MsgVideo: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"video/mp4": event.CapLevelFullySupported,
+			"video/mp4": event.CapLevelPartialSupport,
 		},
 		Caption:          event.CapLevelFullySupported,
 		MaxCaptionLength: MaxCaptionLength,

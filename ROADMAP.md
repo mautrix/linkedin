@@ -3,11 +3,11 @@
 * Matrix → LinkedIn
   * [ ] Message content
     * [x] Text
-    * [ ] Media
-      * [ ] Files
-      * [ ] Images
-      * [ ] Videos
-      * [ ] GIFs
+    * [x] Media
+      * [x] Files
+      * [x] Images
+      * [x] Videos (sent as files)
+      * [x] GIFs
       * [ ] Voice Messages
       * [ ] ~~Stickers~~ (unsupported)
     * [ ] ~~Formatting~~ (LinkedIn does not support rich formatting)
