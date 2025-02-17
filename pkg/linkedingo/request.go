@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"go.mau.fi/util/exerrors"
 )
@@ -65,6 +66,29 @@ func (a *authedRequest) WithQueryParam(key, value string) *authedRequest {
 
 func (a *authedRequest) WithRawQuery(raw string) *authedRequest {
 	a.rawQuery = raw
+	return a
+}
+
+func (a *authedRequest) WithGraphQLQuery(queryID string, variables map[string]string) *authedRequest {
+	var queryStr strings.Builder
+	queryStr.WriteString("query=")
+	queryStr.WriteString(queryID)
+	queryStr.WriteString("&variables=(")
+	first := true
+	for k, v := range variables {
+		if v == "" {
+			continue
+		}
+		if !first {
+			queryStr.WriteString(",")
+		}
+		first = false
+		queryStr.WriteString(k)
+		queryStr.WriteByte(':')
+		queryStr.WriteString(url.QueryEscape(v))
+	}
+	queryStr.WriteString(")")
+	a.rawQuery = queryStr.String()
 	return a
 }
 
