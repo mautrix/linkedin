@@ -16,10 +16,10 @@
     * [x] Emotes
   * [x] Message edits
   * [x] Message redactions
-  * [ ] Message reactions
+  * [x] Message reactions
   * [ ] Presence
-  * [ ] Typing notifications
-  * [ ] Read receipts
+  * [x] Typing notifications
+  * [x] Read receipts
   * [ ] Power level
   * [ ] Membership actions
     * [ ] Invite
@@ -41,7 +41,7 @@
     * [x] Mentions
   * [x] Message edits
   * [x] Message delete
-  * [ ] Message reactions
+  * [x] Message reactions
   * [ ] Message history
   * [x] Real-time messages
   * [ ] ~~Presence~~ (impossible for now, see https://github.com/mautrix/go/issues/295)
