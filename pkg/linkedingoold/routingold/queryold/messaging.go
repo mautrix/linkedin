@@ -1,6 +1,9 @@
 package queryold
 
 import (
+	"go.mau.fi/util/jsontime"
+
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/methodsold"
 )
 
@@ -47,12 +50,12 @@ func (q GetThreadsVariables) Encode() ([]byte, error) {
 }
 
 type FetchMessagesVariables struct {
-	DeliveredAt     int64  `graphql:"deliveredAt"`
-	ConversationUrn string `graphql:"conversationUrn"`
-	Count           int64  `graphql:"count"`
-	PrevCursor      string `graphql:"prevCursor"`
-	CountBefore     int64  `graphql:"countBefore"`
-	CountAfter      int64  `graphql:"countAfter"`
+	DeliveredAt     jsontime.UnixMilli `graphql:"deliveredAt"`
+	ConversationURN types.URN          `graphql:"conversationUrn"`
+	Count           int64              `graphql:"count"`
+	PrevCursor      string             `graphql:"prevCursor"`
+	CountBefore     int64              `graphql:"countBefore"`
+	CountAfter      int64              `graphql:"countAfter"`
 }
 
 func (q FetchMessagesVariables) Encode() ([]byte, error) {

@@ -12,6 +12,8 @@ import (
 	"go.mau.fi/util/random"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 )
 
 type sendMessagePayload struct {
@@ -143,4 +145,49 @@ func (c *Client) RecallMessage(ctx context.Context, messageURN types.URN) error 
 		return fmt.Errorf("failed to edit message with urn %s (statusCode=%d)", messageURN, resp.StatusCode)
 	}
 	return nil
+}
+
+func (c *Client) FetchMessages(ctx context.Context, variables queryold.FetchMessagesVariables) (*responseold.MessengerMessagesResponse, error) {
+	withCursor := variables.PrevCursor != ""
+	withAnchorTimestamp := !variables.DeliveredAt.IsZero()
+
+	var queryID string
+	if withCursor {
+		queryID = graphQLQueryIDMessengerMessagesByConversation
+	} else if withAnchorTimestamp {
+		queryID = graphQLQueryIDMessengerMessagesByAnchorTimestamp
+	} else {
+		queryID = graphQLQueryIDMessengerMessagesBySyncToken
+	}
+	fmt.Printf("queryID = %s\n", queryID)
+	return nil, nil
+
+	// variablesQuery, err := variables.Encode()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
+	// 	WithGraphQLQuery(queryID, variables).
+	// 	WithCSRF().
+	// 	WithXLIHeaders().
+	// 	WithHeader("accept", contentTypeGraphQL).
+	// 	Do(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// var graphQLResponse responseold.GraphQlResponse
+	// if err = json.NewDecoder(resp.Body).Decode(&graphQLResponse); err != nil {
+	// 	return nil, err
+	// }
+	//
+	// graphQLResponseData := graphQLResponse.Data
+	// if withCursor {
+	// 	return graphQLResponseData.MessengerMessagesByConversation, nil
+	// } else if withAnchorTimestamp {
+	// 	return graphQLResponseData.MessengerMessagesByAnchorTimestamp, nil
+	// } else {
+	// 	return graphQLResponseData.MessengerMessagesBySyncToken, nil
+	// }
 }

@@ -65,7 +65,7 @@ func (c *Client) GetThreads(variables queryold.GetThreadsVariables) (*responseol
 
 func (c *Client) FetchMessages(variables queryold.FetchMessagesVariables) (*responseold.MessengerMessagesResponse, error) {
 	withCursor := variables.PrevCursor != ""
-	withAnchorTimestamp := variables.DeliveredAt != 0
+	withAnchorTimestamp := !variables.DeliveredAt.IsZero()
 
 	var queryId typesold.GraphQLQueryIDs
 	if withCursor {
