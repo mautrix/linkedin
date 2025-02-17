@@ -3,6 +3,7 @@ package responseold
 import (
 	"encoding/json"
 
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/payloadold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/typesold"
@@ -209,8 +210,8 @@ type MessageSentData struct {
 }
 
 type MarkThreadReadResponse struct {
-	Results map[string]MarkThreadReadResult `json:"results,omitempty"`
-	Errors  any                             `json:"errors,omitempty"`
+	Results map[types.URNString]MarkThreadReadResult `json:"results,omitempty"`
+	Errors  map[types.URNString]error                `json:"errors,omitempty"`
 }
 
 type MarkThreadReadResult struct {

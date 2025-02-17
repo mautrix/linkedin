@@ -81,7 +81,7 @@ func (c *Client) SendMessage(ctx context.Context, conversationURN types.URN, bod
 
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
 		WithJSONPayload(payload).
-		WithParam("action", "createMessage").
+		WithQueryParam("action", "createMessage").
 		WithCSRF().
 		WithContentType(contentTypePlaintextUTF8).
 		WithXLIHeaders().
@@ -132,7 +132,7 @@ func (c *Client) EditMessage(ctx context.Context, messageURN types.URN, p SendMe
 
 func (c *Client) RecallMessage(ctx context.Context, messageURN types.URN) error {
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
-		WithParam("action", "recall").
+		WithQueryParam("action", "recall").
 		WithCSRF().
 		WithXLIHeaders().
 		WithJSONPayload(map[string]any{"messageUrn": messageURN}).

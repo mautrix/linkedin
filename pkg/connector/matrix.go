@@ -116,3 +116,8 @@ func (l *LinkedInClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2
 func (l *LinkedInClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev2.MatrixReactionRemove) error {
 	return l.client.RemoveReaction(ctx, types.NewURN(msg.TargetReaction.MessageID), msg.TargetReaction.Emoji)
 }
+
+func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
+	_, err := l.client.MarkConversationRead(ctx, types.NewURN(msg.Portal.ID))
+	return err
+}

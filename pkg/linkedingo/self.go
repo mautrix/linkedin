@@ -59,7 +59,7 @@ func (c *Client) GetCurrentUserProfile(ctx context.Context) (*UserProfile, error
 
 func (c *Client) Logout(ctx context.Context) error {
 	_, err := c.newAuthedRequest(http.MethodGet, linkedInLogoutURL).
-		WithParam("csrfToken", c.getCSRFToken()).
+		WithQueryParam("csrfToken", c.getCSRFToken()).
 		Do(ctx)
 	return err
 }

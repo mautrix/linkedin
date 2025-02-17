@@ -90,7 +90,7 @@ type MediaUploadMetadata struct {
 
 func (c *Client) UploadMedia(ctx context.Context, mediaUploadType MediaUploadType, filename, contentType string, size int, r io.Reader) (types.URN, error) {
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMediaUploadMetadataURL).
-		WithParam("action", "upload").
+		WithQueryParam("action", "upload").
 		WithCSRF().
 		WithXLIHeaders().
 		WithHeader("accept", contentTypeJSONLinkedInNormalized).

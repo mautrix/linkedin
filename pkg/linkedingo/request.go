@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 
 	"go.mau.fi/util/exerrors"
@@ -19,11 +20,12 @@ func (c *Client) getCSRFToken() string {
 type authedRequest struct {
 	parseErr error
 
-	method string
-	url    *url.URL
-	header http.Header
-	params url.Values
-	body   io.Reader
+	method      string
+	url         *url.URL
+	header      http.Header
+	queryParams url.Values
+	rawQuery    string
+	body        io.Reader
 
 	client *Client
 }
@@ -33,9 +35,9 @@ func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {
 	ar.url, ar.parseErr = url.Parse(urlStr)
 
 	if ar.parseErr != nil {
-		ar.params = ar.url.Query()
+		ar.queryParams = ar.url.Query()
 	} else {
-		ar.params = url.Values{}
+		ar.queryParams = url.Values{}
 	}
 
 	// Add default headers for every request
@@ -54,8 +56,15 @@ func (a *authedRequest) WithHeader(key, value string) *authedRequest {
 	return a
 }
 
-func (a *authedRequest) WithParam(key, value string) *authedRequest {
-	a.params.Add(key, value)
+// WithQueryParam adds a query parameter to the request. If a raw query is set
+// with [authedRequest.WithRawQuery], this will be ignored.
+func (a *authedRequest) WithQueryParam(key, value string) *authedRequest {
+	a.queryParams.Add(key, value)
+	return a
+}
+
+func (a *authedRequest) WithRawQuery(raw string) *authedRequest {
+	a.rawQuery = raw
 	return a
 }
 
@@ -65,6 +74,7 @@ func (a *authedRequest) WithCSRF() *authedRequest {
 
 func (a *authedRequest) WithJSONPayload(payload any) *authedRequest {
 	a.body = bytes.NewReader(exerrors.Must(json.Marshal(payload)))
+	fmt.Printf("%s\n", exerrors.Must(json.Marshal(payload)))
 	return a
 }
 
@@ -116,12 +126,19 @@ func (a *authedRequest) Do(ctx context.Context) (*http.Response, error) {
 	if a.parseErr != nil {
 		return nil, a.parseErr
 	}
-	a.url.RawQuery = a.params.Encode()
+	if a.rawQuery != "" {
+		a.url.RawQuery = a.rawQuery
+	} else {
+		a.url.RawQuery = a.queryParams.Encode()
+	}
 
 	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), a.body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to perform authed request %s %s: %w", a.method, a.url, err)
 	}
 	req.Header = a.header
+
+	fmt.Printf("%s\n", exerrors.Must(httputil.DumpRequestOut(req, true)))
+
 	return a.client.http.Do(req)
 }

@@ -18,7 +18,7 @@ func (c *Client) RemoveReaction(ctx context.Context, messageURN types.URN, emoji
 
 func (c *Client) doReactAction(ctx context.Context, messageURN types.URN, emoji, action string) error {
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
-		WithParam("action", action).
+		WithQueryParam("action", action).
 		WithContentType(contentTypePlaintextUTF8).
 		WithCSRF().
 		WithHeader("accept", contentTypeJSON).

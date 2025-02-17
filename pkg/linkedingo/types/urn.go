@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+type URNString string
+
+func (u URNString) URN() URN {
+	return NewURN(string(u))
+}
+
 type URN struct {
 	parts   []string
 	idParts []string
@@ -27,6 +33,10 @@ func (u URN) ID() string {
 		panic(fmt.Sprintf("wrong number of ID parts %d", len(u.idParts)))
 	}
 	return u.idParts[0]
+}
+
+func (u URN) URNString() URNString {
+	return URNString(u.String())
 }
 
 func (u URN) String() string {
