@@ -34,7 +34,7 @@ func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {
 	ar := authedRequest{header: http.Header{}, method: method, client: c}
 	ar.url, ar.parseErr = url.Parse(urlStr)
 
-	if ar.parseErr != nil {
+	if ar.parseErr == nil {
 		ar.queryParams = ar.url.Query()
 	} else {
 		ar.queryParams = url.Values{}
