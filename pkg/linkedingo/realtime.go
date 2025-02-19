@@ -149,7 +149,14 @@ func (c *Client) cacheMetaValues(ctx context.Context) error {
 		}
 		return nil
 	}
-	return crawl(doc)
+	if err = crawl(doc); err != nil {
+		return err
+	}
+
+	if c.clientPageInstanceID == "" || c.xLITrack == "" || c.i18nLocale == "" {
+		return fmt.Errorf("failed to find all meta values")
+	}
+	return nil
 }
 
 func (c *Client) RealtimeConnect(ctx context.Context) error {
