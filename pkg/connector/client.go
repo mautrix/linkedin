@@ -82,8 +82,10 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			ClientConnection: func(context.Context, *linkedingo.ClientConnection) {
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 			},
-			RealtimeConnectError: client.onRealtimeConnectError,
-			DecoratedEvent:       client.onDecoratedEvent,
+			TransientDisconnect: client.onTransientDisconnect,
+			BadCredentials:      client.onBadCredentials,
+			UnknownError:        client.onUnknownError,
+			DecoratedEvent:      client.onDecoratedEvent,
 		},
 	)
 
@@ -137,14 +139,33 @@ func (l *LinkedInClient) Connect(ctx context.Context) {
 	}
 }
 
-func (l *LinkedInClient) onRealtimeConnectError(ctx context.Context, err error) {
+func (l *LinkedInClient) onTransientDisconnect(ctx context.Context, err error) {
 	zerolog.Ctx(ctx).Err(err).Msg("failed to read from event stream")
-	// TODO probably don't do this unconditionally
 	l.userLogin.BridgeState.Send(status.BridgeState{
-		StateEvent: status.StateBadCredentials,
-		Error:      "linkedin-no-auth",
+		StateEvent: status.StateTransientDisconnect,
+		Error:      "linkedin-transient-disconnect",
 		Message:    err.Error(),
 	})
+}
+
+func (l *LinkedInClient) onBadCredentials(ctx context.Context, err error) {
+	zerolog.Ctx(ctx).Err(err).Msg("bad credentials")
+	l.userLogin.BridgeState.Send(status.BridgeState{
+		StateEvent: status.StateBadCredentials,
+		Error:      "linkedin-bad-credentials",
+		Message:    err.Error(),
+	})
+	l.Disconnect()
+}
+
+func (l *LinkedInClient) onUnknownError(ctx context.Context, err error) {
+	zerolog.Ctx(ctx).Err(err).Msg("unknown error")
+	l.userLogin.BridgeState.Send(status.BridgeState{
+		StateEvent: status.StateUnknownError,
+		Error:      "linkedin-unknown-error",
+		Message:    err.Error(),
+	})
+	// TODO probably don't do this unconditionally?
 	l.Disconnect()
 }
 

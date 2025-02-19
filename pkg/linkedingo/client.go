@@ -63,10 +63,12 @@ func NewClient(ctx context.Context, userEntityURN types.URN, jar *stringcookieja
 }
 
 type Handlers struct {
-	Heartbeat            func(context.Context)
-	ClientConnection     func(context.Context, *ClientConnection)
-	RealtimeConnectError func(context.Context, error)
-	DecoratedEvent       func(context.Context, *DecoratedEvent)
+	Heartbeat           func(context.Context)
+	ClientConnection    func(context.Context, *ClientConnection)
+	TransientDisconnect func(context.Context, error)
+	BadCredentials      func(context.Context, error)
+	UnknownError        func(context.Context, error)
+	DecoratedEvent      func(context.Context, *DecoratedEvent)
 }
 
 func (h Handlers) onHeartbeat(ctx context.Context) {
@@ -81,9 +83,21 @@ func (h Handlers) onClientConnection(ctx context.Context, conn *ClientConnection
 	}
 }
 
-func (h Handlers) onRealtimeConnectError(ctx context.Context, err error) {
-	if h.RealtimeConnectError != nil {
-		h.RealtimeConnectError(ctx, err)
+func (h Handlers) onTransientDisconnect(ctx context.Context, err error) {
+	if h.TransientDisconnect != nil {
+		h.TransientDisconnect(ctx, err)
+	}
+}
+
+func (h Handlers) onBadCredentials(ctx context.Context, err error) {
+	if h.BadCredentials != nil {
+		h.BadCredentials(ctx, err)
+	}
+}
+
+func (h Handlers) onUnknownError(ctx context.Context, err error) {
+	if h.UnknownError != nil {
+		h.UnknownError(ctx, err)
 	}
 }
 

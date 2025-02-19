@@ -230,11 +230,15 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			WithHeader("Accept", contentTypeTextEventStream).
 			Do(ctx)
 		if err != nil {
-			c.handlers.onRealtimeConnectError(ctx, err)
+			c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect: %w", err))
 			return
-		}
-		if c.realtimeResp.StatusCode != http.StatusOK {
-			c.handlers.onRealtimeConnectError(ctx, fmt.Errorf("failed to connect due to status code %d", c.realtimeResp.StatusCode))
+		} else if c.realtimeResp.StatusCode != http.StatusOK {
+			switch c.realtimeResp.StatusCode {
+			case http.StatusUnauthorized:
+				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", c.realtimeResp.StatusCode))
+			default:
+				c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect due to status code %d", c.realtimeResp.StatusCode))
+			}
 			return
 		}
 
@@ -245,12 +249,15 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
 					return
-				}
-				if errors.Is(err, io.EOF) {
+				} else if errors.Is(err, io.EOF) {
+					log.Info().
+						Stringer("realtime_session_id", c.realtimeSessionID).
+						Msg("Realtime stream closed")
+					break
+				} else {
+					c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to read realtime stream: %w", err))
 					break
 				}
-				c.handlers.onRealtimeConnectError(ctx, err)
-				break
 			}
 
 			if !bytes.HasPrefix(line, []byte("data:")) {
@@ -259,7 +266,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 
 			var realtimeEvent RealtimeEvent
 			if err = json.Unmarshal(line[6:], &realtimeEvent); err != nil {
-				c.handlers.onRealtimeConnectError(ctx, err)
+				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to unmarshal realtime event: %w", err))
 				break
 			}
 
