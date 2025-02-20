@@ -71,7 +71,7 @@ func (a *authedRequest) WithRawQuery(raw string) *authedRequest {
 
 func (a *authedRequest) WithGraphQLQuery(queryID string, variables map[string]string) *authedRequest {
 	var queryStr strings.Builder
-	queryStr.WriteString("query=")
+	queryStr.WriteString("queryId=")
 	queryStr.WriteString(queryID)
 	queryStr.WriteString("&variables=(")
 	first := true

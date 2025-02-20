@@ -23,7 +23,6 @@ import (
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/linkedinfmt"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 func toLinkedInAttribute(br linkedinfmt.BodyRange) linkedingo.SendMessageAttribute {
@@ -32,9 +31,9 @@ func toLinkedInAttribute(br linkedinfmt.BodyRange) linkedingo.SendMessageAttribu
 		return linkedingo.SendMessageAttribute{
 			Start:  br.Start,
 			Length: br.Length,
-			AttributeKindUnion: types.AttributeKind{
-				Entity: &types.Entity{
-					URN: types.NewURN(val.UserID).WithPrefix("urn", "li", "fsd_profile"),
+			AttributeKindUnion: linkedingo.AttributeKind{
+				Entity: &linkedingo.Entity{
+					URN: linkedingo.NewURN(val.UserID).WithPrefix("urn", "li", "fsd_profile"),
 				},
 			},
 		}

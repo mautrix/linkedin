@@ -4,11 +4,20 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
-func (c *Client) StartTyping(ctx context.Context, conversationURN types.URN) error {
+type DecoratedTypingIndicator struct {
+	Result RealtimeTypingIndicator `json:"result,omitempty"`
+}
+
+// RealtimeTypingIndicator represents a
+// com.linkedin.messenger.RealtimeTypingIndicator object.
+type RealtimeTypingIndicator struct {
+	TypingParticipant MessagingParticipant `json:"typingParticipant,omitempty"`
+	Conversation      Conversation         `json:"conversation,omitempty"`
+}
+
+func (c *Client) StartTyping(ctx context.Context, conversationURN URN) error {
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInMessagingDashMessengerConversationsURL).
 		WithQueryParam("action", "typing").
 		WithContentType(contentTypePlaintextUTF8).

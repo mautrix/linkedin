@@ -20,12 +20,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type Picture struct {
-	VectorImage *types.VectorImage `json:"com.linkedin.common.VectorImage,omitempty"`
+	VectorImage *VectorImage `json:"com.linkedin.common.VectorImage,omitempty"`
 }
 
 type MiniProfile struct {
@@ -35,8 +33,8 @@ type MiniProfile struct {
 	PublicIdentifier string `json:"publicIdentifier"`
 	Memorialized     bool   `json:"memorialized"`
 
-	EntityURN     types.URN `json:"entityUrn"`
-	DashEntityURN types.URN `json:"dashEntityUrn"`
+	EntityURN     URN `json:"entityUrn"`
+	DashEntityURN URN `json:"dashEntityUrn"`
 
 	TrackingID string `json:"trackingId"`
 

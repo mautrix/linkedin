@@ -1,4 +1,4 @@
-package types
+package linkedingo
 
 // AttributedText represents a com.linkedin.pemberly.text.AttributedText
 // object.

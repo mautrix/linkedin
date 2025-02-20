@@ -26,7 +26,7 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
 type UserInfo struct {
@@ -35,7 +35,7 @@ type UserInfo struct {
 }
 
 type FormatParams struct {
-	GetMXIDByURN func(ctx context.Context, entityURN types.URN) (id.UserID, error)
+	GetMXIDByURN func(ctx context.Context, entityURN linkedingo.URN) (id.UserID, error)
 }
 
 type formatContext struct {
@@ -49,7 +49,7 @@ func (ctx formatContext) TextToHTML(text string) string {
 	return event.TextToHTML(text)
 }
 
-func Parse(ctx context.Context, message string, attributes []types.Attribute, params FormatParams) (content *event.MessageEventContent, err error) {
+func Parse(ctx context.Context, message string, attributes []linkedingo.Attribute, params FormatParams) (content *event.MessageEventContent, err error) {
 	log := zerolog.Ctx(ctx).With().Str("func", "Parse").Logger()
 	content = &event.MessageEventContent{
 		MsgType:  event.MsgText,

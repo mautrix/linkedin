@@ -26,7 +26,6 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
@@ -96,7 +95,7 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 		return nil, err
 	}
 
-	loginClient := linkedingo.NewClient(ctx, types.NewURN(""), jar, linkedingo.Handlers{})
+	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, linkedingo.Handlers{})
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current user profile: %w", err)

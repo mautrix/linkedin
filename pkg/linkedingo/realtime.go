@@ -17,8 +17,6 @@ import (
 	"go.mau.fi/util/exerrors"
 	"go.mau.fi/util/jsontime"
 	"golang.org/x/net/html"
-
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 //go:embed x-li-recipe-map.json
@@ -50,7 +48,7 @@ type ClientConnection struct {
 }
 
 type DecoratedEvent struct {
-	Topic               types.URN             `json:"topic,omitempty"`
+	Topic               URN                   `json:"topic,omitempty"`
 	LeftServerAt        jsontime.UnixMilli    `json:"leftServerAt,omitempty"`
 	ID                  string                `json:"id,omitempty"`
 	Payload             DecoratedEventPayload `json:"payload,omitempty"`
@@ -68,22 +66,6 @@ type DecoratedEventData struct {
 	DecoratedTypingIndicator *DecoratedTypingIndicator `json:"doDecorateTypingIndicatorMessengerRealtimeDecoration,omitempty"`
 	DecoratedSeenReceipt     *DecoratedSeenReceipt     `json:"doDecorateSeenReceiptMessengerRealtimeDecoration,omitempty"`
 	DecoratedReactionSummary *DecoratedReactionSummary `json:"doDecorateRealtimeReactionSummaryMessengerRealtimeDecoration,omitempty"`
-}
-
-type DecoratedMessage struct {
-	Result types.Message `json:"result,omitempty"`
-}
-
-type DecoratedTypingIndicator struct {
-	Result types.RealtimeTypingIndicator `json:"result,omitempty"`
-}
-
-type DecoratedSeenReceipt struct {
-	Result types.SeenReceipt `json:"result,omitempty"`
-}
-
-type DecoratedReactionSummary struct {
-	Result types.RealtimeReactionSummary `json:"result,omitempty"`
 }
 
 func (c *Client) cacheMetaValues(ctx context.Context) error {
@@ -279,8 +261,10 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 
 			switch {
 			case realtimeEvent.Heartbeat != nil:
+				log.Trace().Msg("Received heartbeat")
 				c.handlers.onHeartbeat(ctx)
 			case realtimeEvent.ClientConnection != nil:
+				log.Info().Msg("Client connected")
 				c.handlers.onClientConnection(ctx, realtimeEvent.ClientConnection)
 			case realtimeEvent.DecoratedEvent != nil:
 				log.Debug().

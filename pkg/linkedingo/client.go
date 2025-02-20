@@ -22,14 +22,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
 type Client struct {
 	http          *http.Client
 	jar           *stringcookiejar.Jar
-	userEntityURN types.URN
+	userEntityURN URN
 
 	realtimeSessionID uuid.UUID
 	realtimeCtx       context.Context
@@ -44,7 +43,7 @@ type Client struct {
 	i18nLocale           string
 }
 
-func NewClient(ctx context.Context, userEntityURN types.URN, jar *stringcookiejar.Jar, handlers Handlers) *Client {
+func NewClient(ctx context.Context, userEntityURN URN, jar *stringcookiejar.Jar, handlers Handlers) *Client {
 	return &Client{
 		userEntityURN:     userEntityURN,
 		jar:               jar,

@@ -10,25 +10,25 @@ import (
 	"github.com/google/uuid"
 	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/random"
+	"maunium.net/go/mautrix/bridgev2/networkid"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 )
 
 type sendMessagePayload struct {
 	Message                      SendMessage `json:"message,omitempty"`
-	MailboxURN                   types.URN   `json:"mailboxUrn,omitempty"`
+	MailboxURN                   URN         `json:"mailboxUrn,omitempty"`
 	TrackingID                   string      `json:"trackingId,omitempty"`
 	DedupeByClientGeneratedToken bool        `json:"dedupeByClientGeneratedToken"`
-	HostRecipientURNs            []types.URN `json:"hostRecipientUrns,omitempty"`
+	HostRecipientURNs            []URN       `json:"hostRecipientUrns,omitempty"`
 	ConversationTitle            string      `json:"conversationTitle,omitempty"`
 }
 
 type SendMessage struct {
 	Body                SendMessageBody     `json:"body,omitempty"`
 	RenderContentUnions []SendRenderContent `json:"renderContentUnions,omitempty"`
-	ConversationURN     types.URN           `json:"conversationUrn,omitempty"`
+	ConversationURN     URN                 `json:"conversationUrn,omitempty"`
 	OriginToken         uuid.UUID           `json:"originToken,omitempty"`
 }
 
@@ -38,13 +38,13 @@ type SendMessageBody struct {
 }
 
 type SendMessageAttribute struct {
-	Start              int                 `json:"start"`
-	Length             int                 `json:"length"`
-	AttributeKindUnion types.AttributeKind `json:"attributeKindUnion"`
+	Start              int           `json:"start"`
+	Length             int           `json:"length"`
+	AttributeKindUnion AttributeKind `json:"attributeKindUnion"`
 }
 
 type AttributeType struct {
-	Entity *types.Entity `json:"com.linkedin.pemberly.text.Entity,omitempty"`
+	Entity *Entity `json:"com.linkedin.pemberly.text.Entity,omitempty"`
 }
 
 type SendRenderContent struct {
@@ -53,23 +53,66 @@ type SendRenderContent struct {
 }
 
 type SendAudio struct {
-	AssetURN types.URN             `json:"assetUrn,omitempty"`
+	AssetURN URN                   `json:"assetUrn,omitempty"`
 	ByteSize int                   `json:"byteSize,omitempty"`
 	Duration jsontime.Milliseconds `json:"duration,omitempty"`
 }
 
 type SendFile struct {
-	AssetURN  types.URN `json:"assetUrn,omitempty"`
-	ByteSize  int       `json:"byteSize,omitempty"`
-	MediaType string    `json:"mediaType,omitempty"`
-	Name      string    `json:"name,omitempty"`
+	AssetURN  URN    `json:"assetUrn,omitempty"`
+	ByteSize  int    `json:"byteSize,omitempty"`
+	MediaType string `json:"mediaType,omitempty"`
+	Name      string `json:"name,omitempty"`
 }
 
 type MessageSentResponse struct {
-	Data types.Message `json:"value,omitempty"`
+	Data Message `json:"value,omitempty"`
 }
 
-func (c *Client) SendMessage(ctx context.Context, conversationURN types.URN, body SendMessageBody, renderContent []SendRenderContent) (*MessageSentResponse, error) {
+type DecoratedMessage struct {
+	Result Message `json:"result,omitempty"`
+}
+
+// Message represents a com.linkedin.messenger.Message object.
+type Message struct {
+	Body                    AttributedText          `json:"body,omitempty"`
+	DeliveredAt             jsontime.UnixMilli      `json:"deliveredAt,omitempty"`
+	EntityURN               URN                     `json:"entityUrn,omitempty"`
+	Sender                  MessagingParticipant    `json:"sender,omitempty"`
+	MessageBodyRenderFormat MessageBodyRenderFormat `json:"messageBodyRenderFormat,omitempty"`
+	BackendConversationURN  URN                     `json:"backendConversationUrn,omitempty"`
+	Conversation            Conversation            `json:"conversation,omitempty"`
+	RenderContent           []RenderContent         `json:"renderContent,omitempty"`
+}
+
+func (m Message) MessageID() networkid.MessageID {
+	return networkid.MessageID(m.EntityURN.String())
+}
+
+type MessageBodyRenderFormat string
+
+const (
+	MessageBodyRenderFormatDefault  MessageBodyRenderFormat = "DEFAULT"
+	MessageBodyRenderFormatEdited   MessageBodyRenderFormat = "EDITED"
+	MessageBodyRenderFormatRecalled MessageBodyRenderFormat = "RECALLED"
+	MessageBodyRenderFormatSystem   MessageBodyRenderFormat = "SYSTEM"
+)
+
+type RenderContent struct {
+	Audio                 *AudioMetadata     `json:"audio,omitempty"`
+	ExternalMedia         *ExternalMedia     `json:"externalMedia,omitempty"`
+	File                  *FileAttachment    `json:"file,omitempty"`
+	RepliedMessageContent *RepliedMessage    `json:"repliedMessageContent,omitempty"`
+	VectorImage           *VectorImage       `json:"vectorImage,omitempty"`
+	Video                 *VideoPlayMetadata `json:"video,omitempty"`
+}
+
+// RepliedMessage represents a com.linkedin.messenger.RepliedMessage object.
+type RepliedMessage struct {
+	OriginalMessage Message `json:"originalMessage,omitempty"`
+}
+
+func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body SendMessageBody, renderContent []SendRenderContent) (*MessageSentResponse, error) {
 	payload := sendMessagePayload{
 		Message: SendMessage{
 			Body:                body,
@@ -113,7 +156,7 @@ type EditMessagePayload struct {
 	Body SendMessageBody `json:"body,omitempty"`
 }
 
-func (c *Client) EditMessage(ctx context.Context, messageURN types.URN, p SendMessageBody) error {
+func (c *Client) EditMessage(ctx context.Context, messageURN URN, p SendMessageBody) error {
 	url, err := url.JoinPath(linkedInVoyagerMessagingDashMessengerMessagesURL, messageURN.URLEscaped())
 	if err != nil {
 		return err
@@ -132,7 +175,7 @@ func (c *Client) EditMessage(ctx context.Context, messageURN types.URN, p SendMe
 	return nil
 }
 
-func (c *Client) RecallMessage(ctx context.Context, messageURN types.URN) error {
+func (c *Client) RecallMessage(ctx context.Context, messageURN URN) error {
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
 		WithQueryParam("action", "recall").
 		WithCSRF().

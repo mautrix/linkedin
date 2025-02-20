@@ -12,8 +12,91 @@ import (
 
 	"maunium.net/go/mautrix/event"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
+	"go.mau.fi/util/jsontime"
 )
+
+// VectorArtifact represents a com.linkedin.common.VectorArtifact object.
+type VectorArtifact struct {
+	ExpiresAt                     jsontime.UnixMilli `json:"expiresAt,omitempty"`
+	FileIdentifyingURLPathSegment string             `json:"fileIdentifyingUrlPathSegment,omitempty"`
+	Height                        int                `json:"height,omitempty"`
+	Width                         int                `json:"width,omitempty"`
+}
+
+// VectorImage represents a com.linkedin.common.VectorImage object.
+type VectorImage struct {
+	RootURL   string           `json:"rootUrl,omitempty"`
+	Artifacts []VectorArtifact `json:"artifacts,omitempty"`
+}
+
+func (vi VectorImage) GetLargestArtifactURL() string {
+	var largestVersion VectorArtifact
+	for _, a := range vi.Artifacts {
+		if a.Height > largestVersion.Height {
+			largestVersion = a
+		}
+	}
+	return vi.RootURL + largestVersion.FileIdentifyingURLPathSegment
+}
+
+// FileAttachment represents a com.linkedin.messenger.FileAttachment object.
+type FileAttachment struct {
+	AssetURN  URN    `json:"assetUrn,omitempty"`
+	ByteSize  int    `json:"byteSize,omitempty"`
+	MediaType string `json:"mediaType,omitempty"`
+	Name      string `json:"name,omitempty"`
+	URL       string `json:"url,omitempty"`
+}
+
+// ExternalProxyImage represents a com.linkedin.messenger.ExternalProxyImage
+// object.
+type ExternalProxyImage struct {
+	OriginalHeight int    `json:"originalHeight,omitempty"`
+	OriginalWidth  int    `json:"originalWidth,omitempty"`
+	URL            string `json:"url,omitempty"`
+}
+
+// ExternalMedia represents a com.linkedin.messenger.ExternalMedia object.
+type ExternalMedia struct {
+	Media        ExternalProxyImage `json:"media,omitempty"`
+	Title        string             `json:"title,omitempty"`
+	EntityURN    URN                `json:"entityUrn,omitempty"`
+	PreviewMedia ExternalProxyImage `json:"previewMedia,omitempty"`
+}
+
+// VideoPlayMetadata represents a com.linkedin.videocontent.VideoPlayMetadata
+// object.
+type VideoPlayMetadata struct {
+	Thumbnail          *VectorImage                  `json:"thumbnail,omitempty"`
+	ProgressiveStreams []ProgressiveDownloadMetadata `json:"progressiveStreams,omitempty"`
+	AspectRatio        float64                       `json:"aspectRatio,omitempty"`
+	Media              URN                           `json:"media,omitempty"`
+	Duration           jsontime.Milliseconds         `json:"duration,omitempty"`
+	EntityURN          URN                           `json:"entityUrn,omitempty"`
+}
+
+// ProgressiveDownloadMetadata represents a
+// com.linkedin.videocontent.ProgressiveDownloadMetadata object.
+type ProgressiveDownloadMetadata struct {
+	StreamingLocations []StreamingLocation `json:"streamingLocations,omitempty"`
+	Size               int                 `json:"size,omitempty"`
+	BitRate            int                 `json:"bitRate,omitempty"`
+	Width              int                 `json:"width,omitempty"`
+	MediaType          string              `json:"mediaType,omitempty"`
+	Height             int                 `json:"height,omitempty"`
+}
+
+// StreamingLocation represents a com.linkedin.videocontent.StreamingLocation
+// object.
+type StreamingLocation struct {
+	URL string `json:"url,omitempty"`
+}
+
+// AudioMetadata represents a com.linkedin.messenger.AudioMetadata object.
+type AudioMetadata struct {
+	Duration jsontime.Milliseconds `json:"duration,omitempty"`
+	URL      string                `json:"url,omitempty"`
+}
 
 func (c *Client) Download(ctx context.Context, w io.Writer, url string) error {
 	resp, err := c.newAuthedRequest(http.MethodGet, url).Do(ctx)
@@ -42,7 +125,7 @@ func (c *Client) getFileInfoFromHeadRequest(ctx context.Context, url string) (in
 	return
 }
 
-func (c *Client) GetVectorImageFileInfo(ctx context.Context, vi *types.VectorImage) (info event.FileInfo, filename string, err error) {
+func (c *Client) GetVectorImageFileInfo(ctx context.Context, vi *VectorImage) (info event.FileInfo, filename string, err error) {
 	info, filename, err = c.getFileInfoFromHeadRequest(ctx, vi.GetLargestArtifactURL())
 	if filename == "" {
 		filename = "image"
@@ -50,7 +133,7 @@ func (c *Client) GetVectorImageFileInfo(ctx context.Context, vi *types.VectorIma
 	return
 }
 
-func (c *Client) GetAudioFileInfo(ctx context.Context, audio *types.AudioMetadata) (info event.FileInfo, filename string, err error) {
+func (c *Client) GetAudioFileInfo(ctx context.Context, audio *AudioMetadata) (info event.FileInfo, filename string, err error) {
 	info, filename, err = c.getFileInfoFromHeadRequest(ctx, audio.URL)
 	if filename == "" {
 		filename = "voice_message"
@@ -84,11 +167,11 @@ type ActionResponse struct {
 // MediaUploadMetadata represents a
 // com.linkedin.mediauploader.MediaUploadMetadata object.
 type MediaUploadMetadata struct {
-	URN             types.URN `json:"urn,omitempty"`
-	SingleUploadURL string    `json:"singleUploadUrl,omitempty"`
+	URN             URN    `json:"urn,omitempty"`
+	SingleUploadURL string `json:"singleUploadUrl,omitempty"`
 }
 
-func (c *Client) UploadMedia(ctx context.Context, mediaUploadType MediaUploadType, filename, contentType string, size int, r io.Reader) (types.URN, error) {
+func (c *Client) UploadMedia(ctx context.Context, mediaUploadType MediaUploadType, filename, contentType string, size int, r io.Reader) (URN, error) {
 	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMediaUploadMetadataURL).
 		WithQueryParam("action", "upload").
 		WithCSRF().
@@ -102,14 +185,14 @@ func (c *Client) UploadMedia(ctx context.Context, mediaUploadType MediaUploadTyp
 		}).
 		Do(ctx)
 	if err != nil {
-		return types.URN{}, err
+		return URN{}, err
 	} else if resp.StatusCode != http.StatusOK {
-		return types.URN{}, fmt.Errorf("failed to get upload media metadata (statusCode=%d)", resp.StatusCode)
+		return URN{}, fmt.Errorf("failed to get upload media metadata (statusCode=%d)", resp.StatusCode)
 	}
 
 	var uploadMetadata UploadMediaMetadataResponse
 	if err = json.NewDecoder(resp.Body).Decode(&uploadMetadata); err != nil {
-		return types.URN{}, err
+		return URN{}, err
 	}
 
 	resp, err = c.newAuthedRequest(http.MethodPut, uploadMetadata.Data.Value.SingleUploadURL).
@@ -119,9 +202,9 @@ func (c *Client) UploadMedia(ctx context.Context, mediaUploadType MediaUploadTyp
 		WithBody(r).
 		Do(ctx)
 	if err != nil {
-		return types.URN{}, err
+		return URN{}, err
 	} else if resp.StatusCode != http.StatusCreated {
-		return types.URN{}, fmt.Errorf("failed to upload media: status=%d", resp.StatusCode)
+		return URN{}, fmt.Errorf("failed to upload media: status=%d", resp.StatusCode)
 	}
 	return uploadMetadata.Data.Value.URN, nil
 }

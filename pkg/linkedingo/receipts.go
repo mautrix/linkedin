@@ -11,29 +11,41 @@ import (
 	"slices"
 	"strings"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
+	"go.mau.fi/util/jsontime"
+
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 )
+
+type DecoratedSeenReceipt struct {
+	Result SeenReceipt `json:"result,omitempty"`
+}
+
+// SeenReceipt represents a com.linkedin.messenger.SeenReceipt object.
+type SeenReceipt struct {
+	SeenAt            jsontime.UnixMilli   `json:"seenAt,omitempty"`
+	Message           Message              `json:"message,omitempty"`
+	SeenByParticipant MessagingParticipant `json:"seenByParticipant,omitempty"`
+}
 
 type MarkMessageReadBody struct {
 	Read bool `json:"read"`
 }
 
 type PatchEntitiesPayload struct {
-	Entities map[types.URNString]GraphQLPatchBody `json:"entities,omitempty"`
+	Entities map[URNString]GraphQLPatchBody `json:"entities,omitempty"`
 }
 
-func (c *Client) MarkConversationRead(ctx context.Context, convURNs ...types.URN) (*responseold.MarkThreadReadResponse, error) {
+func (c *Client) MarkConversationRead(ctx context.Context, convURNs ...URN) (*responseold.MarkThreadReadResponse, error) {
 	return c.doMarkConversationRead(ctx, true, convURNs...)
 }
 
-func (c *Client) MarkConversationUnread(ctx context.Context, convURNs ...types.URN) (*responseold.MarkThreadReadResponse, error) {
+func (c *Client) MarkConversationUnread(ctx context.Context, convURNs ...URN) (*responseold.MarkThreadReadResponse, error) {
 	return c.doMarkConversationRead(ctx, false, convURNs...)
 }
 
-func (c *Client) doMarkConversationRead(ctx context.Context, read bool, convURNs ...types.URN) (*responseold.MarkThreadReadResponse, error) {
+func (c *Client) doMarkConversationRead(ctx context.Context, read bool, convURNs ...URN) (*responseold.MarkThreadReadResponse, error) {
 	conversationList := make([]string, len(convURNs))
-	entities := map[types.URNString]GraphQLPatchBody{}
+	entities := map[URNString]GraphQLPatchBody{}
 	for i, convURN := range convURNs {
 		conversationList[i] = url.QueryEscape(convURN.String())
 		entities[convURN.URNString()] = GraphQLPatchBody{Patch: Patch{Set: MarkMessageReadBody{Read: read}}}

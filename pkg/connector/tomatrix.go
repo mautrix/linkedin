@@ -11,10 +11,10 @@ import (
 	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/linkedinfmt"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
-func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg types.Message) (*bridgev2.ConvertedMessage, error) {
+func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg linkedingo.Message) (*bridgev2.ConvertedMessage, error) {
 	var cm bridgev2.ConvertedMessage
 
 	if len(msg.Body.Text) > 0 {
@@ -60,7 +60,7 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 	return &cm, nil
 }
 
-func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message, msg types.Message) (*bridgev2.ConvertedEdit, error) {
+func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message, msg linkedingo.Message) (*bridgev2.ConvertedEdit, error) {
 	if len(existing) != 1 {
 		return nil, fmt.Errorf("editing a message that was bridged as multiple parts is not supported")
 	}
@@ -79,7 +79,7 @@ func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridge
 	return &convertedEdit, nil
 }
 
-func (l *LinkedInClient) convertAudioToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, audio *types.AudioMetadata) (cmp *bridgev2.ConvertedMessagePart, err error) {
+func (l *LinkedInClient) convertAudioToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, audio *linkedingo.AudioMetadata) (cmp *bridgev2.ConvertedMessagePart, err error) {
 	info, filename, err := l.client.GetAudioFileInfo(ctx, audio)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (l *LinkedInClient) convertAudioToMatrix(ctx context.Context, portal *bridg
 	}, err
 }
 
-func (l *LinkedInClient) convertExternalMediaToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, media *types.ExternalMedia) (cmp *bridgev2.ConvertedMessagePart, err error) {
+func (l *LinkedInClient) convertExternalMediaToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, media *linkedingo.ExternalMedia) (cmp *bridgev2.ConvertedMessagePart, err error) {
 	content := event.MessageEventContent{
 		Info:    &event.FileInfo{MimeType: "image/gif"},
 		MsgType: event.MsgImage,
@@ -124,7 +124,7 @@ func (l *LinkedInClient) convertExternalMediaToMatrix(ctx context.Context, porta
 	}, err
 }
 
-func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, attachment *types.FileAttachment) (cmp *bridgev2.ConvertedMessagePart, err error) {
+func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, attachment *linkedingo.FileAttachment) (cmp *bridgev2.ConvertedMessagePart, err error) {
 	content := event.MessageEventContent{
 		Info: &event.FileInfo{
 			MimeType: attachment.MediaType,
@@ -148,7 +148,7 @@ func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridge
 	}, err
 }
 
-func (l *LinkedInClient) convertVectorImageToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, img *types.VectorImage) (cmp *bridgev2.ConvertedMessagePart, err error) {
+func (l *LinkedInClient) convertVectorImageToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, img *linkedingo.VectorImage) (cmp *bridgev2.ConvertedMessagePart, err error) {
 	info, filename, err := l.client.GetVectorImageFileInfo(ctx, img)
 	if err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ func (l *LinkedInClient) convertVectorImageToMatrix(ctx context.Context, portal 
 	}, err
 }
 
-func (l *LinkedInClient) convertVideoToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, video *types.VideoPlayMetadata) (cmp *bridgev2.ConvertedMessagePart, err error) {
+func (l *LinkedInClient) convertVideoToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, video *linkedingo.VideoPlayMetadata) (cmp *bridgev2.ConvertedMessagePart, err error) {
 	if len(video.ProgressiveStreams) == 0 {
 		return nil, fmt.Errorf("VideoPlayMetadata had no ProgressiveStreams")
 	}
