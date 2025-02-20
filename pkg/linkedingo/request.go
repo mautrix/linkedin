@@ -85,7 +85,7 @@ func (a *authedRequest) WithGraphQLQuery(queryID string, variables map[string]st
 		first = false
 		queryStr.WriteString(k)
 		queryStr.WriteByte(':')
-		queryStr.WriteString(url.QueryEscape(v))
+		queryStr.WriteString(v)
 	}
 	queryStr.WriteString(")")
 	a.rawQuery = queryStr.String()

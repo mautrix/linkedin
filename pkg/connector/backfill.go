@@ -2,11 +2,18 @@ package connector
 
 import (
 	"context"
+	"fmt"
 
 	"maunium.net/go/mautrix/bridgev2"
+
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
 func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
+	if messages, ok := fetchParams.BundledData.([]linkedingo.Message); ok {
+		fmt.Printf("%+v\n", messages)
+	}
+
 	// variables := queryold.FetchMessagesVariables{
 	// 	ConversationURN: linkedingo.NewURN(fetchParams.Portal.ID),
 	// 	CountBefore:     20,

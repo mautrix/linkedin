@@ -18,9 +18,7 @@ package matrixfmt
 
 import (
 	"context"
-	"fmt"
 	"math"
-	"strconv"
 	"strings"
 
 	"golang.org/x/exp/slices"
@@ -282,53 +280,6 @@ func Digits(num int) int {
 	return int(math.Floor(math.Log10(float64(num))) + 1)
 }
 
-var listBullets = []string{"●", "○", "■", "‣"}
-
-func (parser *HTMLParser) listToString(node *html.Node, ctx Context) *EntityString {
-	ordered := node.Data == "ol"
-	if !ordered {
-		ctx = ctx.WithIncrementedListDepth()
-	}
-	taggedChildren := parser.nodeToTaggedStrings(node.FirstChild, ctx)
-	counter := 1
-	indentLength := 0
-	if ordered {
-		start := parser.getAttribute(node, "start")
-		if len(start) > 0 {
-			counter, _ = strconv.Atoi(start)
-		}
-
-		longestIndex := (counter - 1) + len(taggedChildren)
-		indentLength = Digits(longestIndex)
-	}
-	indent := strings.Repeat(" ", indentLength+2)
-	var children []*EntityString
-	for _, child := range taggedChildren {
-		if child.tag != "li" {
-			continue
-		}
-		var prefix string
-		if ordered {
-			indexPadding := indentLength - Digits(counter)
-			if indexPadding < 0 {
-				// This will happen on negative start indexes where longestIndex is usually wrong, otherwise shouldn't happen
-				indexPadding = 0
-			}
-			prefix = fmt.Sprintf("%d. %s", counter, strings.Repeat(" ", indexPadding))
-		} else {
-			prefix = fmt.Sprintf("%s ", listBullets[(ctx.ListDepth-1)%len(listBullets)])
-		}
-		es := NewEntityString(prefix).Append(child.EntityString)
-		counter++
-		parts := es.Split('\n')
-		for i, part := range parts[1:] {
-			parts[i+1] = NewEntityString(indent).Append(part)
-		}
-		children = append(children, parts...)
-	}
-	return JoinEntityString("\n", children...)
-}
-
 func (parser *HTMLParser) basicFormatToString(node *html.Node, ctx Context) *EntityString {
 	str := parser.nodeToTagAwareString(node.FirstChild, ctx)
 	switch node.Data {
@@ -336,23 +287,22 @@ func (parser *HTMLParser) basicFormatToString(node *html.Node, ctx Context) *Ent
 		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleBold})
 	case "i", "em":
 		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleItalic})
-	case "s", "del", "strike":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleStrikethrough})
-	case "u", "ins":
+	case "br":
+		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleLineBreak})
+	case "ul":
+		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleList, Ordered: false})
+	case "ol":
+		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleList, Ordered: true})
+	case "li":
+		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleListItem})
+	case "p":
+		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleParagraph})
+	case "sub":
+		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleSubscript})
+	case "sup":
+		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleSuperscript})
+	case "u":
 		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleUnderline})
-	case "tt", "code":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleCode})
-	}
-	return str
-}
-
-func (parser *HTMLParser) spanToString(node *html.Node, ctx Context) *EntityString {
-	str := parser.nodeToTagAwareString(node.FirstChild, ctx)
-	if node.Data == "span" {
-		_, isSpoiler := parser.maybeGetAttribute(node, "data-mx-spoiler")
-		if isSpoiler {
-			str = str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleSpoiler})
-		}
 	}
 	return str
 }
@@ -386,49 +336,26 @@ func (parser *HTMLParser) linkToString(node *html.Node, ctx Context) *EntityStri
 			return NewEntityString("@" + username).Format(linkedinfmt.Mention{UserID: userID})
 		}
 	}
-	if str.String.String() == href {
-		return ent.Format(linkedinfmt.Style{Type: linkedinfmt.StyleURL, URL: href})
-	} else {
-		return ent.Format(linkedinfmt.Style{Type: linkedinfmt.StyleTextURL, URL: href})
-	}
+	return ent.Format(linkedinfmt.Style{Type: linkedinfmt.StyleHyperlink, URL: href})
 }
 
 func (parser *HTMLParser) tagToString(node *html.Node, ctx Context) *EntityString {
 	ctx = ctx.WithTag(node.Data)
 	switch node.Data {
 	case "blockquote":
-		return parser.
-			nodeToTagAwareString(node.FirstChild, ctx).
-			Format(linkedinfmt.Style{Type: linkedinfmt.StyleBlockquote})
-	case "ol", "ul":
-		return parser.listToString(node, ctx)
+		return NewEntityString("> ").Append(parser.nodeToString(node.FirstChild, ctx))
 	case "h1", "h2", "h3", "h4", "h5", "h6":
 		return parser.headerToString(node, ctx)
 	case "br":
 		return NewEntityString("\n")
-	case "b", "strong", "i", "em", "s", "strike", "del", "u", "ins", "tt", "code":
+	case "b", "strong", "i", "em", "s", "strike", "del", "u", "ins", "tt", "code", "ol", "ul", "li":
 		return parser.basicFormatToString(node, ctx)
-	case "span", "font":
-		return parser.spanToString(node, ctx)
 	case "a":
 		return parser.linkToString(node, ctx)
 	case "p":
 		return parser.nodeToTagAwareString(node.FirstChild, ctx)
 	case "hr":
 		return NewEntityString("---")
-	case "pre":
-		var preStr *EntityString
-		var language string
-		if node.FirstChild != nil && node.FirstChild.Type == html.ElementNode && node.FirstChild.Data == "code" {
-			class := parser.getAttribute(node.FirstChild, "class")
-			if strings.HasPrefix(class, "language-") {
-				language = class[len("language-"):]
-			}
-			preStr = parser.nodeToString(node.FirstChild.FirstChild, ctx.WithWhitespace())
-		} else {
-			preStr = parser.nodeToString(node.FirstChild, ctx.WithWhitespace())
-		}
-		return preStr.Format(linkedinfmt.Style{Type: linkedinfmt.StylePre, Language: language})
 	default:
 		return parser.nodeToTagAwareString(node.FirstChild, ctx)
 	}

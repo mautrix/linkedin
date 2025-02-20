@@ -32,46 +32,29 @@ func (s Style) Format(message string) string {
 		return fmt.Sprintf("<strong>%s</strong>", message)
 	case StyleItalic:
 		return fmt.Sprintf("<em>%s</em>", message)
-	case StyleSpoiler:
-		return fmt.Sprintf("<span data-mx-spoiler>%s</span>", message)
-	case StyleStrikethrough:
-		return fmt.Sprintf("<del>%s</del>", message)
-	case StyleCode:
-		if strings.ContainsRune(message, '\n') {
-			// This is somewhat incorrect, as it won't allow inline text before/after a multiline monospace-formatted string.
-			return fmt.Sprintf("<pre><code>%s</code></pre>", message)
+	case StyleLineBreak:
+		return "<br>"
+	case StyleList:
+		if s.Ordered {
+			return fmt.Sprintf("<ol>%s</ol>", message)
+		} else {
+			return fmt.Sprintf("<ul>%s</ul>", message)
 		}
-		return fmt.Sprintf("<code>%s</code>", message)
+	case StyleListItem:
+		return fmt.Sprintf("<li>%s</li>", message)
+	case StyleParagraph:
+		return fmt.Sprintf("<p>%s</p>", message)
+	case StyleSubscript:
+		return fmt.Sprintf("<sub>%s</sub>", message)
+	case StyleSuperscript:
+		return fmt.Sprintf("<sup>%s</sup>", message)
+	case StyleHyperlink:
+		if strings.HasPrefix(s.URL, "https://matrix.to/#") {
+			return s.URL
+		}
+		return fmt.Sprintf(`<a href='%s'>%s</a>`, s.URL, message)
 	case StyleUnderline:
 		return fmt.Sprintf("<u>%s</u>", message)
-	case StyleBlockquote:
-		return fmt.Sprintf("<blockquote>%s</blockquote>", message)
-	case StylePre:
-		if s.Language != "" {
-			return fmt.Sprintf("<pre><code class='language-%s'>%s</code></pre>", s.Language, message)
-		} else {
-			return fmt.Sprintf("<pre><code>%s</code></pre>", message)
-		}
-	case StyleEmail:
-		return fmt.Sprintf(`<a href='mailto:%s'>%s</a>`, message, message)
-	case StyleTextURL:
-		if strings.HasPrefix(s.URL, "https://matrix.to/#") {
-			return s.URL
-		}
-		return fmt.Sprintf(`<a href='%s'>%s</a>`, s.URL, message)
-	case StyleURL:
-		if strings.HasPrefix(s.URL, "https://matrix.to/#") {
-			return s.URL
-		}
-		return fmt.Sprintf(`<a href='%s'>%s</a>`, s.URL, message)
-	case StyleBotCommand:
-		return fmt.Sprintf("<font color='#3771bb'>%s</font>", message)
-	case StyleHashtag:
-		return fmt.Sprintf("<font color='#3771bb'>%s</font>", message)
-	case StyleCashtag:
-		return fmt.Sprintf("<font color='#3771bb'>%s</font>", message)
-	case StylePhone:
-		return fmt.Sprintf("<font color='#3771bb'>%s</font>", message)
 	default:
 		return message
 	}
@@ -96,9 +79,6 @@ func (lrt *LinkedRangeTree) Format(message UTF16String, ctx formatContext) strin
 	inner := message[lrt.Node.Start:lrt.Node.End()]
 	tail := message[lrt.Node.End():]
 	ourCtx := ctx
-	if lrt.Node.Value.IsCode() {
-		ourCtx.IsInCodeblock = true
-	}
 	childMessage := lrt.Child.Format(inner, ourCtx)
 	formattedChildMessage := lrt.Node.Value.Format(childMessage)
 	siblingMessage := lrt.Sibling.Format(tail, ctx)

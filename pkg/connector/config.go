@@ -57,8 +57,9 @@ func (lc *LinkedInConnector) GetConfig() (string, any, up.Upgrader) {
 }
 
 type DisplaynameParams struct {
-	FirstName string
-	LastName  string
+	FirstName    string
+	LastName     string
+	Organization string
 }
 
 func (c *Config) FormatDisplayname(params DisplaynameParams) string {

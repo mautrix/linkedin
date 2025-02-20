@@ -190,7 +190,7 @@ func (c *Client) RecallMessage(ctx context.Context, messageURN URN) error {
 	return nil
 }
 
-func (c *Client) FetchMessages(ctx context.Context, variables queryold.FetchMessagesVariables) (*responseold.MessengerMessagesResponse, error) {
+func (c *Client) FetchMessages(ctx context.Context, conversationURN URN, variables queryold.FetchMessagesVariables) (*responseold.MessengerMessagesResponse, error) {
 	withCursor := variables.PrevCursor != ""
 	withAnchorTimestamp := !variables.DeliveredAt.IsZero()
 

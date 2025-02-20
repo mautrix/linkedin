@@ -4,51 +4,43 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
+	"strconv"
+	"time"
+
+	"github.com/rs/zerolog"
+	"go.mau.fi/util/jsontime"
 )
 
-// https://www.linkedin.com/voyager/api/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.7b27164c5517548167d9adb4ba603e55&variables=(mailboxUrn:urn%3Ali%3Afsd_profile%3AACoAADZsHU0BD7Cr7MwzvkzsAcCoeOii7kl0mPU)
-
-// https://www.linkedin.com/voyager/api/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.8656fb361a8ad0c178e8d3ff1a84ce26&variables=(query:(predicateUnions:List((conversationCategoryPredicate:(category:PRIMARY_INBOX)))),count:20,mailboxUrn:urn%3Ali%3Afsd_profile%3AACoAADZsHU0BD7Cr7MwzvkzsAcCoeOii7kl0mPU,lastUpdatedBefore:1739209141023)
-
-// curl 'https://www.linkedin.com/voyager/api/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.277103fa0741e804ec5f21e6f64cb598&variables=(mailboxUrn:urn%3Ali%3Afsd_profile%3AACoAADZsHU0BD7Cr7MwzvkzsAcCoeOii7kl0mPU,syncToken:-trA4KJljszB4KJlLnVybjpsaTpmYWJyaWM6cHJvZC1sb3IxAA%3D%3D)' \
-
-// type GetThreadsVariables struct {
-// 	InboxCategory     InboxCategory `graphql:"category"`
-// 	Count             int64         `graphql:"count"`
-// 	MailboxUrn        string        `graphql:"mailboxUrn"`
-// 	LastUpdatedBefore int64         `graphql:"lastUpdatedBefore"`
-// 	NextCursor        string        `graphql:"nextCursor"`
-// 	SyncToken         string        `graphql:"syncToken"`
-// }
-
-type GraphQlResponse[T any] struct {
-	Data GraphQLData[T] `json:"data,omitempty"`
+type GraphQlResponse struct {
+	Data GraphQLData `json:"data,omitempty"`
 }
 
-type GraphQLData[T any] struct {
-	MessengerConversationsBySyncToken *CollectionResponse[T] `json:"messengerConversationsBySyncToken,omitempty"`
+type GraphQLData struct {
+	MessengerConversationsByCategoryQuery *CollectionResponse[ConversationCursorMetadata, Conversation] `json:"messengerConversationsByCategoryQuery,omitempty"`
 }
 
 // CollectionResponse represents a
 // com.linkedin.restli.common.CollectionResponse object.
-type CollectionResponse[T any] struct {
-	Metadata SyncMetadata `json:"metadata,omitempty"`
-	Elements []T          `json:"elements,omitempty"`
+type CollectionResponse[M, T any] struct {
+	Metadata M   `json:"metadata,omitempty"`
+	Elements []T `json:"elements,omitempty"`
 }
 
-// SyncMetadata represents a com.linkedin.messenger.SyncMetadata object.
-type SyncMetadata struct {
-	NewSyncToken string `json:"newSyncToken,omitempty"`
+// ConversationCursorMetadata represents a com.linkedin.messenger.ConversationCursorMetadata object.
+type ConversationCursorMetadata struct {
+	NextCursor string `json:"nextCursor,omitempty"`
 }
 
 // Conversation represents a com.linkedin.messenger.Conversation object
 type Conversation struct {
-	Title                    string                 `json:"title,omitempty"`
-	EntityURN                URN                    `json:"entityUrn,omitempty"`
-	GroupChat                bool                   `json:"groupChat,omitempty"`
-	ConversationParticipants []MessagingParticipant `json:"conversationParticipants,omitempty"`
-	Read                     bool                   `json:"read,omitempty"`
-	// Messages                 []CollectionResponse[Message] `json:"messages,omitempty"`
+	Title                    string                           `json:"title,omitempty"`
+	EntityURN                URN                              `json:"entityUrn,omitempty"`
+	LastActivityAt           jsontime.UnixMilli               `json:"lastActivityAt,omitempty"`
+	GroupChat                bool                             `json:"groupChat,omitempty"`
+	ConversationParticipants []MessagingParticipant           `json:"conversationParticipants,omitempty"`
+	Read                     bool                             `json:"read,omitempty"`
+	Messages                 CollectionResponse[any, Message] `json:"messages,omitempty"`
 }
 
 // MessagingParticipant represents a
@@ -59,7 +51,8 @@ type MessagingParticipant struct {
 }
 
 type ParticipantType struct {
-	Member MemberParticipantInfo `json:"member,omitempty"`
+	Member       *MemberParticipantInfo       `json:"member,omitempty"`
+	Organization *OrganizationParticipantInfo `json:"organization,omitempty"`
 }
 
 // MemberParticipantInfo represents a
@@ -73,22 +66,25 @@ type MemberParticipantInfo struct {
 	Headline       AttributedText `json:"headline,omitempty"`
 }
 
-func (c *Client) GetConversations(ctx context.Context) (*CollectionResponse[Conversation], error) {
-	variables := map[string]string{
-		"mailboxUrn": c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String(),
-	}
+// OrganizationParticipantInfo represents a
+// com.linkedin.messenger.OrganizationParticipantInfo object.
+type OrganizationParticipantInfo struct {
+	Name    AttributedText `json:"name,omitempty"`
+	Logo    *VectorImage   `json:"logo,omitempty"`
+	PageURL string         `json:"pageUrl,omitempty"`
+}
 
-	// withCursor := variables.LastUpdatedBefore != 0 && variables.NextCursor != ""
-
-	queryId := graphQLQueryIDMessengerConversations
-	// if withCursor {
-	// 	queryId = graphQLQueryIDMessengerConversationsWithCursor
-	// } else if variables.SyncToken != "" {
-	// 	queryId = graphQLQueryIDMessengerConversationsWithSyncToken
-	// }
-
+func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefore time.Time) (*CollectionResponse[ConversationCursorMetadata, Conversation], error) {
+	zerolog.Ctx(ctx).Info().
+		Time("updated_before", updatedBefore).
+		Msg("Getting conversations updated before")
 	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
-		WithGraphQLQuery(queryId, variables).
+		WithGraphQLQuery(graphQLQueryIDMessengerConversationsWithCursor, map[string]string{
+			"mailboxUrn":        url.QueryEscape(c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String()),
+			"lastUpdatedBefore": strconv.Itoa(int(updatedBefore.UnixMilli())),
+			"count":             "20",
+			"query":             "(predicateUnions:List((conversationCategoryPredicate:(category:PRIMARY_INBOX))))",
+		}).
 		WithCSRF().
 		WithXLIHeaders().
 		WithHeader("accept", contentTypeGraphQL).
@@ -97,55 +93,6 @@ func (c *Client) GetConversations(ctx context.Context) (*CollectionResponse[Conv
 		return nil, err
 	}
 
-	var response GraphQlResponse[Conversation]
-	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, err
-	}
-
-	return response.Data.MessengerConversationsBySyncToken, nil
+	var response GraphQlResponse
+	return response.Data.MessengerConversationsByCategoryQuery, json.NewDecoder(resp.Body).Decode(&response)
 }
-
-// func (c *Client) GetThreads(variables queryold.GetThreadsVariables) (*responseold.MessengerConversationsResponse, error) {
-// 	if variables.MailboxUrn == "" {
-// 		variables.MailboxUrn = c.PageLoader.CurrentUser.FsdProfileID
-// 	}
-//
-// 	withCursor := variables.LastUpdatedBefore != 0 && variables.NextCursor != ""
-// 	var queryId typesold.GraphQLQueryIDs
-// 	if withCursor {
-// 		queryId = typesold.GraphQLQueryIDMessengerConversationsWithCursor
-// 	} else if variables.SyncToken != "" {
-// 		queryId = typesold.GraphQLQueryIDMessengerConversationsWithSyncToken
-// 	} else {
-// 		queryId = typesold.GraphQLQueryIDMessengerConversations
-// 	}
-//
-// 	variablesQuery, err := variables.Encode()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	threadQuery := queryold.GraphQLQuery{
-// 		QueryID:   queryId,
-// 		Variables: string(variablesQuery),
-// 	}
-//
-// 	_, respData, err := c.MakeRoutingRequest(routingold.LinkedInVoyagerMessagingGraphQLURL, nil, &threadQuery)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	fmt.Printf("%s\n", respData)
-//
-// 	graphQLResponse, ok := respData.(*responseold.GraphQlResponse)
-// 	if !ok || graphQLResponse == nil {
-// 		return nil, newErrorResponseTypeAssertFailed("*responseold.GraphQlResponse")
-// 	}
-//
-// 	graphQLResponseData := graphQLResponse.Data
-// 	fmt.Printf("%+v\n", graphQLResponseData)
-// 	if withCursor {
-// 		return graphQLResponseData.MessengerConversationsByCategory, nil
-// 	}
-//
-// 	return graphQLResponseData.MessengerConversationsBySyncToken, nil
-// }

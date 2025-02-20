@@ -70,6 +70,8 @@ func Parse(ctx context.Context, message string, attributes []linkedingo.Attribut
 			Length: a.Length,
 		}.TruncateEnd(maxLength)
 		switch {
+		case a.AttributeKind.Bold != nil:
+			br.Value = Style{Type: StyleBold}
 		case a.AttributeKind.Entity != nil:
 			urn := a.AttributeKind.Entity.URN
 			var userInfo UserInfo
@@ -83,8 +85,26 @@ func Parse(ctx context.Context, message string, attributes []linkedingo.Attribut
 			userInfo.Name = utf16Message[a.Start+1 : a.Start+a.Length].String()
 			mentions[userInfo.MXID] = struct{}{}
 			br.Value = Mention{userInfo, networkid.UserID(urn.ID())}
+		case a.AttributeKind.Hyperlink != nil:
+			br.Value = Style{Type: StyleHyperlink, URL: a.AttributeKind.Hyperlink.URL}
+		case a.AttributeKind.Italic != nil:
+			br.Value = Style{Type: StyleItalic}
+		case a.AttributeKind.LineBreak != nil:
+			br.Value = Style{Type: StyleLineBreak}
+		case a.AttributeKind.List != nil:
+			br.Value = Style{Type: StyleList, Ordered: a.AttributeKind.List.Ordered}
+		case a.AttributeKind.ListItem != nil:
+			br.Value = Style{Type: StyleListItem}
+		case a.AttributeKind.Paragraph != nil:
+			br.Value = Style{Type: StyleParagraph}
+		case a.AttributeKind.Subscript != nil:
+			br.Value = Style{Type: StyleSubscript}
+		case a.AttributeKind.Superscript != nil:
+			br.Value = Style{Type: StyleSuperscript}
+		case a.AttributeKind.Underline != nil:
+			br.Value = Style{Type: StyleUnderline}
 		default:
-			log.Warn().Msg("Unhandled attribute")
+			log.Warn().Any("kind", a.AttributeKind).Msg("Unhandled attribute")
 		}
 		lrt.Add(br)
 	}

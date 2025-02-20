@@ -309,22 +309,35 @@ func (l *LinkedInClient) onRealtimeReactionSummaries(ctx context.Context, summar
 	})
 }
 
-func (l *LinkedInClient) getAvatar(img *linkedingo.VectorImage) (avatar bridgev2.Avatar) {
-	avatar.ID = networkid.AvatarID(img.RootURL)
-	avatar.Remove = img.RootURL == ""
-	avatar.Get = func(ctx context.Context) ([]byte, error) {
-		return l.client.DownloadBytes(ctx, img.GetLargestArtifactURL())
+func (l *LinkedInClient) getAvatar(img *linkedingo.VectorImage) (avatar *bridgev2.Avatar) {
+	if img == nil {
+		return nil
 	}
-	return
+	return &bridgev2.Avatar{
+		ID:     networkid.AvatarID(img.RootURL),
+		Remove: img.RootURL == "",
+		Get: func(ctx context.Context) ([]byte, error) {
+			return l.client.DownloadBytes(ctx, img.GetLargestArtifactURL())
+		},
+	}
 }
 
 func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.MessagingParticipant) (ui bridgev2.UserInfo) {
-	ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
-		FirstName: participant.ParticipantType.Member.FirstName.Text,
-		LastName:  participant.ParticipantType.Member.LastName.Text,
-	}))
-	ui.Avatar = ptr.Ptr(l.getAvatar(participant.ParticipantType.Member.ProfilePicture))
-	ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
+	switch {
+	case participant.ParticipantType.Member != nil:
+		ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
+			FirstName: participant.ParticipantType.Member.FirstName.Text,
+			LastName:  participant.ParticipantType.Member.LastName.Text,
+		}))
+		ui.Avatar = l.getAvatar(participant.ParticipantType.Member.ProfilePicture)
+		ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
+	case participant.ParticipantType.Organization != nil:
+		ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
+			Organization: participant.ParticipantType.Organization.Name.Text,
+		}))
+		ui.Avatar = l.getAvatar(participant.ParticipantType.Organization.Logo)
+		ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
+	}
 	return
 }
 

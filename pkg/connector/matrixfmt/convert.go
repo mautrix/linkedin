@@ -38,9 +38,36 @@ func toLinkedInAttribute(br linkedinfmt.BodyRange) linkedingo.SendMessageAttribu
 			},
 		}
 	case linkedinfmt.Style:
+		// TODO this doesn't seem to work, LinkedIn seems to ignore these
+		attributeKind := linkedingo.AttributeKind{}
 		switch val.Type {
+		case linkedinfmt.StyleBold:
+			attributeKind.Bold = &linkedingo.Bold{}
+		case linkedinfmt.StyleItalic:
+			attributeKind.Italic = &linkedingo.Italic{}
+		case linkedinfmt.StyleLineBreak:
+			attributeKind.LineBreak = &linkedingo.LineBreak{}
+		case linkedinfmt.StyleList:
+			attributeKind.List = &linkedingo.List{Ordered: val.Ordered}
+		case linkedinfmt.StyleListItem:
+			attributeKind.ListItem = &linkedingo.ListItem{}
+		case linkedinfmt.StyleParagraph:
+			attributeKind.Paragraph = &linkedingo.Paragraph{}
+		case linkedinfmt.StyleSubscript:
+			attributeKind.Subscript = &linkedingo.Subscript{}
+		case linkedinfmt.StyleSuperscript:
+			attributeKind.Superscript = &linkedingo.Superscript{}
+		case linkedinfmt.StyleHyperlink:
+			attributeKind.Hyperlink = &linkedingo.Hyperlink{URL: val.URL}
+		case linkedinfmt.StyleUnderline:
+			attributeKind.Underline = &linkedingo.Underline{}
 		default:
-			panic("unsupported style type")
+			panic("unsupported style type %s")
+		}
+		return linkedingo.SendMessageAttribute{
+			Start:              br.Start,
+			Length:             br.Length,
+			AttributeKindUnion: attributeKind,
 		}
 	default:
 		panic("unknown body range value")
