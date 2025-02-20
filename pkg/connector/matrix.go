@@ -16,7 +16,6 @@ import (
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/matrixfmt"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 func getMediaFilename(content *event.MessageEventContent) (filename string) {
@@ -29,7 +28,7 @@ func getMediaFilename(content *event.MessageEventContent) (filename string) {
 }
 
 func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (*bridgev2.MatrixMessageResponse, error) {
-	conversationURN := types.NewURN(msg.Portal.ID)
+	conversationURN := linkedingo.NewURN(msg.Portal.ID)
 
 	// Handle emotes by adding a "*" and the user's name to the message
 	if msg.Content.MsgType == event.MsgEmote {
@@ -86,11 +85,11 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 }
 
 func (l *LinkedInClient) HandleMatrixEdit(ctx context.Context, msg *bridgev2.MatrixEdit) error {
-	return l.client.EditMessage(ctx, types.NewURN(msg.EditTarget.ID), matrixfmt.Parse(ctx, l.matrixParser, msg.Content))
+	return l.client.EditMessage(ctx, linkedingo.NewURN(msg.EditTarget.ID), matrixfmt.Parse(ctx, l.matrixParser, msg.Content))
 }
 
 func (l *LinkedInClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2.MatrixMessageRemove) error {
-	return l.client.RecallMessage(ctx, types.NewURN(msg.TargetMessage.ID))
+	return l.client.RecallMessage(ctx, linkedingo.NewURN(msg.TargetMessage.ID))
 }
 
 func (l *LinkedInClient) PreHandleMatrixReaction(ctx context.Context, msg *bridgev2.MatrixReaction) (bridgev2.MatrixReactionPreResponse, error) {
@@ -110,21 +109,21 @@ func (l *LinkedInClient) PreHandleMatrixReaction(ctx context.Context, msg *bridg
 }
 
 func (l *LinkedInClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2.MatrixReaction) (reaction *database.Reaction, err error) {
-	return &database.Reaction{}, l.client.SendReaction(ctx, types.NewURN(msg.TargetMessage.ID), msg.PreHandleResp.Emoji)
+	return &database.Reaction{}, l.client.SendReaction(ctx, linkedingo.NewURN(msg.TargetMessage.ID), msg.PreHandleResp.Emoji)
 }
 
 func (l *LinkedInClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev2.MatrixReactionRemove) error {
-	return l.client.RemoveReaction(ctx, types.NewURN(msg.TargetReaction.MessageID), msg.TargetReaction.Emoji)
+	return l.client.RemoveReaction(ctx, linkedingo.NewURN(msg.TargetReaction.MessageID), msg.TargetReaction.Emoji)
 }
 
 func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
-	_, err := l.client.MarkConversationRead(ctx, types.NewURN(msg.Portal.ID))
+	_, err := l.client.MarkConversationRead(ctx, linkedingo.NewURN(msg.Portal.ID))
 	return err
 }
 
 func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
 	if msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
-		return l.client.StartTyping(ctx, types.NewURN(msg.Portal.ID))
+		return l.client.StartTyping(ctx, linkedingo.NewURN(msg.Portal.ID))
 	}
 	return nil
 }

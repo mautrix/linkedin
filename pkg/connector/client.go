@@ -34,7 +34,6 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/connector/linkedinfmt"
 	"go.mau.fi/mautrix-linkedin/pkg/connector/matrixfmt"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo/types"
 )
 
 type LinkedInClient struct {
@@ -72,7 +71,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 	}
 	client.client = linkedingo.NewClient(
 		ctx,
-		types.NewURN(login.ID),
+		linkedingo.NewURN(login.ID),
 		login.Metadata.(*UserLoginMetadata).Cookies,
 		linkedingo.Handlers{
 			Heartbeat: func(ctx context.Context) {
@@ -80,6 +79,8 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			},
 			ClientConnection: func(context.Context, *linkedingo.ClientConnection) {
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+
+				go client.syncConversations(ctx)
 			},
 			TransientDisconnect: client.onTransientDisconnect,
 			BadCredentials:      client.onBadCredentials,
@@ -89,7 +90,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 	)
 
 	client.linkedinFmtParams = linkedinfmt.FormatParams{
-		GetMXIDByURN: func(ctx context.Context, entityURN types.URN) (id.UserID, error) {
+		GetMXIDByURN: func(ctx context.Context, entityURN linkedingo.URN) (id.UserID, error) {
 			ghost, err := lc.Bridge.GetGhostByID(ctx, networkid.UserID(entityURN.ID()))
 			if err != nil {
 				return "", err
@@ -131,8 +132,8 @@ func (l *LinkedInClient) Connect(ctx context.Context) {
 
 	if err := l.client.RealtimeConnect(ctx); err != nil {
 		l.userLogin.BridgeState.Send(status.BridgeState{
-			StateEvent: status.StateUnknownError,
-			Error:      "linkedin-realtime-connect-failed",
+			StateEvent: status.StateBadCredentials,
+			Error:      "linkedin-logged-out",
 			Message:    fmt.Sprintf("Failed to connect to the realtime stream: %v", err),
 		})
 	}
@@ -184,7 +185,7 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 	}
 }
 
-func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Message) {
+func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.Message) {
 	log := zerolog.Ctx(ctx)
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
@@ -204,7 +205,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 		LatestMessageTS: msg.DeliveredAt.Time,
 	})
 
-	evt := simplevent.Message[types.Message]{
+	evt := simplevent.Message[linkedingo.Message]{
 		ID:                 msg.MessageID(),
 		TargetMessage:      msg.MessageID(),
 		Data:               msg,
@@ -212,17 +213,17 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg types.Messag
 		ConvertEditFunc:    l.convertEditToMatrix,
 	}
 	switch msg.MessageBodyRenderFormat {
-	case types.MessageBodyRenderFormatDefault:
+	case linkedingo.MessageBodyRenderFormatDefault:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
-	case types.MessageBodyRenderFormatEdited:
+	case linkedingo.MessageBodyRenderFormatEdited:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
-	case types.MessageBodyRenderFormatRecalled:
+	case linkedingo.MessageBodyRenderFormatRecalled:
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
 			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove),
 			TargetMessage: msg.MessageID(),
 		})
 		return
-	case types.MessageBodyRenderFormatSystem:
+	case linkedingo.MessageBodyRenderFormatSystem:
 		log.Info().Msg("Ignoring system message")
 		return
 	default:
@@ -252,7 +253,7 @@ func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *linkedingo.De
 	})
 }
 
-func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, receipt types.SeenReceipt) {
+func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, receipt linkedingo.SeenReceipt) {
 	log := zerolog.Ctx(ctx)
 	part, err := l.main.Bridge.DB.Message.GetLastPartByID(ctx, l.userLogin.ID, receipt.Message.MessageID())
 	if err != nil {
@@ -278,7 +279,7 @@ func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, rece
 	})
 }
 
-func (l *LinkedInClient) onRealtimeReactionSummaries(ctx context.Context, summary types.RealtimeReactionSummary) {
+func (l *LinkedInClient) onRealtimeReactionSummaries(ctx context.Context, summary linkedingo.RealtimeReactionSummary) {
 	messageData, err := l.main.Bridge.DB.Message.GetFirstPartByID(context.TODO(), l.userLogin.ID, summary.Message.MessageID())
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("failed to get reacted to message")
@@ -308,7 +309,7 @@ func (l *LinkedInClient) onRealtimeReactionSummaries(ctx context.Context, summar
 	})
 }
 
-func (l *LinkedInClient) getAvatar(img *types.VectorImage) (avatar bridgev2.Avatar) {
+func (l *LinkedInClient) getAvatar(img *linkedingo.VectorImage) (avatar bridgev2.Avatar) {
 	avatar.ID = networkid.AvatarID(img.RootURL)
 	avatar.Remove = img.RootURL == ""
 	avatar.Get = func(ctx context.Context) ([]byte, error) {
@@ -317,7 +318,7 @@ func (l *LinkedInClient) getAvatar(img *types.VectorImage) (avatar bridgev2.Avat
 	return
 }
 
-func (l *LinkedInClient) getMessagingParticipantUserInfo(participant types.MessagingParticipant) (ui bridgev2.UserInfo) {
+func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.MessagingParticipant) (ui bridgev2.UserInfo) {
 	ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
 		FirstName: participant.ParticipantType.Member.FirstName.Text,
 		LastName:  participant.ParticipantType.Member.LastName.Text,
@@ -327,7 +328,7 @@ func (l *LinkedInClient) getMessagingParticipantUserInfo(participant types.Messa
 	return
 }
 
-func (l *LinkedInClient) conversationToChatInfo(conv types.Conversation) (ci bridgev2.ChatInfo) {
+func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (ci bridgev2.ChatInfo) {
 	if conv.Title != "" {
 		ci.Name = &conv.Title
 	}
