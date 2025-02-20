@@ -17,6 +17,7 @@
 package linkedingo
 
 const (
+	linkedInVoyagerMessagingGraphQLURL               = "https://www.linkedin.com/voyager/api/voyagerMessagingGraphQL/graphql"
 	linkedInLogoutURL                                = "https://www.linkedin.com/uas/logout"
 	linkedInMessagingBaseURL                         = "https://www.linkedin.com/messaging"
 	linkedInMessagingDashMessengerConversationsURL   = "https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerConversations"
@@ -54,4 +55,13 @@ const (
 	RealtimeEventTopicMessagingProgressIndicator = "messagingProgressIndicatorTopic"
 	RealtimeEventTopicMessagingDataSync          = "messagingDataSyncTopic"
 	RealtimeEventTopicPresenceStatus             = "presenceStatusTopic"
+)
+
+const (
+	graphQLQueryIDMessengerConversations              = "messengerConversations.7b27164c5517548167d9adb4ba603e55"
+	graphQLQueryIDMessengerConversationsWithCursor    = "messengerConversations.8656fb361a8ad0c178e8d3ff1a84ce26"
+	graphQLQueryIDMessengerConversationsWithSyncToken = "messengerConversations.277103fa0741e804ec5f21e6f64cb598"
+	graphQLQueryIDMessengerMessagesBySyncToken        = "messengerMessages.d1b494ac18c24c8be71ea07b5bd1f831"
+	graphQLQueryIDMessengerMessagesByAnchorTimestamp  = "messengerMessages.b52340f92136e74c2aab21dac7cf7ff2"
+	graphQLQueryIDMessengerMessagesByConversation     = "messengerMessages.86ca573adc64110d94d8bce89c5b2f3b"
 )

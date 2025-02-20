@@ -1,4 +1,4 @@
-package types
+package linkedingo
 
 import (
 	"encoding/json"
