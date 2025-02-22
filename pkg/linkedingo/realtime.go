@@ -48,12 +48,10 @@ type ClientConnection struct {
 }
 
 type DecoratedEvent struct {
-	Topic               URN                   `json:"topic,omitempty"`
-	LeftServerAt        jsontime.UnixMilli    `json:"leftServerAt,omitempty"`
-	ID                  string                `json:"id,omitempty"`
-	Payload             DecoratedEventPayload `json:"payload,omitempty"`
-	TrackingID          string                `json:"trackingId,omitempty"`
-	PublisherTrackingID string                `json:"publisherTrackingId,omitempty"`
+	Topic        URN                   `json:"topic,omitempty"`
+	LeftServerAt jsontime.UnixMilli    `json:"leftServerAt,omitempty"`
+	ID           string                `json:"id,omitempty"`
+	Payload      DecoratedEventPayload `json:"payload,omitempty"`
 }
 
 type DecoratedEventPayload struct {

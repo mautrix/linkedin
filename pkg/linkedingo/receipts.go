@@ -12,8 +12,6 @@ import (
 	"strings"
 
 	"go.mau.fi/util/jsontime"
-
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 )
 
 type DecoratedSeenReceipt struct {
@@ -35,15 +33,24 @@ type PatchEntitiesPayload struct {
 	Entities map[URNString]GraphQLPatchBody `json:"entities,omitempty"`
 }
 
-func (c *Client) MarkConversationRead(ctx context.Context, convURNs ...URN) (*responseold.MarkThreadReadResponse, error) {
+type MarkThreadReadResponse struct {
+	Results map[URNString]MarkThreadReadResult `json:"results,omitempty"`
+	Errors  map[string]error                   `json:"errors,omitempty"`
+}
+
+type MarkThreadReadResult struct {
+	Status int `json:"status,omitempty"`
+}
+
+func (c *Client) MarkConversationRead(ctx context.Context, convURNs ...URN) (*MarkThreadReadResponse, error) {
 	return c.doMarkConversationRead(ctx, true, convURNs...)
 }
 
-func (c *Client) MarkConversationUnread(ctx context.Context, convURNs ...URN) (*responseold.MarkThreadReadResponse, error) {
+func (c *Client) MarkConversationUnread(ctx context.Context, convURNs ...URN) (*MarkThreadReadResponse, error) {
 	return c.doMarkConversationRead(ctx, false, convURNs...)
 }
 
-func (c *Client) doMarkConversationRead(ctx context.Context, read bool, convURNs ...URN) (*responseold.MarkThreadReadResponse, error) {
+func (c *Client) doMarkConversationRead(ctx context.Context, read bool, convURNs ...URN) (*MarkThreadReadResponse, error) {
 	conversationList := make([]string, len(convURNs))
 	entities := map[URNString]GraphQLPatchBody{}
 	for i, convURN := range convURNs {
@@ -66,7 +73,7 @@ func (c *Client) doMarkConversationRead(ctx context.Context, read bool, convURNs
 		return nil, fmt.Errorf("failed to mark conversation read (statusCode=%d)", resp.StatusCode)
 	}
 
-	var result responseold.MarkThreadReadResponse
+	var result MarkThreadReadResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	} else {
