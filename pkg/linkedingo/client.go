@@ -21,13 +21,11 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-
-	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
 type Client struct {
 	http          *http.Client
-	jar           *stringcookiejar.Jar
+	jar           *Jar
 	userEntityURN URN
 
 	realtimeSessionID uuid.UUID
@@ -43,7 +41,7 @@ type Client struct {
 	i18nLocale           string
 }
 
-func NewClient(ctx context.Context, userEntityURN URN, jar *stringcookiejar.Jar, handlers Handlers) *Client {
+func NewClient(ctx context.Context, userEntityURN URN, jar *Jar, handlers Handlers) *Client {
 	return &Client{
 		userEntityURN:     userEntityURN,
 		jar:               jar,

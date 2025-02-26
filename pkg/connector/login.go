@@ -26,7 +26,6 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
-	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
 )
 
 const FlowIDCookies = "cookies"
@@ -90,7 +89,7 @@ func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 }
 
 func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]string) (*bridgev2.LoginStep, error) {
-	jar, err := stringcookiejar.NewJarFromCookieHeader(cookies[CookieLoginCookieHeaderField])
+	jar, err := linkedingo.NewJarFromCookieHeader(cookies[CookieLoginCookieHeaderField])
 	if err != nil {
 		return nil, err
 	}

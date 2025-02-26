@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package stringcookiejar_test
+package linkedingo_test
 
 import (
 	"encoding/json"
@@ -24,24 +24,27 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.mau.fi/mautrix-linkedin/pkg/stringcookiejar"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
 func TestCookieJarFromHeader(t *testing.T) {
-	jar, err := stringcookiejar.NewJarFromCookieHeader("foo=bar;baz=123")
+	jar, err := linkedingo.NewJarFromCookieHeader("foo=bar;baz=123")
 	require.NoError(t, err)
 
 	cookies := jar.Cookies(nil)
 	assert.Len(t, cookies, 2)
-	assert.Equal(t, "bar", cookies[0].Value)
-	assert.Equal(t, "123", cookies[1].Value)
+	values := make([]string, len(cookies))
+	for i, c := range cookies {
+		values[i] = c.Value
+	}
+	assert.ElementsMatch(t, []string{"bar", "123"}, values)
 
 	assert.Equal(t, "bar", jar.GetCookie("foo"))
 	assert.Equal(t, "123", jar.GetCookie("baz"))
 }
 
 func TestCookieJarSetCookies(t *testing.T) {
-	jar := stringcookiejar.NewEmptyJar()
+	jar := linkedingo.NewEmptyJar()
 
 	assert.Len(t, jar.Cookies(nil), 0)
 
@@ -85,7 +88,7 @@ func TestCookieJarSetCookies(t *testing.T) {
 }
 
 func TestMarshal(t *testing.T) {
-	jar := stringcookiejar.NewEmptyJar()
+	jar := linkedingo.NewEmptyJar()
 	jar.SetCookies(nil, []*http.Cookie{
 		{Name: "123", Value: "this is a test with spaces"},
 		{Name: "234", Value: "I'm a value with a quote"},
@@ -102,7 +105,7 @@ func TestMarshal(t *testing.T) {
 }
 
 type container struct {
-	Cookies *stringcookiejar.Jar `json:"cookies,omitempty"`
+	Cookies *linkedingo.Jar `json:"cookies,omitempty"`
 }
 
 func TestUnmarshal(t *testing.T) {
