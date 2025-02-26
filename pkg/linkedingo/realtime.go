@@ -269,7 +269,6 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 					Stringer("topic", realtimeEvent.DecoratedEvent.Topic).
 					Str("payload_type", realtimeEvent.DecoratedEvent.Payload.Data.Type).
 					Msg("Received decorated event")
-				fmt.Printf("%s\n", line)
 				c.handlers.onDecoratedEvent(ctx, realtimeEvent.DecoratedEvent)
 			}
 		}

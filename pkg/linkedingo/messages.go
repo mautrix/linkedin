@@ -1,11 +1,9 @@
 package linkedingo
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -210,10 +208,6 @@ func (c *Client) GetMessagesBefore(ctx context.Context, conversationURN URN, bef
 	if err != nil {
 		return nil, err
 	}
-
-	x, _ := io.ReadAll(resp.Body)
-	fmt.Printf("%s\n", x)
-	resp.Body = io.NopCloser(bytes.NewReader(x))
 
 	var response GraphQlResponse
 	return response.Data.MessengerMessagesByAnchorTimestamp, json.NewDecoder(resp.Body).Decode(&response)

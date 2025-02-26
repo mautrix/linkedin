@@ -170,6 +170,13 @@ func (l *LinkedInClient) onUnknownError(ctx context.Context, err error) {
 }
 
 func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *linkedingo.DecoratedEvent) {
+	log := zerolog.Ctx(ctx).With().
+		Str("decorated_event_id", decoratedEvent.ID).
+		Stringer("topic", decoratedEvent.Topic).
+		Time("left_server_at", decoratedEvent.LeftServerAt.Time).
+		Logger()
+	log.Debug().Msg("Received decorated event")
+
 	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
 	switch decoratedEvent.Topic.NthPrefixPart(2) {
 	case linkedingo.RealtimeEventTopicMessages:
@@ -181,7 +188,7 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 	case linkedingo.RealtimeEventTopicMessageReactionSummaries:
 		l.onRealtimeReactionSummaries(ctx, decoratedEvent.Payload.Data.DecoratedReactionSummary.Result)
 	default:
-		fmt.Printf("UNSUPPORTED %q %+v\n", decoratedEvent.Topic, decoratedEvent)
+		log.Warn().Msg("Unsupported event topic")
 	}
 }
 

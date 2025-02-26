@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -41,10 +40,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 			return
 		}
 
-		fmt.Printf("%+v\n", conversations)
-
 		for _, conv := range conversations.Elements {
-			fmt.Printf("conv=%+v\n", conv)
 			if conv.LastActivityAt.Before(updatedBefore) {
 				updatedBefore = conv.LastActivityAt.Time
 			}

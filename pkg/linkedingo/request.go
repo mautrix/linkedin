@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 
@@ -99,7 +98,6 @@ func (a *authedRequest) WithCSRF() *authedRequest {
 
 func (a *authedRequest) WithJSONPayload(payload any) *authedRequest {
 	a.body = bytes.NewReader(exerrors.Must(json.Marshal(payload)))
-	fmt.Printf("%s\n", exerrors.Must(json.Marshal(payload)))
 	return a
 }
 
@@ -162,8 +160,5 @@ func (a *authedRequest) Do(ctx context.Context) (*http.Response, error) {
 		return nil, fmt.Errorf("failed to perform authed request %s %s: %w", a.method, a.url, err)
 	}
 	req.Header = a.header
-
-	fmt.Printf("%s\n", exerrors.Must(httputil.DumpRequestOut(req, true)))
-
 	return a.client.http.Do(req)
 }
