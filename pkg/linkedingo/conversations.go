@@ -18,6 +18,8 @@ type GraphQlResponse struct {
 
 type GraphQLData struct {
 	MessengerConversationsByCategoryQuery *CollectionResponse[ConversationCursorMetadata, Conversation] `json:"messengerConversationsByCategoryQuery,omitempty"`
+	MessengerMessagesByAnchorTimestamp    *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByAnchorTimestamp,omitempty"`
+	MessengerMessagesByConversation       *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByConversation,omitempty"`
 }
 
 // CollectionResponse represents a
@@ -30,6 +32,12 @@ type CollectionResponse[M, T any] struct {
 // ConversationCursorMetadata represents a com.linkedin.messenger.ConversationCursorMetadata object.
 type ConversationCursorMetadata struct {
 	NextCursor string `json:"nextCursor,omitempty"`
+}
+
+// MessageMetadata represents a com.linkedin.messenger.MessageMetadata object.
+type MessageMetadata struct {
+	NextCursor string `json:"nextCursor,omitempty"`
+	PrevCursor string `json:"prevCursor,omitempty"`
 }
 
 // Conversation represents a com.linkedin.messenger.Conversation object

@@ -1,19 +1,21 @@
 package linkedingo
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/random"
 	"maunium.net/go/mautrix/bridgev2/networkid"
-
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/queryold"
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingoold/routingold/responseold"
 )
 
 type sendMessagePayload struct {
@@ -190,47 +192,51 @@ func (c *Client) RecallMessage(ctx context.Context, messageURN URN) error {
 	return nil
 }
 
-func (c *Client) FetchMessages(ctx context.Context, conversationURN URN, variables queryold.FetchMessagesVariables) (*responseold.MessengerMessagesResponse, error) {
-	withCursor := variables.PrevCursor != ""
-	withAnchorTimestamp := !variables.DeliveredAt.IsZero()
-
-	var queryID string
-	if withCursor {
-		queryID = graphQLQueryIDMessengerMessagesByConversation
-	} else if withAnchorTimestamp {
-		queryID = graphQLQueryIDMessengerMessagesByAnchorTimestamp
-	} else {
-		queryID = graphQLQueryIDMessengerMessagesBySyncToken
+func (c *Client) GetMessagesBefore(ctx context.Context, conversationURN URN, before time.Time, count int) (*CollectionResponse[MessageMetadata, Message], error) {
+	zerolog.Ctx(ctx).Info().
+		Time("before", before).
+		Msg("Getting conversations delivered before")
+	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
+		WithGraphQLQuery(graphQLQueryIDMessengerMessagesByAnchorTimestamp, map[string]string{
+			"deliveredAt":     strconv.Itoa(int(before.UnixMilli())),
+			"conversationUrn": url.QueryEscape(conversationURN.WithPrefix("urn", "li", "msg_conversation").String()),
+			"countBefore":     strconv.Itoa(count),
+			"countAfter":      "0",
+		}).
+		WithCSRF().
+		WithXLIHeaders().
+		WithHeader("accept", contentTypeGraphQL).
+		Do(ctx)
+	if err != nil {
+		return nil, err
 	}
-	fmt.Printf("queryID = %s\n", queryID)
-	return nil, nil
 
-	// variablesQuery, err := variables.Encode()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
-	// 	WithGraphQLQuery(queryID, variables).
-	// 	WithCSRF().
-	// 	WithXLIHeaders().
-	// 	WithHeader("accept", contentTypeGraphQL).
-	// 	Do(ctx)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// var graphQLResponse responseold.GraphQlResponse
-	// if err = json.NewDecoder(resp.Body).Decode(&graphQLResponse); err != nil {
-	// 	return nil, err
-	// }
-	//
-	// graphQLResponseData := graphQLResponse.Data
-	// if withCursor {
-	// 	return graphQLResponseData.MessengerMessagesByConversation, nil
-	// } else if withAnchorTimestamp {
-	// 	return graphQLResponseData.MessengerMessagesByAnchorTimestamp, nil
-	// } else {
-	// 	return graphQLResponseData.MessengerMessagesBySyncToken, nil
-	// }
+	x, _ := io.ReadAll(resp.Body)
+	fmt.Printf("%s\n", x)
+	resp.Body = io.NopCloser(bytes.NewReader(x))
+
+	var response GraphQlResponse
+	return response.Data.MessengerMessagesByAnchorTimestamp, json.NewDecoder(resp.Body).Decode(&response)
+}
+
+func (c *Client) GetMessagesWithPrevCursor(ctx context.Context, conversationURN URN, prevCursor string, count int) (*CollectionResponse[MessageMetadata, Message], error) {
+	zerolog.Ctx(ctx).Info().
+		Str("prev_cursor", prevCursor).
+		Msg("Getting conversations with prev cursor")
+	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
+		WithGraphQLQuery(graphQLQueryIDMessengerMessagesByPrevCursor, map[string]string{
+			"conversationUrn": url.QueryEscape(conversationURN.WithPrefix("urn", "li", "msg_conversation").String()),
+			"count":           strconv.Itoa(count),
+			"prevCursor":      url.QueryEscape(prevCursor),
+		}).
+		WithCSRF().
+		WithXLIHeaders().
+		WithHeader("accept", contentTypeGraphQL).
+		Do(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var response GraphQlResponse
+	return response.Data.MessengerMessagesByConversation, json.NewDecoder(resp.Body).Decode(&response)
 }

@@ -11,6 +11,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 )
 
+// TODO limits
 func (l *LinkedInClient) syncConversations(ctx context.Context) {
 	log := zerolog.Ctx(ctx).With().Str("action", "sync_conversations").Logger()
 	log.Info().Msg("starting conversation sync")
@@ -34,6 +35,9 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 		conversations, err := l.client.GetConversationsUpdatedBefore(ctx, updatedBefore)
 		if err != nil {
 			log.Err(err).Msg("failed to fetch conversations")
+			return
+		} else if conversations == nil {
+			log.Warn().Msg("no conversations found")
 			return
 		}
 
@@ -60,10 +64,9 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 				}
 			}
 			l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
-				ChatInfo:            ptr.Ptr(l.conversationToChatInfo(conv)),
-				EventMeta:           meta.WithType(bridgev2.RemoteEventChatResync),
-				LatestMessageTS:     latestMessageTS,
-				BundledBackfillData: conv.Messages.Elements,
+				ChatInfo:        ptr.Ptr(l.conversationToChatInfo(conv)),
+				EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
+				LatestMessageTS: latestMessageTS,
 			})
 		}
 	}

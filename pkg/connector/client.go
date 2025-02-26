@@ -171,7 +171,7 @@ func (l *LinkedInClient) onUnknownError(ctx context.Context, err error) {
 
 func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *linkedingo.DecoratedEvent) {
 	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
-	switch decoratedEvent.Topic.NthPart(2) {
+	switch decoratedEvent.Topic.NthPrefixPart(2) {
 	case linkedingo.RealtimeEventTopicMessages:
 		l.onRealtimeMessage(ctx, decoratedEvent.Payload.Data.DecoratedMessage.Result)
 	case linkedingo.RealtimeEventTopicTypingIndicators:

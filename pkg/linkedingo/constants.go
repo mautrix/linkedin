@@ -58,10 +58,7 @@ const (
 )
 
 const (
-	graphQLQueryIDMessengerConversations              = "messengerConversations.7b27164c5517548167d9adb4ba603e55"
-	graphQLQueryIDMessengerConversationsWithCursor    = "messengerConversations.8656fb361a8ad0c178e8d3ff1a84ce26"
-	graphQLQueryIDMessengerConversationsWithSyncToken = "messengerConversations.277103fa0741e804ec5f21e6f64cb598"
-	graphQLQueryIDMessengerMessagesBySyncToken        = "messengerMessages.d1b494ac18c24c8be71ea07b5bd1f831"
-	graphQLQueryIDMessengerMessagesByAnchorTimestamp  = "messengerMessages.b52340f92136e74c2aab21dac7cf7ff2"
-	graphQLQueryIDMessengerMessagesByConversation     = "messengerMessages.86ca573adc64110d94d8bce89c5b2f3b"
+	graphQLQueryIDMessengerConversationsWithCursor   = "messengerConversations.8656fb361a8ad0c178e8d3ff1a84ce26"
+	graphQLQueryIDMessengerMessagesByAnchorTimestamp = "messengerMessages.4088d03bc70c91c3fa68965cb42336de"
+	graphQLQueryIDMessengerMessagesByPrevCursor      = "messengerMessages.34c9888be71c8010fecfb575cb38308f"
 )

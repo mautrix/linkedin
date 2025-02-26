@@ -70,6 +70,7 @@ func (a *authedRequest) WithRawQuery(raw string) *authedRequest {
 }
 
 func (a *authedRequest) WithGraphQLQuery(queryID string, variables map[string]string) *authedRequest {
+	a.WithHeader("accept", contentTypeGraphQL)
 	var queryStr strings.Builder
 	queryStr.WriteString("queryId=")
 	queryStr.WriteString(queryID)
