@@ -1,0 +1,559 @@
+{
+	"_type": "com.linkedin.pemberly.text.AttributedText",
+	"attributes": [
+		{
+			"start": 0,
+			"length": 8,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 8,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"hyperlink": null,
+				"listItem": null,
+				"paragraph": null,
+				"lineBreak": {
+					"__typename": "pemberly_text_LineBreak",
+					"_type": "com.linkedin.pemberly.text.LineBreak",
+					"_recipeType": "com.linkedin.9c282b4fb14f174ee0396ed27d7bc71d"
+				},
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 8,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 9,
+			"length": 37,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 46,
+			"length": 22,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 68,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"hyperlink": null,
+				"listItem": null,
+				"paragraph": null,
+				"lineBreak": {
+					"__typename": "pemberly_text_LineBreak",
+					"_type": "com.linkedin.pemberly.text.LineBreak",
+					"_recipeType": "com.linkedin.9c282b4fb14f174ee0396ed27d7bc71d"
+				},
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 68,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 81,
+			"length": 28,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"hyperlink": null,
+				"listItem": null,
+				"paragraph": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": {
+					"__typename": "pemberly_text_Bold",
+					"_type": "com.linkedin.pemberly.text.Bold",
+					"_recipeType": "com.linkedin.e545ef8a692fdb8327d2709264ebfd4c"
+				},
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 69,
+			"length": 107,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 176,
+			"length": 24,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 200,
+			"length": 38,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 238,
+			"length": 33,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 271,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"hyperlink": null,
+				"listItem": null,
+				"paragraph": null,
+				"lineBreak": {
+					"__typename": "pemberly_text_LineBreak",
+					"_type": "com.linkedin.pemberly.text.LineBreak",
+					"_recipeType": "com.linkedin.9c282b4fb14f174ee0396ed27d7bc71d"
+				},
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 271,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 274,
+			"length": 18,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"hyperlink": null,
+				"listItem": null,
+				"paragraph": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": {
+					"__typename": "pemberly_text_Bold",
+					"_type": "com.linkedin.pemberly.text.Bold",
+					"_recipeType": "com.linkedin.e545ef8a692fdb8327d2709264ebfd4c"
+				},
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 300,
+			"length": 34,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"hyperlink": null,
+				"listItem": null,
+				"paragraph": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": {
+					"__typename": "pemberly_text_Bold",
+					"_type": "com.linkedin.pemberly.text.Bold",
+					"_recipeType": "com.linkedin.e545ef8a692fdb8327d2709264ebfd4c"
+				},
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 272,
+			"length": 102,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 374,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"hyperlink": null,
+				"listItem": null,
+				"paragraph": null,
+				"lineBreak": {
+					"__typename": "pemberly_text_LineBreak",
+					"_type": "com.linkedin.pemberly.text.LineBreak",
+					"_recipeType": "com.linkedin.9c282b4fb14f174ee0396ed27d7bc71d"
+				},
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 374,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 377,
+			"length": 8,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"hyperlink": null,
+				"listItem": null,
+				"paragraph": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": {
+					"__typename": "pemberly_text_Bold",
+					"_type": "com.linkedin.pemberly.text.Bold",
+					"_recipeType": "com.linkedin.e545ef8a692fdb8327d2709264ebfd4c"
+				},
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 375,
+			"length": 75,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 450,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"hyperlink": null,
+				"listItem": null,
+				"paragraph": null,
+				"lineBreak": {
+					"__typename": "pemberly_text_LineBreak",
+					"_type": "com.linkedin.pemberly.text.LineBreak",
+					"_recipeType": "com.linkedin.9c282b4fb14f174ee0396ed27d7bc71d"
+				},
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 450,
+			"length": 1,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		},
+		{
+			"start": 451,
+			"length": 39,
+			"_type": "com.linkedin.pemberly.text.Attribute",
+			"_recipeType": "com.linkedin.be0e5acdecfe12dada0041f3d644cfa4",
+			"attributeKind": {
+				"paragraph": {
+					"__typename": "pemberly_text_Paragraph",
+					"_type": "com.linkedin.pemberly.text.Paragraph",
+					"_recipeType": "com.linkedin.bb8b9f6bc8796ae251eca1334b3f092a"
+				},
+				"hyperlink": null,
+				"listItem": null,
+				"lineBreak": null,
+				"subscript": null,
+				"underline": null,
+				"superscript": null,
+				"bold": null,
+				"list": null,
+				"italic": null,
+				"entity": null
+			}
+		}
+	],
+	"text": "Hi Test!\nChasing leads that aren't converting?There’s a smarter way!\nIntroducing Simplia’s $15M Ai+™ platform, built by ex-Google and Meta experts to supercharge your lead gen:\uD83D\uDE80 10X more leads, faster⏱ Fully automated—even while you sleep❌ No tech or credit card required\n\uD83C\uDF81 Limited Time Offer: Get a FREE Custom AI Plan (worth $5,000) just for showing up to a quick meeting.\n⚠ Act fast: Only 5 businesses can claim this offer—will you be one of them?\n\uD83D\uDC47 Start generating smarter leads today!",
+	"_recipeType": "com.linkedin.e42015befb40f6eae45546693a8cac36"
+}

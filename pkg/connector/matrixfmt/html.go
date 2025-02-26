@@ -31,7 +31,7 @@ import (
 )
 
 type EntityString struct {
-	String   linkedinfmt.UTF16String
+	String   []rune
 	Entities linkedinfmt.BodyRangeList
 }
 
@@ -40,11 +40,11 @@ var DebugLog = func(format string, args ...any) {}
 func NewEntityString(val string) *EntityString {
 	DebugLog("NEW %q\n", val)
 	return &EntityString{
-		String: linkedinfmt.NewUTF16String(val),
+		String: []rune(val),
 	}
 }
 
-func (es *EntityString) Split(at uint16) []*EntityString {
+func (es *EntityString) Split(at rune) []*EntityString {
 	if at > 0x7F {
 		panic("cannot split at non-ASCII character")
 	}
@@ -129,14 +129,14 @@ func (es *EntityString) TrimSpace() *EntityString {
 }
 
 func JoinEntityString(with string, strings ...*EntityString) *EntityString {
-	withUTF16 := linkedinfmt.NewUTF16String(with)
+	withUTF16 := []rune(with)
 	totalLen := 0
 	totalEntities := 0
 	for _, s := range strings {
 		totalLen += len(s.String)
 		totalEntities += len(s.Entities)
 	}
-	str := make(linkedinfmt.UTF16String, 0, totalLen+len(strings)*len(withUTF16))
+	str := make([]rune, 0, totalLen+len(strings)*len(withUTF16))
 	entities := make(linkedinfmt.BodyRangeList, 0, totalEntities)
 	DebugLog("JOIN %q %d\n", with, len(strings))
 	for _, s := range strings {
@@ -195,7 +195,7 @@ func (es *EntityString) AppendString(other string) *EntityString {
 		return es
 	}
 	DebugLog("APPENDSTRING %q %+v\n  + %q\n", es.String, es.Entities, other)
-	es.String = append(es.String, linkedinfmt.NewUTF16String(other)...)
+	es.String = append(es.String, []rune(other)...)
 	DebugLog("  -> %q %+v\n", es.String, es.Entities)
 	return es
 }
@@ -319,7 +319,7 @@ func (parser *HTMLParser) linkToString(node *html.Node, ctx Context) *EntityStri
 	if len(href) == 0 {
 		return str
 	}
-	ent := NewEntityString(str.String.String())
+	ent := NewEntityString(string(str.String))
 
 	parsedMatrix, err := id.ParseMatrixURIOrMatrixToURL(href)
 	if err == nil && parsedMatrix != nil && parsedMatrix.Sigil1 == '@' {

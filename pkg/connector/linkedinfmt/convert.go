@@ -19,6 +19,7 @@ package linkedinfmt
 import (
 	"context"
 	"html"
+	"slices"
 
 	"github.com/rs/zerolog"
 	"golang.org/x/exp/maps"
@@ -62,8 +63,14 @@ func Parse(ctx context.Context, message string, attributes []linkedingo.Attribut
 
 	lrt := &LinkedRangeTree{}
 	mentions := map[id.UserID]struct{}{}
-	utf16Message := NewUTF16String(message)
-	maxLength := len(utf16Message)
+	charArr := []rune(message)
+	maxLength := len(charArr)
+	slices.SortFunc(attributes, func(l, r linkedingo.Attribute) int {
+		if l.Start-r.Start == 0 {
+			return r.Length - l.Length
+		}
+		return l.Start - r.Start
+	})
 	for _, a := range attributes {
 		br := BodyRange{
 			Start:  a.Start,
@@ -82,7 +89,7 @@ func Parse(ctx context.Context, message string, attributes []linkedingo.Attribut
 					Msg("Failed to get user info for mention")
 				continue // Skip this mention
 			}
-			userInfo.Name = utf16Message[a.Start+1 : a.Start+a.Length].String()
+			userInfo.Name = string(charArr[a.Start+1 : a.Start+a.Length])
 			mentions[userInfo.MXID] = struct{}{}
 			br.Value = Mention{userInfo, networkid.UserID(urn.ID())}
 		case a.AttributeKind.Hyperlink != nil:
@@ -110,7 +117,7 @@ func Parse(ctx context.Context, message string, attributes []linkedingo.Attribut
 	}
 
 	content.Mentions.UserIDs = maps.Keys(mentions)
-	content.FormattedBody = lrt.Format(utf16Message, formatContext{})
+	content.FormattedBody = lrt.Format(charArr, formatContext{})
 	content.Format = event.FormatHTML
 	return content, nil
 }

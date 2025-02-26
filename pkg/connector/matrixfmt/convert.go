@@ -90,7 +90,7 @@ func Parse(ctx context.Context, parser *HTMLParser, content *event.MessageEventC
 	if parsed == nil {
 		return
 	}
-	body.Text = parsed.String.String()
+	body.Text = string(parsed.String)
 	body.Attributes = make([]linkedingo.SendMessageAttribute, len(parsed.Entities))
 	for i, ent := range parsed.Entities {
 		body.Attributes[i] = toLinkedInAttribute(ent)

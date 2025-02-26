@@ -32,8 +32,6 @@ func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
 	return 1, 1
 }
 
-// TODO get these from getConfig instead of hardcoding?
-
 const MaxTextLength = 4096
 const MaxCaptionLength = 1024
 const MaxFileSize = 2 * 1024 * 1024 * 1024

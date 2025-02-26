@@ -19,7 +19,6 @@ package linkedinfmt
 import (
 	"fmt"
 	"strings"
-	"unicode/utf16"
 )
 
 func (m Mention) Format(message string) string {
@@ -60,22 +59,12 @@ func (s Style) Format(message string) string {
 	}
 }
 
-type UTF16String []uint16
-
-func NewUTF16String(s string) UTF16String {
-	return utf16.Encode([]rune(s))
-}
-
-func (u UTF16String) String() string {
-	return string(utf16.Decode(u))
-}
-
-func (lrt *LinkedRangeTree) Format(message UTF16String, ctx formatContext) string {
+func (lrt *LinkedRangeTree) Format(message []rune, ctx formatContext) string {
 	if lrt == nil || lrt.Node == nil {
-		return ctx.TextToHTML(message.String())
+		return ctx.TextToHTML(string(message))
 	}
 	head := message[:lrt.Node.Start]
-	headStr := ctx.TextToHTML(head.String())
+	headStr := ctx.TextToHTML(string(head))
 	inner := message[lrt.Node.Start:lrt.Node.End()]
 	tail := message[lrt.Node.End():]
 	ourCtx := ctx
