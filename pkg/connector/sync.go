@@ -10,7 +10,6 @@ import (
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 )
 
-// TODO limits
 func (l *LinkedInClient) syncConversations(ctx context.Context) {
 	log := zerolog.Ctx(ctx).With().Str("action", "sync_conversations").Logger()
 	log.Info().Msg("starting conversation sync")

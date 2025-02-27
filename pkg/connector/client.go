@@ -42,6 +42,8 @@ type LinkedInClient struct {
 	userLogin *bridgev2.UserLogin
 	client    *linkedingo.Client
 
+	firstConnection bool
+
 	linkedinFmtParams linkedinfmt.FormatParams
 	matrixParser      *matrixfmt.HTMLParser
 }
@@ -65,9 +67,10 @@ var (
 func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridgev2.UserLogin) *LinkedInClient {
 	userID := networkid.UserID(login.ID)
 	client := &LinkedInClient{
-		main:      lc,
-		userID:    userID,
-		userLogin: login,
+		main:            lc,
+		userID:          userID,
+		userLogin:       login,
+		firstConnection: true,
 	}
 	client.client = linkedingo.NewClient(
 		ctx,
@@ -80,7 +83,10 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			ClientConnection: func(context.Context, *linkedingo.ClientConnection) {
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 
-				go client.syncConversations(ctx)
+				if client.firstConnection {
+					go client.syncConversations(ctx)
+					client.firstConnection = false
+				}
 			},
 			TransientDisconnect: client.onTransientDisconnect,
 			BadCredentials:      client.onBadCredentials,
