@@ -9,11 +9,11 @@ require github.com/rs/zerolog v1.33.0
 require (
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
-	go.mau.fi/util v0.8.5
+	go.mau.fi/util v0.8.6-0.20250227184636-7ff63b0b9d95
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
 	golang.org/x/net v0.35.0
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.23.1
+	maunium.net/go/mautrix v0.23.2-0.20250227185913-02733b5775d4
 )
 
 require (
