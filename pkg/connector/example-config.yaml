@@ -2,3 +2,12 @@
 # .FirstName is replaced with the first name
 # .LastName is replaced with the last name
 displayname_template: "{{ with .Organization }}{{ . }}{{ else }}{{ .FirstName }} {{ .LastName }}{{ end }} (LinkedIn)"
+
+sync:
+    # Number of most recently active dialogs to check when syncing chats.
+    # Set to 0 to remove limit.
+    update_limit: 0
+    # Number of most recently active dialogs to create portals for when syncing
+    # chats.
+    # Set to 0 to remove limit.
+    create_limit: 10

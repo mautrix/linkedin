@@ -31,6 +31,11 @@ var ExampleConfig string
 type Config struct {
 	DisplaynameTemplate string             `yaml:"displayname_template"`
 	displaynameTemplate *template.Template `yaml:"-"`
+
+	Sync struct {
+		UpdateLimit int `yaml:"update_limit"`
+		CreateLimit int `yaml:"create_limit"`
+	} `yaml:"sync"`
 }
 
 type umConfig Config
@@ -50,6 +55,8 @@ func (c *Config) PostProcess() (err error) {
 
 func upgradeConfig(helper up.Helper) {
 	helper.Copy(up.Str, "displayname_template")
+	helper.Copy(up.Int, "sync", "update_limit")
+	helper.Copy(up.Int, "sync", "create_limit")
 }
 
 func (lc *LinkedInConnector) GetConfig() (string, any, up.Upgrader) {

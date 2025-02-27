@@ -17,6 +17,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 
 	lastUsedUpdatedBefore := time.Time{}
 	updatedBefore := time.Now()
+	var updated, created int
 	for {
 		log := log.With().
 			Time("updated_before", updatedBefore).
@@ -45,13 +46,25 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 				updatedBefore = conv.LastActivityAt.Time
 			}
 
+			portalKey := l.makePortalKey(conv.EntityURN)
+			portal, err := l.main.Bridge.GetPortalByKey(ctx, portalKey)
+			if err != nil {
+				log.Err(err).Msg("Failed to get portal")
+				continue
+			}
+
 			meta := simplevent.EventMeta{
 				LogContext: func(c zerolog.Context) zerolog.Context {
 					return c.Str("update", "sync")
 				},
-				PortalKey:    l.makePortalKey(conv.EntityURN),
-				CreatePortal: true,
+				PortalKey:    portalKey,
+				CreatePortal: l.main.Config.Sync.CreateLimit == 0 || created <= l.main.Config.Sync.CreateLimit,
 			}
+
+			if portal == nil || portal.MXID == "" {
+				created++
+			}
+			updated++
 
 			var latestMessageTS time.Time
 			for _, msg := range conv.Messages.Elements {
@@ -64,6 +77,11 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 				EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
 				LatestMessageTS: latestMessageTS,
 			})
+
+			if l.main.Config.Sync.UpdateLimit > 0 && updated >= l.main.Config.Sync.UpdateLimit {
+				log.Info().Msg("Update limit reached")
+				return
+			}
 		}
 	}
 }
