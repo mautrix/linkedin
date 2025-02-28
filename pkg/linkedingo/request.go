@@ -46,7 +46,7 @@ func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {
 	ar.header.Add("sec-ch-prefers-color-scheme", "light")
 	ar.header.Add("sec-ch-ua", `"Chromium";v="131", "Not_A Brand";v="24"`)
 	ar.header.Add("sec-ch-ua-mobile", "?0")
-	ar.header.Add("sec-ch-ua-platform", `"Linux"`)
+	ar.header.Add("sec-ch-ua-platform", `"macOS"`)
 
 	return &ar
 }

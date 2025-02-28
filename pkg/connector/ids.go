@@ -7,9 +7,9 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
-func (l *LinkedInClient) makePortalKey(entityURN linkedingo.URN) (key networkid.PortalKey) {
-	key.ID = networkid.PortalID(entityURN.String())
-	if l.main.Bridge.Config.SplitPortals {
+func (l *LinkedInClient) makePortalKey(conv linkedingo.Conversation) (key networkid.PortalKey) {
+	key.ID = networkid.PortalID(conv.EntityURN.String())
+	if !conv.GroupChat || l.main.Bridge.Config.SplitPortals {
 		key.Receiver = l.userLogin.ID
 	}
 	return key

@@ -33,5 +33,5 @@ func (lc *LinkedInConnector) GetDBMetaTypes() database.MetaTypes {
 }
 
 type UserLoginMetadata struct {
-	Cookies *linkedingo.Jar `json:"cookies,omitempty"`
+	Cookies *linkedingo.StringCookieJar `json:"cookies,omitempty"`
 }

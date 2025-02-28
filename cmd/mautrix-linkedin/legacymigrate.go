@@ -17,8 +17,23 @@
 package main
 
 import (
+	_ "embed"
+
 	up "go.mau.fi/util/configupgrade"
 )
+
+const legacyMigrateRenameTables = `
+ALTER TABLE cookie RENAME TO cookie_old;
+ALTER TABLE message RENAME TO message_old;
+ALTER TABLE portal RENAME TO portal_old;
+ALTER TABLE puppet RENAME TO puppet_old;
+ALTER TABLE reaction RENAME TO reaction_old;
+ALTER TABLE "user" RENAME TO user_old;
+ALTER TABLE user_portal RENAME TO user_portal_old;
+`
+
+//go:embed legacymigrate.sql
+var legacyMigrateCopyData string
 
 func migrateLegacyConfig(helper up.Helper) {
 	helper.Set(up.Str, "mautrix.bridge.e2ee", "encryption", "pickle_key")

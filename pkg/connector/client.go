@@ -206,7 +206,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 				Stringer("entity_urn", msg.EntityURN).
 				Stringer("sender", msg.Sender.EntityURN)
 		},
-		PortalKey:    l.makePortalKey(msg.Conversation.EntityURN),
+		PortalKey:    l.makePortalKey(msg.Conversation),
 		CreatePortal: true,
 		Sender:       l.makeSender(msg.Sender),
 		Timestamp:    msg.DeliveredAt.Time,
@@ -255,7 +255,7 @@ func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *linkedingo.De
 				Stringer("conversation_urn", typingIndicator.Conversation.EntityURN).
 				Stringer("typing_participant_urn", typingIndicator.TypingParticipant.EntityURN)
 		},
-		PortalKey: l.makePortalKey(typingIndicator.Conversation.EntityURN),
+		PortalKey: l.makePortalKey(typingIndicator.Conversation),
 		Sender:    l.makeSender(typingIndicator.TypingParticipant),
 		Timestamp: decoratedEvent.LeftServerAt.Time,
 	}

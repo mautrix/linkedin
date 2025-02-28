@@ -49,7 +49,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 				updatedBefore = conv.LastActivityAt.Time
 			}
 
-			portalKey := l.makePortalKey(conv.EntityURN)
+			portalKey := l.makePortalKey(conv)
 			portal, err := l.main.Bridge.GetPortalByKey(ctx, portalKey)
 			if err != nil {
 				log.Err(err).Msg("Failed to get portal")
