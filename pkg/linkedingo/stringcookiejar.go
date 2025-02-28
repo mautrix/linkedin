@@ -25,53 +25,58 @@ import (
 	"slices"
 )
 
-// Jar is an [http.CookieJar] implementation that is backed by a dictionary of
-// name -> [http.Cookie] values. It also implements [json.Marshaler] and
-// [json.Unmarshaler] which allow it to be saved as a string.
+// StringCookieJar is an [http.CookieJar] implementation that is backed by a
+// dictionary of name -> [http.Cookie] values. It also implements
+// [json.Marshaler] and [json.Unmarshaler] which allow it to be saved as a
+// string.
 //
-// The zero value is not a valid [Jar]. Use [NewEmptyJar] to create a new
-// [Jar].
-type Jar struct {
+// The zero value is not a valid [StringCookieJar]. Use [NewEmptyStringCookieJar] to create
+// a new [StringCookieJar].
+type StringCookieJar struct {
 	cookies map[string]*http.Cookie
 }
 
-var _ http.CookieJar = (*Jar)(nil)
-var _ json.Marshaler = (*Jar)(nil)
-var _ json.Unmarshaler = (*Jar)(nil)
+var _ http.CookieJar = (*StringCookieJar)(nil)
+var _ json.Marshaler = (*StringCookieJar)(nil)
+var _ json.Unmarshaler = (*StringCookieJar)(nil)
 
-// NewEmptyJar creates an empty [Jar].
-func NewEmptyJar() *Jar {
-	return &Jar{
+// NewEmptyStringCookieJar creates an empty [StringCookieJar].
+func NewEmptyStringCookieJar() *StringCookieJar {
+	return &StringCookieJar{
 		cookies: map[string]*http.Cookie{},
 	}
 }
 
-// NewJarFromCookieHeader creates a [Jar] from a cookie header string. It
+// NewJarFromCookieHeader creates a [StringCookieJar] from a cookie header string. It
 // errors if parsing the cookie header fails.
-func NewJarFromCookieHeader(cookieHeader string) (*Jar, error) {
+func NewJarFromCookieHeader(cookieHeader string) (*StringCookieJar, error) {
 	cookies, err := parseCookieHeaderString(cookieHeader)
-	return &Jar{cookies: cookies}, err
+	return &StringCookieJar{cookies: cookies}, err
 }
 
-func (s *Jar) Cookies(u *url.URL) []*http.Cookie {
+func (s *StringCookieJar) Cookies(u *url.URL) []*http.Cookie {
 	return slices.Collect(maps.Values(s.cookies))
 }
 
-func (s *Jar) SetCookies(u *url.URL, cookies []*http.Cookie) {
+func (s *StringCookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {
 	s.cookies = map[string]*http.Cookie{}
 	for _, c := range cookies {
 		s.cookies[c.Name] = c
 	}
 }
 
-func (s *Jar) GetCookie(name string) (value string) {
+func (s *StringCookieJar) AddCookie(cookie *http.Cookie) {
+	s.cookies[cookie.Name] = cookie
+}
+
+func (s *StringCookieJar) GetCookie(name string) (value string) {
 	if c, ok := s.cookies[name]; ok {
 		value = c.Value
 	}
 	return
 }
 
-func (s *Jar) UnmarshalJSON(data []byte) (err error) {
+func (s *StringCookieJar) UnmarshalJSON(data []byte) (err error) {
 	var cookieHeader string
 	err = json.Unmarshal(data, &cookieHeader)
 	if err != nil {
@@ -81,7 +86,7 @@ func (s *Jar) UnmarshalJSON(data []byte) (err error) {
 	return
 }
 
-func (s *Jar) MarshalJSON() ([]byte, error) {
+func (s *StringCookieJar) MarshalJSON() ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, "", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request")

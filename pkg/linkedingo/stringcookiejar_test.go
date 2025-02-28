@@ -44,7 +44,7 @@ func TestCookieJarFromHeader(t *testing.T) {
 }
 
 func TestCookieJarSetCookies(t *testing.T) {
-	jar := linkedingo.NewEmptyJar()
+	jar := linkedingo.NewEmptyStringCookieJar()
 
 	assert.Len(t, jar.Cookies(nil), 0)
 
@@ -88,7 +88,7 @@ func TestCookieJarSetCookies(t *testing.T) {
 }
 
 func TestMarshal(t *testing.T) {
-	jar := linkedingo.NewEmptyJar()
+	jar := linkedingo.NewEmptyStringCookieJar()
 	jar.SetCookies(nil, []*http.Cookie{
 		{Name: "123", Value: "this is a test with spaces"},
 		{Name: "234", Value: "I'm a value with a quote"},
@@ -105,7 +105,7 @@ func TestMarshal(t *testing.T) {
 }
 
 type container struct {
-	Cookies *linkedingo.Jar `json:"cookies,omitempty"`
+	Cookies *linkedingo.StringCookieJar `json:"cookies,omitempty"`
 }
 
 func TestUnmarshal(t *testing.T) {

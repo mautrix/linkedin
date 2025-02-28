@@ -17,12 +17,17 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
 	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
 
+	"go.mau.fi/util/dbutil"
+	"go.mau.fi/util/exerrors"
+
 	"go.mau.fi/mautrix-linkedin/pkg/connector"
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
 // Information to find out exactly which commit the bridge was built from.
@@ -49,7 +54,35 @@ func main() {
 			m.Matrix.Provisioning.Router.HandleFunc("/v1/api/logout", legacyProvLogout).Methods(http.MethodPost)
 		}
 	}
+	m.PostInit = func() {
+		m.CheckLegacyDB(
+			10,
+			"v0.5.4",
+			"v0.6.0",
+			m.LegacyMigrateSimple(legacyMigrateRenameTables, legacyMigrateCopyData, 16),
+			true,
+		)
 
+		ctx := context.TODO()
+		rows := exerrors.Must(m.DB.Query(ctx, "SELECT mxid, name, value FROM cookie"))
+		cookies := map[string]*linkedingo.StringCookieJar{}
+		for rows.Next() {
+			var mxid, name, value string
+			exerrors.PanicIfNotNil(rows.Scan(&mxid, &name, &value))
+			if _, ok := cookies[mxid]; !ok {
+				cookies[mxid] = linkedingo.NewEmptyStringCookieJar()
+			}
+			cookies[mxid].AddCookie(&http.Cookie{Name: name, Value: value})
+		}
+		for mxid, jar := range cookies {
+			metadata := connector.UserLoginMetadata{Cookies: jar}
+			exerrors.Must(m.DB.Exec(ctx, "UPDATE user_login SET metadata = $1 WHERE mxid = $2", dbutil.JSON{Data: metadata}, mxid))
+		}
+		exerrors.Must(m.DB.Exec(ctx, `
+			DROP TABLE cookie_old;
+			DROP TABLE http_header_old;
+		`))
+	}
 	m.InitVersion(Tag, Commit, BuildTime)
 	m.Run()
 }
