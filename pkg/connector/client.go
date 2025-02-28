@@ -212,9 +212,10 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		Timestamp:    msg.DeliveredAt.Time,
 	}
 
+	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 		EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
-		ChatInfo:        ptr.Ptr(l.conversationToChatInfo(msg.Conversation)),
+		ChatInfo:        &chatInfo,
 		LatestMessageTS: msg.DeliveredAt.Time,
 	})
 
@@ -354,7 +355,7 @@ func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.
 	return
 }
 
-func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (ci bridgev2.ChatInfo) {
+func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (ci bridgev2.ChatInfo, userInChat bool) {
 	if conv.Title != "" {
 		ci.Name = &conv.Title
 	}
@@ -374,6 +375,7 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 		MemberMap:        map[networkid.UserID]bridgev2.ChatMember{},
 	}
 	for _, participant := range conv.ConversationParticipants {
+		userInChat = userInChat || networkid.UserID(participant.EntityURN.ID()) == l.userID
 		sender := l.makeSender(participant)
 		ci.Members.MemberMap[sender.Sender] = bridgev2.ChatMember{
 			EventSender: sender,

@@ -17,9 +17,10 @@ type GraphQlResponse struct {
 }
 
 type GraphQLData struct {
-	MessengerConversationsByCategoryQuery *CollectionResponse[ConversationCursorMetadata, Conversation] `json:"messengerConversationsByCategoryQuery,omitempty"`
-	MessengerMessagesByAnchorTimestamp    *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByAnchorTimestamp,omitempty"`
-	MessengerMessagesByConversation       *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByConversation,omitempty"`
+	MessengerConversationsByCategoryQuery           *CollectionResponse[ConversationCursorMetadata, Conversation] `json:"messengerConversationsByCategoryQuery,omitempty"`
+	MessengerMessagesByAnchorTimestamp              *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByAnchorTimestamp,omitempty"`
+	MessengerMessagesByConversation                 *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByConversation,omitempty"`
+	MessengerMessagingParticipantsByMessageAndEmoji *CollectionResponse[any, MessagingParticipant]                `json:"messengerMessagingParticipantsByMessageAndEmoji,omitempty"`
 }
 
 // CollectionResponse represents a
@@ -93,9 +94,6 @@ func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefor
 			"count":             "20",
 			"query":             "(predicateUnions:List((conversationCategoryPredicate:(category:PRIMARY_INBOX))))",
 		}).
-		WithCSRF().
-		WithXLIHeaders().
-		WithHeader("accept", contentTypeGraphQL).
 		Do(ctx)
 	if err != nil {
 		return nil, err

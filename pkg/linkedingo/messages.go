@@ -83,6 +83,7 @@ type Message struct {
 	BackendConversationURN  URN                     `json:"backendConversationUrn,omitempty"`
 	Conversation            Conversation            `json:"conversation,omitempty"`
 	RenderContent           []RenderContent         `json:"renderContent,omitempty"`
+	ReactionSummaries       []ReactionSummary       `json:"reactionSummaries,omitempty"`
 }
 
 func (m Message) MessageID() networkid.MessageID {
@@ -201,9 +202,6 @@ func (c *Client) GetMessagesBefore(ctx context.Context, conversationURN URN, bef
 			"countBefore":     strconv.Itoa(count),
 			"countAfter":      "0",
 		}).
-		WithCSRF().
-		WithXLIHeaders().
-		WithHeader("accept", contentTypeGraphQL).
 		Do(ctx)
 	if err != nil {
 		return nil, err
@@ -223,9 +221,6 @@ func (c *Client) GetMessagesWithPrevCursor(ctx context.Context, conversationURN 
 			"count":           strconv.Itoa(count),
 			"prevCursor":      url.QueryEscape(prevCursor),
 		}).
-		WithCSRF().
-		WithXLIHeaders().
-		WithHeader("accept", contentTypeGraphQL).
 		Do(ctx)
 	if err != nil {
 		return nil, err

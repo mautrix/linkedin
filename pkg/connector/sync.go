@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 )
@@ -41,6 +40,11 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 		}
 
 		for _, conv := range conversations.Elements {
+			log := log.With().
+				Stringer("conversation_urn", conv.EntityURN).
+				Time("last_activity_at", conv.LastActivityAt.Time).
+				Logger()
+
 			if conv.LastActivityAt.Before(updatedBefore) {
 				updatedBefore = conv.LastActivityAt.Time
 			}
@@ -71,8 +75,13 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 					latestMessageTS = msg.DeliveredAt.Time
 				}
 			}
+			chatInfo, userInChat := l.conversationToChatInfo(conv)
+			if !userInChat {
+				log.Debug().Msg("User not in chat")
+				continue
+			}
 			l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
-				ChatInfo:        ptr.Ptr(l.conversationToChatInfo(conv)),
+				ChatInfo:        &chatInfo,
 				EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
 				LatestMessageTS: latestMessageTS,
 			})

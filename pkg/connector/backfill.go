@@ -84,7 +84,20 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 			Timestamp:        msg.DeliveredAt.Time,
 		}
 
-		// TODO reactions
+		for _, rs := range msg.ReactionSummaries {
+			reactors, err := l.client.GetReactors(ctx, msg.EntityURN, rs.Emoji)
+			if err != nil {
+				log.Err(err).Msg("failed to get reactors")
+				continue
+			}
+			for _, reactor := range reactors.Elements {
+				backfillMessage.Reactions = append(backfillMessage.Reactions, &bridgev2.BackfillReaction{
+					Sender:  l.makeSender(reactor),
+					EmojiID: networkid.EmojiID(rs.Emoji),
+					Emoji:   rs.Emoji,
+				})
+			}
+		}
 
 		resp.Messages = append(resp.Messages, &backfillMessage)
 	}
