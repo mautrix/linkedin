@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 
@@ -34,32 +35,54 @@ import (
 
 var ValidCookieRegex = regexp.MustCompile(`\bJSESSIONID=[^;]+`)
 
+type legacyLoginRequest struct {
+	AllHeaders   map[string]string `json:"all_headers,omitempty"`
+	CookieHeader string            `json:"cookie_header,omitempty"`
+	LIAT         string            `json:"li_at,omitempty"`
+	JSESSIONID   string            `json:"JSESSIONID,omitempty"`
+}
+
 func legacyProvLogin(w http.ResponseWriter, r *http.Request) {
 	user := m.Matrix.Provisioning.GetUser(r)
-	ctx := r.Context()
-	var body map[string]map[string]string
-	err := json.NewDecoder(r.Body).Decode(&body)
+	log := zerolog.Ctx(r.Context()).With().
+		Str("component", "legacy_login").
+		Logger()
+	ctx := log.WithContext(r.Context())
+	var req legacyLoginRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
+		log.Err(err).Msg("Failed to decode request")
 		exhttp.WriteJSONResponse(w, http.StatusBadRequest, mautrix.MBadJSON.WithMessage(err.Error()))
 		return
 	}
-	cookieString := body["all_headers"]["Cookie"]
+
+	var cookieString string
+	if len(req.AllHeaders) > 0 {
+		cookieString = req.AllHeaders["Cookie"]
+	} else if req.CookieHeader != "" {
+		cookieString = req.CookieHeader
+	} else if req.JSESSIONID != "" && req.LIAT != "" {
+		cookieString = fmt.Sprintf("JSESSIONID=%s; li_at=%s", req.JSESSIONID, req.LIAT)
+	} else {
+		exhttp.WriteJSONResponse(w, http.StatusBadRequest, mautrix.MBadJSON.WithMessage("Missing cookie header"))
+		return
+	}
 
 	lp, err := m.Connector.CreateLogin(ctx, user, "cookies")
 	if err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("Failed to create login")
+		log.Err(err).Msg("Failed to create login")
 		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Internal error creating login"))
 	} else if firstStep, err := lp.Start(ctx); err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("Failed to start login")
+		log.Err(err).Msg("Failed to start login")
 		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Internal error starting login"))
 	} else if firstStep.StepID != connector.CookieLoginStepIDCookies {
 		exhttp.WriteJSONResponse(w, http.StatusInternalServerError, mautrix.MUnknown.WithMessage("Unexpected login step"))
 	} else if !ValidCookieRegex.MatchString(cookieString) {
-		exhttp.WriteJSONResponse(w, http.StatusOK, nil)
+		exhttp.WriteJSONResponse(w, http.StatusBadRequest, mautrix.MBadJSON.WithMessage("JSESSIONID not found in cookie header"))
 	} else if finalStep, err := lp.(bridgev2.LoginProcessCookies).SubmitCookies(ctx, map[string]string{
 		connector.CookieLoginCookieHeaderField: cookieString,
 	}); err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("Failed to log in")
+		log.Err(err).Msg("Failed to log in")
 		var respErr bridgev2.RespError
 		if errors.As(err, &respErr) {
 			exhttp.WriteJSONResponse(w, respErr.StatusCode, &respErr)
