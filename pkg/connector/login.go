@@ -119,6 +119,7 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to save new login: %w", err)
 	}
+	ul.Client = NewLinkedInClient(context.Background(), c.main, ul)
 	ul.Client.Connect(ul.Log.WithContext(context.Background()))
 
 	return &bridgev2.LoginStep{
