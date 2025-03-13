@@ -100,6 +100,11 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 		return nil, fmt.Errorf("failed to get current user profile: %w", err)
 	}
 
+	jar, err = linkedingo.NewJarFromCookieHeader(cookies[CookieLoginCookieHeaderField])
+	if err != nil {
+		return nil, err
+	}
+
 	remoteName := fmt.Sprintf("%s %s", profile.MiniProfile.FirstName, profile.MiniProfile.LastName)
 	ul, err := c.user.NewLogin(
 		ctx,
@@ -119,7 +124,6 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to save new login: %w", err)
 	}
-	ul.Client = NewLinkedInClient(context.Background(), c.main, ul)
 	ul.Client.Connect(ul.Log.WithContext(context.Background()))
 
 	return &bridgev2.LoginStep{
