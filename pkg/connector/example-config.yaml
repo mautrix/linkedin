@@ -1,6 +1,7 @@
 # Displayname template for LinkedIn users.
 # .FirstName is replaced with the first name
 # .LastName is replaced with the last name
+# .Organization is replaced with the organization name
 displayname_template: "{{ with .Organization }}{{ . }}{{ else }}{{ .FirstName }} {{ .LastName }}{{ end }} (LinkedIn)"
 
 sync:
