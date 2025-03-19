@@ -48,6 +48,9 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, han
 		realtimeSessionID: uuid.New(),
 		handlers:          handlers,
 		http: &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+			},
 			Jar: jar,
 
 			// Disallow redirects entirely:
