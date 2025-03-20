@@ -32,7 +32,6 @@ import (
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exerrors"
 	"go.mau.fi/util/jsontime"
-	"golang.org/x/net/html"
 )
 
 //go:embed x-li-recipe-map.json
@@ -82,86 +81,10 @@ type DecoratedEventData struct {
 	DecoratedReactionSummary *DecoratedReactionSummary `json:"doDecorateRealtimeReactionSummaryMessengerRealtimeDecoration,omitempty"`
 }
 
-func (c *Client) cacheMetaValues(ctx context.Context) error {
-	if c.clientPageInstanceID != "" && c.xLITrack != "" && c.i18nLocale != "" {
-		return nil
-	}
-
-	resp, err := c.newAuthedRequest(http.MethodGet, linkedInMessagingBaseURL).
-		WithWebpageHeaders().
-		Do(ctx)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("messages page returned status code %d", resp.StatusCode)
-	}
-
-	doc, err := html.Parse(resp.Body)
-	if err != nil {
-		return err
-	}
-	var crawl func(*html.Node) error
-	crawl = func(n *html.Node) error {
-		if n.Type == html.ElementNode && n.Data == "meta" {
-			var name, content string
-			for _, a := range n.Attr {
-				if a.Key == "name" {
-					name = a.Val
-				}
-				if a.Key == "content" {
-					content = a.Val
-				}
-			}
-			switch name {
-			case "clientPageInstanceId":
-				c.clientPageInstanceID = content
-			case "serviceVersion":
-				c.serviceVersion = content
-				xLITrack, err := json.Marshal(map[string]any{
-					"clientVersion":    content,
-					"mpVersion":        content,
-					"osName":           "web",
-					"timezoneOffset":   2,                  // TODO scrutinize
-					"timezone":         "Europe/Stockholm", // TODO scrutinize
-					"deviceFormFactor": "DESKTOP",
-					"mpName":           "voyager-web",
-					"displayDensity":   1.125,
-					"displayWidth":     2560.5,
-					"displayHeight":    1440,
-				})
-				if err != nil {
-					return err
-				}
-				c.xLITrack = string(xLITrack)
-			case "i18nLocale":
-				c.i18nLocale = content
-			}
-		}
-		for child := n.FirstChild; child != nil; child = child.NextSibling {
-			if err := crawl(child); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if err = crawl(doc); err != nil {
-		return err
-	}
-
-	if c.clientPageInstanceID == "" || c.xLITrack == "" || c.i18nLocale == "" {
-		return fmt.Errorf("failed to find all meta values")
-	}
-	return nil
-}
-
 func (c *Client) RealtimeConnect(ctx context.Context) error {
-	if err := c.cacheMetaValues(ctx); err != nil {
-		return err
-	}
 	log := zerolog.Ctx(ctx).With().
 		Str("loop", "realtime_connect").
-		Str("client_page_instance_id", c.clientPageInstanceID).
+		Str("page_instance", c.pageInstance).
 		Logger()
 	ctx = log.WithContext(ctx)
 

@@ -56,7 +56,9 @@ var (
 	CookieLoginStepIDCookies  = "fi.mau.linkedin.login.enter_cookies"
 	CookieLoginStepIDComplete = "fi.mau.linkedin.login.complete"
 
-	CookieLoginCookieHeaderField = "fi.mau.linkedin.login.cookie_header"
+	CookieLoginCookieHeaderField    = "fi.mau.linkedin.login.cookie_header"
+	CookieLoginXLITrackField        = "fi.mau.linkedin.login.x_li_track"
+	CookieLoginXLIPageInstanceField = "fi.mau.linkedin.login.x_li_page_instance"
 )
 
 var _ bridgev2.LoginProcessCookies = (*CookieLogin)(nil)
@@ -83,6 +85,30 @@ func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 					},
 					Pattern: `\bJSESSIONID=[^;]+`,
 				},
+				{
+					ID:       CookieLoginXLITrackField,
+					Required: true,
+					Sources: []bridgev2.LoginCookieFieldSource{
+						{
+							Type:            bridgev2.LoginCookieTypeRequestHeader,
+							Name:            "X-LI-Track",
+							RequestURLRegex: "https://www.linkedin.com",
+						},
+					},
+					Pattern: "clientVersion",
+				},
+				{
+					ID:       CookieLoginXLIPageInstanceField,
+					Required: true,
+					Sources: []bridgev2.LoginCookieFieldSource{
+						{
+							Type:            bridgev2.LoginCookieTypeRequestHeader,
+							Name:            "X-LI-Page-Instance",
+							RequestURLRegex: "https://www.linkedin.com",
+						},
+					},
+					Pattern: "urn:li:page",
+				},
 			},
 		},
 	}, nil
@@ -94,7 +120,10 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 		return nil, err
 	}
 
-	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, linkedingo.Handlers{})
+	pageInstance := cookies[CookieLoginXLIPageInstanceField]
+	xLiTrack := cookies[CookieLoginXLITrackField]
+
+	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, pageInstance, xLiTrack, linkedingo.Handlers{})
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current user profile: %w", err)
@@ -104,8 +133,12 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 	ul, err := c.user.NewLogin(
 		ctx,
 		&database.UserLogin{
-			ID:         networkid.UserLoginID(profile.MiniProfile.EntityURN.ID()),
-			Metadata:   &UserLoginMetadata{Cookies: jar},
+			ID: networkid.UserLoginID(profile.MiniProfile.EntityURN.ID()),
+			Metadata: &UserLoginMetadata{
+				Cookies:         jar,
+				XLIPageInstance: pageInstance,
+				XLITrack:        xLiTrack,
+			},
 			RemoteName: remoteName,
 			RemoteProfile: status.RemoteProfile{
 				Name: remoteName,

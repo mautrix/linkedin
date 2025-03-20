@@ -76,6 +76,8 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 		ctx,
 		linkedingo.NewURN(login.ID),
 		login.Metadata.(*UserLoginMetadata).Cookies,
+		login.Metadata.(*UserLoginMetadata).XLIPageInstance,
+		login.Metadata.(*UserLoginMetadata).XLITrack,
 		linkedingo.Handlers{
 			Heartbeat: func(ctx context.Context) {
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})

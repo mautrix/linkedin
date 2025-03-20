@@ -56,13 +56,15 @@ func legacyProvLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var cookieString string
+	allHeaders := http.Header{}
 	if len(req.AllHeaders) > 0 {
-		cookieString = req.AllHeaders["Cookie"]
+		for k, v := range req.AllHeaders {
+			allHeaders.Set(k, v)
+		}
 	} else if req.CookieHeader != "" {
-		cookieString = req.CookieHeader
+		allHeaders.Set("Cookie", req.CookieHeader)
 	} else if req.JSESSIONID != "" && req.LIAT != "" {
-		cookieString = fmt.Sprintf("JSESSIONID=%s; li_at=%s", req.JSESSIONID, req.LIAT)
+		allHeaders.Set("Cookie", fmt.Sprintf("JSESSIONID=%s; li_at=%s", req.JSESSIONID, req.LIAT))
 	} else {
 		mautrix.MBadJSON.WithMessage("Missing cookie header").Write(w)
 		return
@@ -77,10 +79,12 @@ func legacyProvLogin(w http.ResponseWriter, r *http.Request) {
 		mautrix.MUnknown.WithMessage("Internal error starting login").Write(w)
 	} else if firstStep.StepID != connector.CookieLoginStepIDCookies {
 		mautrix.MUnknown.WithMessage("Unexpected login step").Write(w)
-	} else if !ValidCookieRegex.MatchString(cookieString) {
+	} else if !ValidCookieRegex.MatchString(allHeaders.Get("Cookie")) {
 		mautrix.MBadJSON.WithMessage("JSESSIONID not found in cookie header").Write(w)
 	} else if finalStep, err := lp.(bridgev2.LoginProcessCookies).SubmitCookies(ctx, map[string]string{
-		connector.CookieLoginCookieHeaderField: cookieString,
+		connector.CookieLoginCookieHeaderField:    allHeaders.Get("Cookie"),
+		connector.CookieLoginXLITrackField:        allHeaders.Get("X-LI-Track"),
+		connector.CookieLoginXLIPageInstanceField: allHeaders.Get("X-LI-Page-Instance"),
 	}); err != nil {
 		log.Err(err).Msg("Failed to log in")
 		var respErr bridgev2.RespError

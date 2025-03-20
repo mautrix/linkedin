@@ -133,7 +133,7 @@ func (a *authedRequest) WithXLIHeaders() *authedRequest {
 	return a.
 		WithHeader("Referer", linkedInMessagingBaseURL+"/").
 		WithHeader("X-LI-Accept", contentTypeJSONLinkedInNormalized).
-		WithHeader("X-LI-Page-Instance", "urn:li:page:messaging_index;"+a.client.clientPageInstanceID).
+		WithHeader("X-LI-Page-Instance", a.client.pageInstance).
 		WithHeader("X-LI-Query-Accept", contentTypeGraphQL).
 		WithHeader("X-LI-Query-Map", realtimeQueryMap).
 		WithHeader("X-LI-Realtime-Session", a.client.realtimeSessionID.String()).

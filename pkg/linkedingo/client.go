@@ -18,9 +18,11 @@ package linkedingo
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 type Client struct {
@@ -35,16 +37,37 @@ type Client struct {
 
 	handlers Handlers
 
-	clientPageInstanceID string
-	serviceVersion       string
-	xLITrack             string
-	i18nLocale           string
+	pageInstance   string
+	xLITrack       string
+	serviceVersion string
 }
 
-func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, handlers Handlers) *Client {
+func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pageInstance, xLiTrack string, handlers Handlers) *Client {
+	log := zerolog.Ctx(ctx)
+	if xLiTrack == "" {
+		log.Warn().Msg("x-li-track is empty, using default")
+		xLiTrack = `{"clientVersion":"1.13.32603","mpVersion":"1.13.32603","osName":"web","timezoneOffset":-6,"timezone":"America/Denver","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}`
+	}
+	if pageInstance == "" {
+		log.Warn().Msg("pageInstance is empty, using default")
+		pageInstance = "urn:li:page:messaging_thread;5accf988-7540-4d0a-8a28-a0732bf6de20"
+	}
+
+	trackingData := map[string]any{}
+	if err := json.Unmarshal([]byte(xLiTrack), &trackingData); err != nil {
+		log.Warn().Err(err).Msg("failed to parse x-li-track")
+	}
+	serviceVersion, _ := trackingData["mpVersion"].(string)
+	if serviceVersion == "" {
+		log.Warn().Msg("mpVersion is empty, using default")
+		serviceVersion = "1.13.32603"
+	}
 	return &Client{
 		userEntityURN:     userEntityURN,
 		jar:               jar,
+		pageInstance:      pageInstance,
+		xLITrack:          xLiTrack,
+		serviceVersion:    serviceVersion,
 		realtimeSessionID: uuid.New(),
 		handlers:          handlers,
 		http: &http.Client{
