@@ -160,7 +160,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			return
 		} else if c.realtimeResp.StatusCode != http.StatusOK {
 			switch c.realtimeResp.StatusCode {
-			case http.StatusUnauthorized:
+			case http.StatusUnauthorized, http.StatusFound:
 				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", c.realtimeResp.StatusCode))
 			default:
 				c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect due to status code %d", c.realtimeResp.StatusCode))
