@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
@@ -114,8 +115,12 @@ func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 	}, nil
 }
 
+var gStateRegex = regexp.MustCompile(`g_state={.*?};`)
+
 func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]string) (*bridgev2.LoginStep, error) {
-	jar, err := linkedingo.NewJarFromCookieHeader(cookies[CookieLoginCookieHeaderField])
+	cookieStr := cookies[CookieLoginCookieHeaderField]
+	cookieStr = gStateRegex.ReplaceAllString(cookieStr, "")
+	jar, err := linkedingo.NewJarFromCookieHeader(cookieStr)
 	if err != nil {
 		return nil, err
 	}
