@@ -104,6 +104,7 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 		log.Debug().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Sending heartbeat")
 
 		_, err := c.newAuthedRequest(http.MethodPost, linkedInRealtimeHeartbeatURL).
+			WithQueryParam("action", "sendHeartbeat").
 			WithHeader("accept", "*/*").
 			WithContentType(contentTypePlaintextUTF8).
 			WithCSRF().
@@ -151,6 +152,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 
 		var err error
 		c.realtimeResp, err = c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL).
+			WithQueryParam("rc", "1").
 			WithCSRF().
 			WithRealtimeConnectHeaders().
 			WithHeader("Accept", contentTypeTextEventStream).
