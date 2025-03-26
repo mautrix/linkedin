@@ -69,22 +69,22 @@ func TestCookieJarSetCookies(t *testing.T) {
 	assert.Equal(t, "789", jar.GetCookie("c"))
 
 	jar.SetCookies(nil, []*http.Cookie{
-		{Name: "a", Value: "123"},
-		{Name: "c", Value: "789"},
+		{Name: "a", Value: "999"},
+		{Name: "c", Value: "888"},
 	})
 
 	cookies = jar.Cookies(nil)
-	assert.Len(t, cookies, 2)
+	assert.Len(t, cookies, 3)
 	cookieStrings = make([]string, len(cookies))
 	for i, c := range cookies {
 		cookieStrings[i] = c.String()
 	}
-	assert.Contains(t, cookieStrings, "a=123")
-	assert.Contains(t, cookieStrings, "c=789")
+	assert.Contains(t, cookieStrings, "a=999")
+	assert.Contains(t, cookieStrings, "c=888")
 
-	assert.Equal(t, "123", jar.GetCookie("a"))
-	assert.Equal(t, "", jar.GetCookie("b"))
-	assert.Equal(t, "789", jar.GetCookie("c"))
+	assert.Equal(t, "999", jar.GetCookie("a"))
+	assert.Equal(t, "456", jar.GetCookie("b"))
+	assert.Equal(t, "888", jar.GetCookie("c"))
 }
 
 func TestMarshal(t *testing.T) {
