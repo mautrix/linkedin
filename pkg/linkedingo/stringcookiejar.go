@@ -59,7 +59,6 @@ func (s *StringCookieJar) Cookies(u *url.URL) []*http.Cookie {
 }
 
 func (s *StringCookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {
-	s.cookies = map[string]*http.Cookie{}
 	for _, c := range cookies {
 		s.cookies[c.Name] = c
 	}
