@@ -23,9 +23,9 @@ SELECT
     COALESCE(photo_id, ''), -- avatar_id
     '', -- avatar_hash
     COALESCE(photo_mxc, ''), -- avatar_mxc
-    name_set,
-    avatar_set,
-    contact_info_set,
+    false, -- name_set (need to set it on the new case-insensitive ghost mxid)
+    false, -- avatar_set (need to set it on the new case-insensitive ghost mxid)
+    false, -- contact_info_set (need to set it on the new case-insensitive ghost mxid)
     false, -- is_bot
     '["linkedin:' || li_member_urn || '"]', -- identifiers
     '{}' -- metadata
