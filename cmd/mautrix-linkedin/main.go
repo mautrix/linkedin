@@ -18,12 +18,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"unicode"
 
-	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
-	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
-
+	"github.com/rs/zerolog"
 	"go.mau.fi/util/dbutil"
+	"maunium.net/go/mautrix/appservice"
+	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
+	"maunium.net/go/mautrix/bridgev2/database"
+	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
+	"maunium.net/go/mautrix/bridgev2/networkid"
+	"maunium.net/go/mautrix/event"
+	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
@@ -120,6 +128,100 @@ func main() {
 		} else {
 			log.Info().Msg("Successfully migrated legacy database")
 		}
+	}
+	m.PostMigratePortal = func(ctx context.Context, portal *bridgev2.Portal) error {
+		oldGhostRe := m.Config.MakeUserIDRegex("(.+)")
+		// If this is a DM, we need to invite the bot and make it the admin.
+		if portal.OtherUserID != "" {
+			localpart := m.Config.AppService.FormatUsername(string(portal.OtherUserID))
+			intent := m.Matrix.AS.Intent(id.NewUserID(localpart, m.Matrix.AS.HomeserverDomain))
+
+			// Figure out which of the accounts is actually the admin of the room.
+			pls, err := intent.PowerLevels(ctx, portal.MXID)
+			if err != nil {
+				return fmt.Errorf("failed to get power levels in room: %w", err)
+			}
+			for userID, level := range pls.Users {
+				if level == 100 {
+					intent = m.Matrix.AS.Intent(userID)
+					break
+				}
+			}
+
+			// Ensure that the bridge bot is joined to the room.
+			err = m.Matrix.Bot.EnsureJoined(ctx, portal.MXID, appservice.EnsureJoinedParams{
+				BotOverride: intent.Client,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to ensure bot is joined to DM (%s / %s): %w", portal.ID, portal.MXID, err)
+			}
+
+			// Make the bot the admin of the room, and demote the ghost user.
+			userLevel := pls.GetUserLevel(intent.UserID)
+			pls.EnsureUserLevel(intent.UserID, pls.UsersDefault)
+			pls.EnsureUserLevel(m.Matrix.Bot.UserID, userLevel)
+			_, err = intent.SetPowerLevels(ctx, portal.MXID, pls)
+			if err != nil {
+				return fmt.Errorf("failed to set power levels in room (%s / %s): %w", portal.ID, portal.MXID, err)
+			}
+		} else if portal.RoomType == database.RoomTypeDM {
+			zerolog.Ctx(ctx).Warn().
+				Str("portal_id", string(portal.ID)).
+				Msg("DM portal has no other user ID")
+			return nil
+		}
+
+		members, err := m.Matrix.GetMembers(ctx, portal.MXID)
+		if err != nil {
+			return err
+		}
+		for userID, member := range members {
+			if member.Membership != event.MembershipJoin {
+				continue
+			}
+			if userID == m.Matrix.Bot.UserID {
+				continue
+			}
+
+			// Detect legacy user IDs which are not all lowercase
+			var hasUpper bool
+			for _, c := range userID.Localpart() {
+				hasUpper = hasUpper || unicode.IsUpper(c)
+			}
+			if !hasUpper {
+				continue
+			}
+
+			// Remove the legacy user from the room
+			_, err = m.Matrix.AS.Intent(userID).LeaveRoom(ctx, portal.MXID)
+			if err != nil {
+				return fmt.Errorf("failed to leave room with legacy user ID %s: %w", userID, err)
+			}
+
+			// Join the new ghost to the room
+			match := oldGhostRe.FindStringSubmatch(string(userID))
+			if match == nil {
+				return fmt.Errorf("failed to parse ghost MXID %s", userID)
+			}
+			networkUserID := networkid.UserID(match[1])
+			ghost, err := m.Bridge.GetGhostByID(ctx, networkUserID)
+			if err != nil {
+				return fmt.Errorf("failed to get ghost for %s: %w", networkUserID, err)
+			}
+			err = ghost.Intent.EnsureJoined(ctx, portal.MXID)
+			if err != nil {
+				return fmt.Errorf("failed to ensure ghost is joined to portal (%s / %s): %w", portal.ID, portal.MXID, err)
+			}
+		}
+
+		if portal.RoomType == database.RoomTypeDM {
+			ghost, err := m.Bridge.GetGhostByID(ctx, portal.OtherUserID)
+			if err != nil {
+				return err
+			}
+			portal.UpdateInfoFromGhost(ctx, ghost)
+		}
+		return nil
 	}
 	m.InitVersion(Tag, Commit, BuildTime)
 	m.Run()
