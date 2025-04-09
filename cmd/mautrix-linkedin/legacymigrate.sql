@@ -10,7 +10,8 @@ SELECT
     '{}', -- remote_profile
     space_mxid, -- space_room
     '{}' -- metadata
-FROM user_old;
+FROM user_old
+WHERE li_member_urn<>'';
 
 INSERT INTO ghost (
     bridge_id, id, name, avatar_id, avatar_hash, avatar_mxc,
@@ -125,7 +126,13 @@ SELECT
     ), -- timestamp
     reaction, -- emoji
     '{}' -- metadata
-FROM reaction_old;
+FROM reaction_old WHERE EXISTS(
+    SELECT 1
+    FROM message_old
+    WHERE message_old.li_message_urn=reaction_old.li_message_urn
+        AND "index"=0
+        AND message_old.li_receiver_urn=reaction_old.li_receiver_urn
+);
 
 CREATE TABLE IF NOT EXISTS database_owner (
 	key   INTEGER PRIMARY KEY DEFAULT 0,
