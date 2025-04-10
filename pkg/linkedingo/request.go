@@ -25,7 +25,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
+	"github.com/rs/zerolog"
 	"go.mau.fi/util/exerrors"
 )
 
@@ -164,7 +166,7 @@ func (a *authedRequest) WithWebpageHeaders() *authedRequest {
 		WithHeader("Upgrade-Insecure-Requests", "1")
 }
 
-func (a *authedRequest) Do(ctx context.Context) (*http.Response, error) {
+func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 	if a.parseErr != nil {
 		return nil, a.parseErr
 	}
@@ -176,8 +178,46 @@ func (a *authedRequest) Do(ctx context.Context) (*http.Response, error) {
 
 	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), a.body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to perform authed request %s %s: %w", a.method, a.url, err)
+		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
 	req.Header = a.header
-	return a.client.http.Do(req)
+	start := time.Now()
+	resp, err := a.client.http.Do(req)
+	dur := time.Since(start)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).
+			Str("method", a.method).
+			Stringer("url", a.url).
+			Dur("duration", dur).
+			Msg("Failed to send request")
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	zerolog.Ctx(ctx).Debug().
+		Str("method", a.method).
+		Stringer("url", a.url).
+		Int("status", resp.StatusCode).
+		Dur("duration", dur).
+		Msg("Request completed")
+	return resp, nil
+}
+
+func (a *authedRequest) Do(ctx context.Context, out any) (*http.Response, error) {
+	resp, err := a.DoRaw(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return resp, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	if out == nil {
+		return resp, nil
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(out)
+	if err != nil {
+		return resp, fmt.Errorf("failed to decode response body: %w", err)
+	}
+	return resp, nil
 }

@@ -18,7 +18,6 @@ package linkedingo
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -103,18 +102,17 @@ func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefor
 	zerolog.Ctx(ctx).Info().
 		Time("updated_before", updatedBefore).
 		Msg("Getting conversations updated before")
-	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
+	var response GraphQlResponse
+	_, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
 		WithGraphQLQuery(graphQLQueryIDMessengerConversationsWithCursor, map[string]string{
 			"mailboxUrn":        url.QueryEscape(c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String()),
 			"lastUpdatedBefore": strconv.Itoa(int(updatedBefore.UnixMilli())),
 			"count":             "20",
 			"query":             "(predicateUnions:List((conversationCategoryPredicate:(category:PRIMARY_INBOX))))",
 		}).
-		Do(ctx)
+		Do(ctx, &response)
 	if err != nil {
 		return nil, err
 	}
-
-	var response GraphQlResponse
-	return response.Data.MessengerConversationsByCategoryQuery, json.NewDecoder(resp.Body).Decode(&response)
+	return response.Data.MessengerConversationsByCategoryQuery, nil
 }

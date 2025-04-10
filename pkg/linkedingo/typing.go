@@ -18,7 +18,6 @@ package linkedingo
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 )
 
@@ -34,7 +33,7 @@ type RealtimeTypingIndicator struct {
 }
 
 func (c *Client) StartTyping(ctx context.Context, conversationURN URN) error {
-	resp, err := c.newAuthedRequest(http.MethodPost, linkedInMessagingDashMessengerConversationsURL).
+	_, err := c.newAuthedRequest(http.MethodPost, linkedInMessagingDashMessengerConversationsURL).
 		WithQueryParam("action", "typing").
 		WithContentType(contentTypePlaintextUTF8).
 		WithCSRF().
@@ -43,12 +42,6 @@ func (c *Client) StartTyping(ctx context.Context, conversationURN URN) error {
 		WithJSONPayload(map[string]any{
 			"conversationUrn": conversationURN,
 		}).
-		Do(ctx)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("failed to start typing on %s (statusCode=%d)", conversationURN, resp.StatusCode)
-	}
-	return nil
+		Do(ctx, nil)
+	return err
 }

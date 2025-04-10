@@ -121,7 +121,7 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 				"actorUrn":          userURN,
 				"contextUrns":       []string{userURN},
 			}).
-			Do(ctx)
+			DoRaw(ctx)
 		if err != nil {
 			log.Err(err).Msg("Failed to send heartbeat")
 			return
@@ -156,7 +156,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			WithCSRF().
 			WithRealtimeConnectHeaders().
 			WithHeader("Accept", contentTypeTextEventStream).
-			Do(ctx)
+			DoRaw(ctx)
 		if err != nil {
 			c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect: %w", err))
 			return

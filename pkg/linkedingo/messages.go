@@ -18,8 +18,6 @@ package linkedingo
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -141,23 +139,19 @@ func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body Send
 		TrackingID: random.String(16),
 	}
 
-	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
+	var messageSentResponse MessageSentResponse
+	_, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
 		WithJSONPayload(payload).
 		WithQueryParam("action", "createMessage").
 		WithCSRF().
 		WithContentType(contentTypePlaintextUTF8).
 		WithXLIHeaders().
-		Do(ctx)
+		Do(ctx, &messageSentResponse)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to send message to conversation with urn %s (statusCode=%d)", payload.Message.ConversationURN, resp.StatusCode)
-	}
-
-	var messageSentResponse MessageSentResponse
-	return &messageSentResponse, json.NewDecoder(resp.Body).Decode(&messageSentResponse)
+	return &messageSentResponse, nil
 }
 
 type GraphQLPatchBody struct {
@@ -178,70 +172,59 @@ func (c *Client) EditMessage(ctx context.Context, messageURN URN, p SendMessageB
 	if err != nil {
 		return err
 	}
-	resp, err := c.newAuthedRequest(http.MethodPost, url).
+	_, err = c.newAuthedRequest(http.MethodPost, url).
 		WithCSRF().
 		WithJSONPayload(GraphQLPatchBody{Patch: Patch{Set: EditMessagePayload{Body: p}}}).
 		WithHeader("accept", contentTypeJSON).
 		WithXLIHeaders().
-		Do(ctx)
-	if err != nil {
-		return err
-	} else if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("failed to edit message with urn %s (statusCode=%d)", messageURN, resp.StatusCode)
-	}
-	return nil
+		Do(ctx, nil)
+	return err
 }
 
 func (c *Client) RecallMessage(ctx context.Context, messageURN URN) error {
-	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
+	_, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
 		WithQueryParam("action", "recall").
 		WithCSRF().
 		WithXLIHeaders().
 		WithJSONPayload(map[string]any{"messageUrn": messageURN}).
-		Do(ctx)
-	if err != nil {
-		return err
-	} else if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("failed to edit message with urn %s (statusCode=%d)", messageURN, resp.StatusCode)
-	}
-	return nil
+		Do(ctx, nil)
+	return err
 }
 
 func (c *Client) GetMessagesBefore(ctx context.Context, conversationURN URN, before time.Time, count int) (*CollectionResponse[MessageMetadata, Message], error) {
 	zerolog.Ctx(ctx).Info().
 		Time("before", before).
 		Msg("Getting conversations delivered before")
-	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
+	var response GraphQlResponse
+	_, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
 		WithGraphQLQuery(graphQLQueryIDMessengerMessagesByAnchorTimestamp, map[string]string{
 			"deliveredAt":     strconv.Itoa(int(before.UnixMilli())),
 			"conversationUrn": url.QueryEscape(conversationURN.WithPrefix("urn", "li", "msg_conversation").String()),
 			"countBefore":     strconv.Itoa(count),
 			"countAfter":      "0",
 		}).
-		Do(ctx)
+		Do(ctx, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	var response GraphQlResponse
-	return response.Data.MessengerMessagesByAnchorTimestamp, json.NewDecoder(resp.Body).Decode(&response)
+	return response.Data.MessengerMessagesByAnchorTimestamp, nil
 }
 
 func (c *Client) GetMessagesWithPrevCursor(ctx context.Context, conversationURN URN, prevCursor string, count int) (*CollectionResponse[MessageMetadata, Message], error) {
 	zerolog.Ctx(ctx).Info().
 		Str("prev_cursor", prevCursor).
 		Msg("Getting conversations with prev cursor")
-	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
+	var response GraphQlResponse
+	_, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
 		WithGraphQLQuery(graphQLQueryIDMessengerMessagesByPrevCursor, map[string]string{
 			"conversationUrn": url.QueryEscape(conversationURN.WithPrefix("urn", "li", "msg_conversation").String()),
 			"count":           strconv.Itoa(count),
 			"prevCursor":      url.QueryEscape(prevCursor),
 		}).
-		Do(ctx)
+		Do(ctx, &response)
 	if err != nil {
 		return nil, err
 	}
-
-	var response GraphQlResponse
-	return response.Data.MessengerMessagesByConversation, json.NewDecoder(resp.Body).Decode(&response)
+	return response.Data.MessengerMessagesByConversation, nil
 }

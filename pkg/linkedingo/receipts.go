@@ -18,7 +18,6 @@ package linkedingo
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -74,7 +73,8 @@ func (c *Client) doMarkConversationRead(ctx context.Context, read bool, convURNs
 		entities[convURN.URNString()] = GraphQLPatchBody{Patch: Patch{Set: MarkMessageReadBody{Read: read}}}
 	}
 
-	resp, err := c.newAuthedRequest(http.MethodPost, linkedInMessagingDashMessengerConversationsURL).
+	var result MarkThreadReadResponse
+	_, err := c.newAuthedRequest(http.MethodPost, linkedInMessagingDashMessengerConversationsURL).
 		WithRawQuery(fmt.Sprintf("ids=List(%s)", strings.Join(conversationList, ","))). // Using raw query here because escaping the outer ()s makes this break
 		WithContentType(contentTypePlaintextUTF8).
 		WithHeader("accept", contentTypeJSON).
@@ -82,17 +82,10 @@ func (c *Client) doMarkConversationRead(ctx context.Context, read bool, convURNs
 		WithCSRF().
 		WithXLIHeaders().
 		WithJSONPayload(PatchEntitiesPayload{Entities: entities}).
-		Do(ctx)
+		Do(ctx, &result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to mark conversation read: %w", err)
-	} else if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to mark conversation read (statusCode=%d)", resp.StatusCode)
+		return nil, err
 	}
 
-	var result MarkThreadReadResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	} else {
-		return nil, errors.Join(slices.Collect(maps.Values(result.Errors))...)
-	}
+	return &result, errors.Join(slices.Collect(maps.Values(result.Errors))...)
 }

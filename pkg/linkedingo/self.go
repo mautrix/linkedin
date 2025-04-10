@@ -18,7 +18,6 @@ package linkedingo
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 )
 
@@ -46,18 +45,18 @@ type UserProfile struct {
 }
 
 func (c *Client) GetCurrentUserProfile(ctx context.Context) (*UserProfile, error) {
-	resp, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerCommonMeURL).WithCSRF().Do(ctx)
+	var profile UserProfile
+	_, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerCommonMeURL).WithCSRF().Do(ctx, &profile)
 	if err != nil {
 		return nil, err
 	}
 
-	var profile UserProfile
-	return &profile, json.NewDecoder(resp.Body).Decode(&profile)
+	return &profile, nil
 }
 
 func (c *Client) Logout(ctx context.Context) error {
 	_, err := c.newAuthedRequest(http.MethodGet, linkedInLogoutURL).
 		WithQueryParam("csrfToken", c.getCSRFToken()).
-		Do(ctx)
+		Do(ctx, nil)
 	return err
 }

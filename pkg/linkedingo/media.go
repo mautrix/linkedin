@@ -19,7 +19,6 @@ package linkedingo
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -115,12 +114,16 @@ type AudioMetadata struct {
 }
 
 func (c *Client) Download(ctx context.Context, w io.Writer, url string) error {
-	resp, err := c.newAuthedRequest(http.MethodGet, url).Do(ctx)
+	resp, err := c.newAuthedRequest(http.MethodGet, url).DoRaw(ctx)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	_, err = io.Copy(w, resp.Body)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+	return nil
 }
 
 func (c *Client) DownloadBytes(ctx context.Context, url string) ([]byte, error) {
@@ -130,7 +133,7 @@ func (c *Client) DownloadBytes(ctx context.Context, url string) ([]byte, error) 
 }
 
 func (c *Client) getFileInfoFromHeadRequest(ctx context.Context, url string) (info event.FileInfo, filename string, err error) {
-	headResp, err := c.newAuthedRequest(http.MethodHead, url).Do(ctx)
+	headResp, err := c.newAuthedRequest(http.MethodHead, url).Do(ctx, nil)
 	if err != nil {
 		return info, "", err
 	}
@@ -188,7 +191,8 @@ type MediaUploadMetadata struct {
 }
 
 func (c *Client) UploadMedia(ctx context.Context, mediaUploadType MediaUploadType, filename, contentType string, size int, r io.Reader) (URN, error) {
-	resp, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMediaUploadMetadataURL).
+	var uploadMetadata UploadMediaMetadataResponse
+	_, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMediaUploadMetadataURL).
 		WithQueryParam("action", "upload").
 		WithCSRF().
 		WithXLIHeaders().
@@ -199,28 +203,19 @@ func (c *Client) UploadMedia(ctx context.Context, mediaUploadType MediaUploadTyp
 			FileSize:        size,
 			Filename:        filename,
 		}).
-		Do(ctx)
+		Do(ctx, &uploadMetadata)
 	if err != nil {
 		return URN{}, err
-	} else if resp.StatusCode != http.StatusOK {
-		return URN{}, fmt.Errorf("failed to get upload media metadata (statusCode=%d)", resp.StatusCode)
 	}
 
-	var uploadMetadata UploadMediaMetadataResponse
-	if err = json.NewDecoder(resp.Body).Decode(&uploadMetadata); err != nil {
-		return URN{}, err
-	}
-
-	resp, err = c.newAuthedRequest(http.MethodPut, uploadMetadata.Data.Value.SingleUploadURL).
+	_, err = c.newAuthedRequest(http.MethodPut, uploadMetadata.Data.Value.SingleUploadURL).
 		WithCSRF().
 		WithHeader("content-length", strconv.Itoa(size)).
 		WithContentType(contentType).
 		WithBody(r).
-		Do(ctx)
+		Do(ctx, nil)
 	if err != nil {
 		return URN{}, err
-	} else if resp.StatusCode != http.StatusCreated {
-		return URN{}, fmt.Errorf("failed to upload media: status=%d", resp.StatusCode)
 	}
 	return uploadMetadata.Data.Value.URN, nil
 }
