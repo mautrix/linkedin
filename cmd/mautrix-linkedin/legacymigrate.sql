@@ -132,7 +132,8 @@ FROM reaction_old WHERE EXISTS(
     WHERE message_old.li_message_urn=reaction_old.li_message_urn
         AND "index"=0
         AND message_old.li_receiver_urn=reaction_old.li_receiver_urn
-);
+)
+ON CONFLICT DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS database_owner (
 	key   INTEGER PRIMARY KEY DEFAULT 0,
