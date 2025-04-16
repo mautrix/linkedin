@@ -49,6 +49,6 @@ func (lc *LinkedInConnector) GetName() bridgev2.BridgeName {
 		NetworkIcon:      "mxc://nevarro.space/cwsWnmeMpWSMZLUNblJHaIvP",
 		NetworkID:        "linkedin",
 		BeeperBridgeType: "linkedin",
-		DefaultPort:      29327,
+		DefaultPort:      29341,
 	}
 }
