@@ -97,6 +97,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 			SenderID:  l.userID,
 			Timestamp: resp.Data.DeliveredAt.Time,
 		},
+		StreamOrder: resp.Data.DeliveredAt.UnixMilli(),
 	}, nil
 }
 
