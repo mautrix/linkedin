@@ -72,7 +72,8 @@ func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 		StepID:       CookieLoginStepIDCookies,
 		Instructions: "Enter a JSON object with your cookies, or a cURL command copied from browser devtools. It is recommended that you use a tab opened in Incognito/Private browsing mode and close the browser **before** pasting the cookies.",
 		CookiesParams: &bridgev2.LoginCookiesParams{
-			URL: "https://linkedin.com/login",
+			URL:       "https://linkedin.com/login",
+			UserAgent: linkedingo.UserAgent,
 			Fields: []bridgev2.LoginCookieField{
 				{
 					ID:       CookieLoginCookieHeaderField,

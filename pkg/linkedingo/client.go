@@ -25,6 +25,15 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const BrowserName = "Chrome"
+const ChromeVersion = "135"
+const UserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + ChromeVersion + ".0.0.0 Safari/537.36"
+const SecCHUserAgent = `"Chromium";v="` + ChromeVersion + `", "Google Chrome";v="` + ChromeVersion + `", "Not-A.Brand";v="99"`
+const OSName = "Linux"
+const SecCHPlatform = `"` + OSName + `"`
+const SecCHMobile = "?0"
+const SecCHPrefersColorScheme = "light"
+
 type Client struct {
 	http          *http.Client
 	jar           *StringCookieJar
