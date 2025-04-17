@@ -212,6 +212,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		CreatePortal: true,
 		Sender:       l.makeSender(msg.Sender),
 		Timestamp:    msg.DeliveredAt.Time,
+		StreamOrder:  msg.DeliveredAt.UnixMilli(),
 	}
 
 	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)

@@ -98,6 +98,7 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 			Sender:           sender,
 			ID:               msg.MessageID(),
 			Timestamp:        msg.DeliveredAt.Time,
+			StreamOrder:      msg.DeliveredAt.UnixMilli(),
 		}
 
 		for _, rs := range msg.ReactionSummaries {
