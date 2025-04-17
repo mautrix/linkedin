@@ -34,6 +34,8 @@ import (
 	"go.mau.fi/util/jsontime"
 )
 
+var MaxConnectionAttempts = 5
+
 //go:embed x-li-recipe-map.json
 var realtimeRecipeMapJSON []byte
 
@@ -140,6 +142,8 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 func (c *Client) realtimeConnectLoop(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("Starting realtime connection loop")
+	connectAttempts := 0
+
 	// Continually reconnect to the realtime connection endpoint until the
 	// context is done.
 	for {
@@ -158,8 +162,13 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			WithHeader("Accept", contentTypeTextEventStream).
 			DoRaw(ctx)
 		if err != nil {
-			c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect: %w", err))
-			return
+			connectAttempts += 1
+			if connectAttempts > MaxConnectionAttempts {
+				c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect: %w", err))
+				return
+			}
+			c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect: %w", err))
+			continue
 		} else if c.realtimeResp.StatusCode != http.StatusOK {
 			switch c.realtimeResp.StatusCode {
 			case http.StatusUnauthorized, http.StatusFound:
@@ -169,6 +178,9 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			}
 			return
 		}
+
+		// Reset connection attempts
+		connectAttempts = 0
 
 		log.Info().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Reading realtime stream")
 		reader := bufio.NewReader(c.realtimeResp.Body)
