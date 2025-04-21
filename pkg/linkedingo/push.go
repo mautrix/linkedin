@@ -22,7 +22,7 @@ func (c *Client) RegisterAndroidPush(ctx context.Context, token string) error {
 		deviceId.String(),
 	)
 
-	response, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerNotificationsDashPushRegistration).
+	_, err = c.newAuthedRequest(http.MethodPost, linkedInVoyagerNotificationsDashPushRegistration).
 		WithQueryParam("action", "register").
 		WithXLIHeaders().
 		WithCSRF().
@@ -34,9 +34,6 @@ func (c *Client) RegisterAndroidPush(ctx context.Context, token string) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to register push notification: %w", err)
-	}
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to register push notification: %s", response.Status)
 	}
 	return nil
 }
