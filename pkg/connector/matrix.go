@@ -80,7 +80,8 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
                                 return err
                         }
 
-                        if msg.Content.MsgType == event.MsgVideo {
+			//handle video attachment
+                        if msg.Content.MsgType == event.MsgVideo { 
                                 id := uuid.New()
                                 blob_string := "blob:https://www.linkedin.com/" + id.String()
                                 
