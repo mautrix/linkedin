@@ -30,7 +30,7 @@ func (c *Client) RegisterAndroidPush(ctx context.Context, token string) error {
 		WithHeader("Accept", "application/vnd.linkedin.deduped+x-protobuf+2.0+gql").
 		WithHeader("X-LI-Track", trackHeader).
 		WithBody(r).
-		DoRaw(ctx)
+		Do(ctx, nil)
 
 	if err != nil {
 		return fmt.Errorf("failed to register push notification: %w", err)
