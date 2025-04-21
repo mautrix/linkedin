@@ -171,10 +171,15 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 		return nil, a.parseErr
 	}
 	if a.rawQuery != "" {
-		a.url.RawQuery = a.rawQuery
-	} else {
-		a.url.RawQuery = a.queryParams.Encode()
-	}
+                a.url.RawQuery = a.rawQuery
+        } else{
+                _,ok := a.queryParams["v"]
+                if ok{
+                        //avoid rearrange URL parameter to alphabetical order
+                }else{
+                        a.url.RawQuery = a.queryParams.Encode()
+                }
+        }
 
 	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), a.body)
 	if err != nil {
