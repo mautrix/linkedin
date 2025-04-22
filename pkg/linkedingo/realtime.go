@@ -174,7 +174,13 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			case http.StatusUnauthorized, http.StatusFound:
 				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", c.realtimeResp.StatusCode))
 			default:
-				c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect due to status code %d", c.realtimeResp.StatusCode))
+				connectAttempts += 1
+				if connectAttempts > MaxConnectionAttempts {
+					c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect due to status code %d", c.realtimeResp.StatusCode))
+					return
+				}
+				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect due to status code: %d", c.realtimeResp.StatusCode))
+				continue
 			}
 			return
 		}
