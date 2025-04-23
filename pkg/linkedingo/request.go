@@ -189,7 +189,7 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 	req.Header = a.header
 
 	//assign content-length into PUT header
-	if a.method == "PUT"{
+	if a.method == http.MethodPut{
                 if lengths, ok := a.header["Content-Length"]; ok && len(lengths) > 0{
                         if cl, err := strconv.ParseInt(lengths[0],10,64); err == nil{
                                 req.ContentLength = cl
