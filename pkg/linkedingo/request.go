@@ -24,9 +24,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exerrors"
@@ -172,15 +172,15 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 		return nil, a.parseErr
 	}
 	if a.rawQuery != "" {
-                a.url.RawQuery = a.rawQuery
-        } else{
-                _,ok := a.queryParams["v"]
-                if ok{
-                        //avoid rearrange URL parameter to alphabetical order
-                }else{
-                        a.url.RawQuery = a.queryParams.Encode()
-                }
-        }
+		a.url.RawQuery = a.rawQuery
+	} else {
+		_, ok := a.queryParams["v"]
+		if ok {
+			//avoid rearrange URL parameter to alphabetical order
+		} else {
+			a.url.RawQuery = a.queryParams.Encode()
+		}
+	}
 
 	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), a.body)
 	if err != nil {
@@ -189,14 +189,14 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 	req.Header = a.header
 
 	//assign content-length into PUT header
-	if a.method == http.MethodPut{
-                if lengths, ok := a.header["Content-Length"]; ok && len(lengths) > 0{
-                        if cl, err := strconv.ParseInt(lengths[0],10,64); err == nil{
-                                req.ContentLength = cl
-                        }
-                }
-        }
-	
+	if a.method == http.MethodPut {
+		if lengths, ok := a.header["Content-Length"]; ok && len(lengths) > 0 {
+			if cl, err := strconv.ParseInt(lengths[0], 10, 64); err == nil {
+				req.ContentLength = cl
+			}
+		}
+	}
+
 	start := time.Now()
 	resp, err := a.client.http.Do(req)
 	dur := time.Since(start)

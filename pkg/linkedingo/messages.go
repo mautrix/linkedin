@@ -80,21 +80,21 @@ type SendFile struct {
 	Name      string `json:"name,omitempty"`
 }
 
-type SendVideo struct{
-        Media  URN `json:"media,omitempty"`
-        Thumbnail SendThumbnail `json:"thumbnail,omitempty"`
-        TrackingID URN `json:"trackingId,omitempty"`
-        ProgressiveStreams []SendProgressiveStreams `json:"progressiveStreams,omitempty"` 
+type SendVideo struct {
+	Media              URN                      `json:"media,omitempty"`
+	Thumbnail          SendThumbnail            `json:"thumbnail,omitempty"`
+	TrackingID         URN                      `json:"trackingId,omitempty"`
+	ProgressiveStreams []SendProgressiveStreams `json:"progressiveStreams,omitempty"`
 }
 
-type SendThumbnail struct{
-        Artifacts []SendArtifacts `json:"artifacts,omitempty"`
-        RootUrl string `json:"rootUrl"`
+type SendThumbnail struct {
+	Artifacts []SendArtifacts `json:"artifacts,omitempty"`
+	RootUrl   string          `json:"rootUrl"`
 }
 
-type SendArtifacts struct{
-        Width int `json:"width"`
-        Height int `json:"height"`
+type SendArtifacts struct {
+	Width  int `json:"width"`
+	Height int `json:"height"`
 }
 
 type MessageSentResponse struct {
@@ -105,17 +105,17 @@ type DecoratedMessage struct {
 	Result Message `json:"result,omitempty"`
 }
 
-type SendProgressiveStreams struct{
-        BitRate int `json:"bitRate"`
-        Height int `json:"height"`
-        MediaType string `json:"mediaType,omitempty"`
-        Size int `json:"size"`
-        Width int `json:"width"`
-        StreamingLocations []SendURL `json:"streamingLocations,omitempty"`
+type SendProgressiveStreams struct {
+	BitRate            int       `json:"bitRate"`
+	Height             int       `json:"height"`
+	MediaType          string    `json:"mediaType,omitempty"`
+	Size               int       `json:"size"`
+	Width              int       `json:"width"`
+	StreamingLocations []SendURL `json:"streamingLocations,omitempty"`
 }
 
-type SendURL struct{
-        URL string `json:"url,omitempty"`
+type SendURL struct {
+	URL string `json:"url,omitempty"`
 }
 
 // Message represents a com.linkedin.messenger.Message object.
