@@ -109,7 +109,7 @@ type SendProgressiveStreams struct{
         BitRate int `json:"bitRate"`
         Height int `json:"height"`
         MediaType string `json:"mediaType,omitempty"`
-        Size int `json:size`
+        Size int `json:"size"`
         Width int `json:"width"`
         StreamingLocations []SendURL `json:"streamingLocations,omitempty"`
 }
