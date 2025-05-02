@@ -165,6 +165,7 @@ type MediaUploadType string
 const (
 	MediaUploadTypePhotoAttachment MediaUploadType = "MESSAGING_PHOTO_ATTACHMENT"
 	MediaUploadTypeFileAttachment  MediaUploadType = "MESSAGING_FILE_ATTACHMENT"
+	MediaUploadTypeVideoAttachment MediaUploadType = "MESSAGING_VIDEO_ATTACHMENT"
 )
 
 type UploadMediaMetadataPayload struct {

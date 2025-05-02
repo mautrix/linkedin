@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
@@ -58,6 +59,10 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	}
 
 	var renderContent []linkedingo.SendRenderContent
+	var progressiveStreamsContent []linkedingo.SendProgressiveStreams
+	var urls []linkedingo.SendURL
+	var artifacts []linkedingo.SendArtifacts
+
 	if msg.Content.MsgType.IsMedia() {
 		err := l.main.Bridge.Bot.DownloadMediaToFile(ctx, msg.Content.URL, msg.Content.File, false, func(f *os.File) error {
 			attachmentType := linkedingo.MediaUploadTypePhotoAttachment
@@ -65,19 +70,62 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 				attachmentType = linkedingo.MediaUploadTypeFileAttachment
 			}
 
+			if msg.Content.MsgType == event.MsgVideo {
+				attachmentType = linkedingo.MediaUploadTypeVideoAttachment
+			}
+
 			filename := getMediaFilename(msg.Content)
 			urn, err := l.client.UploadMedia(ctx, attachmentType, filename, msg.Content.Info.MimeType, msg.Content.Info.Size, f)
 			if err != nil {
 				return err
 			}
-			renderContent = append(renderContent, linkedingo.SendRenderContent{
-				File: &linkedingo.SendFile{
-					AssetURN:  urn,
-					Name:      filename,
-					MediaType: msg.Content.Info.MimeType,
-					ByteSize:  msg.Content.Info.Size,
-				},
-			})
+
+			//handle video attachment
+			if msg.Content.MsgType == event.MsgVideo {
+				id := uuid.New()
+				blob_string := "blob:https://www.linkedin.com/" + id.String()
+
+				urls = append(urls, linkedingo.SendURL{
+					URL: blob_string,
+				})
+
+				progressiveStreamsContent = append(progressiveStreamsContent, linkedingo.SendProgressiveStreams{
+					BitRate:            0,
+					Height:             0,
+					MediaType:          msg.Content.Info.MimeType,
+					Size:               msg.Content.Info.Size,
+					Width:              0,
+					StreamingLocations: urls,
+				})
+
+				artifacts = append(artifacts, linkedingo.SendArtifacts{
+					Width:  0,
+					Height: 0,
+				})
+
+				thumbnails := linkedingo.SendThumbnail{
+					RootUrl:   "",
+					Artifacts: artifacts,
+				}
+
+				renderContent = append(renderContent, linkedingo.SendRenderContent{
+					Video: &linkedingo.SendVideo{
+						Media:              urn,
+						Thumbnail:          thumbnails,
+						TrackingID:         urn,
+						ProgressiveStreams: progressiveStreamsContent,
+					},
+				})
+			} else {
+				renderContent = append(renderContent, linkedingo.SendRenderContent{
+					File: &linkedingo.SendFile{
+						AssetURN:  urn,
+						Name:      filename,
+						MediaType: msg.Content.Info.MimeType,
+						ByteSize:  msg.Content.Info.Size,
+					},
+				})
+			}
 			return nil
 		})
 		if err != nil {
