@@ -34,7 +34,7 @@ import (
 	"go.mau.fi/util/jsontime"
 )
 
-var MaxConnectionAttempts = 5
+var MaxConnectionAttempts = 50
 
 //go:embed x-li-recipe-map.json
 var realtimeRecipeMapJSON []byte
@@ -168,6 +168,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				return
 			}
 			c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect: %w", err))
+			time.Sleep(time.Second * time.Duration(connectAttempts))
 			continue
 		} else if c.realtimeResp.StatusCode != http.StatusOK {
 			switch c.realtimeResp.StatusCode {
@@ -180,6 +181,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 					return
 				}
 				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect due to status code: %d", c.realtimeResp.StatusCode))
+				time.Sleep(time.Second * time.Duration(connectAttempts))
 				continue
 			}
 			return
