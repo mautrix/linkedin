@@ -28,7 +28,7 @@ SELECT
     false, -- avatar_set (need to set it on the new case-insensitive ghost mxid)
     false, -- contact_info_set (need to set it on the new case-insensitive ghost mxid)
     false, -- is_bot
-    '["linkedin:' || li_member_urn || '"]', -- identifiers
+    ('["linkedin:' || li_member_urn || '"]')::jsonb, -- identifiers
     '{}' -- metadata
 FROM puppet_old;
 
