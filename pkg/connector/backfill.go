@@ -87,7 +87,10 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 
 		sender := l.makeSender(msg.Sender)
 
-		intent := portal.GetIntentFor(ctx, sender, l.userLogin, bridgev2.RemoteEventBackfill)
+		intent, ok := portal.GetIntentFor(ctx, sender, l.userLogin, bridgev2.RemoteEventBackfill)
+		if !ok {
+			continue
+		}
 		converted, err := l.convertToMatrix(ctx, portal, intent, msg)
 		if err != nil {
 			return nil, err

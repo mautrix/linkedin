@@ -2,18 +2,17 @@ module go.mau.fi/mautrix-linkedin
 
 go 1.23.0
 
-toolchain go1.23.2
-
-require github.com/rs/zerolog v1.33.0
+toolchain go1.24.3
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
-	go.mau.fi/util v0.8.6
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
-	golang.org/x/net v0.38.0
+	go.mau.fi/util v0.8.8
+	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476
+	golang.org/x/net v0.41.0
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.23.3-0.20250404143749-49648897875f
+	maunium.net/go/mautrix v0.24.2-0.20250617163829-26da46dbbf6e
 )
 
 require (
@@ -26,8 +25,8 @@ require (
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-sqlite3 v1.14.24 // indirect
-	github.com/petermattis/goid v0.0.0-20250303134427-723919f7f203 // indirect
+	github.com/mattn/go-sqlite3 v1.14.28 // indirect
+	github.com/petermattis/goid v0.0.0-20250508124226-395b08cebbdb // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect
@@ -35,12 +34,12 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/yuin/goldmark v1.7.8 // indirect
+	github.com/yuin/goldmark v1.7.12 // indirect
 	go.mau.fi/zeroconfig v0.1.3 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
-	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
+	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	maunium.net/go/mauflag v1.0.0 // indirect
