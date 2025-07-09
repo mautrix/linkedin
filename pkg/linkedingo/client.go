@@ -33,6 +33,7 @@ const OSName = "Linux"
 const SecCHPlatform = `"` + OSName + `"`
 const SecCHMobile = "?0"
 const SecCHPrefersColorScheme = "light"
+const ServiceVersion = "1.13.36969"
 
 type Client struct {
 	http          *http.Client
@@ -55,7 +56,7 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 	log := zerolog.Ctx(ctx)
 	if xLiTrack == "" {
 		log.Warn().Msg("x-li-track is empty, using default")
-		xLiTrack = `{"clientVersion":"1.13.32603","mpVersion":"1.13.32603","osName":"web","timezoneOffset":-6,"timezone":"America/Denver","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}`
+		xLiTrack = `{"clientVersion":"` + ServiceVersion + `","mpVersion":"` + ServiceVersion + `","osName":"web","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}`
 	}
 	if pageInstance == "" {
 		log.Warn().Msg("pageInstance is empty, using default")
@@ -69,7 +70,7 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 	serviceVersion, _ := trackingData["mpVersion"].(string)
 	if serviceVersion == "" {
 		log.Warn().Msg("mpVersion is empty, using default")
-		serviceVersion = "1.13.32603"
+		serviceVersion = ServiceVersion
 	}
 	return &Client{
 		userEntityURN:     userEntityURN,
