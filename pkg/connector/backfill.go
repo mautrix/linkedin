@@ -18,7 +18,6 @@ package connector
 
 import (
 	"context"
-	"slices"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -60,7 +59,6 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 			return &bridgev2.FetchMessagesResponse{HasMore: false, Forward: fetchParams.Forward}, nil
 		}
 		messages = msgs.Elements
-		slices.Reverse(messages)
 		resp.Cursor = networkid.PaginationCursor(msgs.Metadata.PrevCursor)
 	}
 
@@ -78,8 +76,8 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 				if !msg.DeliveredAt.Time.After(stopAt) {
 					// If we are doing forward backfill and we got to before or at
 					// the anchor message, don't convert any more messages.
-					log.Debug().Msg("stopping at anchor message")
-					break
+					log.Debug().Msg("skipping message before anchor message")
+					continue
 				}
 			} else if !msg.DeliveredAt.Time.Before(stopAt) {
 				// If we are doing backwards backfill and we got to a message
