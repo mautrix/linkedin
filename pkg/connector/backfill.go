@@ -74,8 +74,7 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		if !stopAt.IsZero() {
 			if fetchParams.Forward {
 				if !msg.DeliveredAt.Time.After(stopAt) {
-					// If we are doing forward backfill and we got to before or at
-					// the anchor message, don't convert any more messages.
+					// If we are doing forward backfill skip any messages that are before the anchor message
 					log.Debug().Msg("skipping message before anchor message")
 					continue
 				}
