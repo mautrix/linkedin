@@ -28,7 +28,8 @@ import (
 )
 
 type GraphQlResponse struct {
-	Data GraphQLData `json:"data,omitempty"`
+	Data     GraphQLData    `json:"data,omitempty"`
+	Included []IncludedData `json:"included,omitempty"`
 }
 
 type GraphQLData struct {
@@ -36,6 +37,47 @@ type GraphQLData struct {
 	MessengerMessagesByAnchorTimestamp              *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByAnchorTimestamp,omitempty"`
 	MessengerMessagesByConversation                 *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByConversation,omitempty"`
 	MessengerMessagingParticipantsByMessageAndEmoji *CollectionResponse[any, MessagingParticipant]                `json:"messengerMessagingParticipantsByMessageAndEmoji,omitempty"`
+}
+
+type IncludedData struct {
+	Thumbnail  *VectorImage `json:"thumbnail,omitempty"`
+	Content    *Content     `json:"content,omitempty"`
+	EntityURN  *URN         `json:"entityUrn,omitempty"`
+	Actor      *Actor       `json:"actor,omitempty"`
+	Commentary *Commentary  `json:"commentary,omitempty"`
+}
+
+type Content struct {
+	ImageComponent *ImageComponent `json:"imageComponent,omitempty"`
+}
+
+type ImageComponent struct {
+	Images []Image `json:"images,omitempty"`
+}
+
+type Image struct {
+	Attributes []ImageAttribute `json:"attributes,omitempty"`
+}
+
+type ImageAttribute struct {
+	DetailData *ImageDetailData `json:"detailData,omitempty"`
+}
+
+type ImageDetailData struct {
+	VectorImage *VectorImage `json:"vectorImage,omitempty"`
+}
+
+type Actor struct {
+	Name *TextViewModel `json:"name,omitempty"`
+}
+
+type Commentary struct {
+	// Text could be plain String or TextViewModel
+	Text any `json:"text,omitempty"`
+}
+
+type TextViewModel struct {
+	Text string `json:"text,omitempty"`
 }
 
 // CollectionResponse represents a

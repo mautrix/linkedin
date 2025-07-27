@@ -17,6 +17,7 @@
 package linkedingo
 
 const (
+	linkedInVoyagerGraphQLURL                        = "https://www.linkedin.com/voyager/api/graphql"
 	linkedInVoyagerMessagingGraphQLURL               = "https://www.linkedin.com/voyager/api/voyagerMessagingGraphQL/graphql"
 	linkedInLogoutURL                                = "https://www.linkedin.com/uas/logout"
 	linkedInMessagingBaseURL                         = "https://www.linkedin.com/messaging"
@@ -62,4 +63,5 @@ const (
 	graphQLQueryIDMessengerConversationsWithCursor   = "messengerConversations.8656fb361a8ad0c178e8d3ff1a84ce26"
 	graphQLQueryIDMessengerMessagesByAnchorTimestamp = "messengerMessages.4088d03bc70c91c3fa68965cb42336de"
 	graphQLQueryIDMessengerMessagesByPrevCursor      = "messengerMessages.34c9888be71c8010fecfb575cb38308f"
+	graphQLQueryIDVoyagerFeedDashUpdates             = "voyagerFeedDashUpdates.c2a318e55b634e20689c80e3dd11952e"
 )

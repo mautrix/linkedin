@@ -117,9 +117,15 @@ type RenderContent struct {
 	Audio                 *AudioMetadata     `json:"audio,omitempty"`
 	ExternalMedia         *ExternalMedia     `json:"externalMedia,omitempty"`
 	File                  *FileAttachment    `json:"file,omitempty"`
+	HostURNData           *HostURNData       `json:"hostUrnData,omitempty"`
 	RepliedMessageContent *RepliedMessage    `json:"repliedMessageContent,omitempty"`
 	VectorImage           *VectorImage       `json:"vectorImage,omitempty"`
 	Video                 *VideoPlayMetadata `json:"video,omitempty"`
+}
+
+type HostURNData struct {
+	Type    string `json:"type,omitempty"`
+	HostURN URN    `json:"hostUrn,omitempty"`
 }
 
 // RepliedMessage represents a com.linkedin.messenger.RepliedMessage object.
@@ -227,4 +233,34 @@ func (c *Client) GetMessagesWithPrevCursor(ctx context.Context, conversationURN 
 		return nil, err
 	}
 	return response.Data.MessengerMessagesByConversation, nil
+}
+
+func (c *Client) GetFeedDashUpdates(ctx context.Context, updateURN URN) (*IncludedData, error) {
+	zerolog.Ctx(ctx).Debug().
+		Str("updateUrn", updateURN.String()).
+		Msg("Getting feed dash updates")
+	var response GraphQlResponse
+	_, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerGraphQLURL).
+		WithGraphQLQuery(graphQLQueryIDVoyagerFeedDashUpdates, map[string]string{
+			"updateUrn": url.QueryEscape(updateURN.String()),
+		}).
+		WithHeader("accept", contentTypeJSONLinkedInNormalized).
+		Do(ctx, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	data := &IncludedData{}
+
+	for _, item := range response.Included {
+		if data.Thumbnail == nil && item.Thumbnail != nil {
+			data.Thumbnail = item.Thumbnail
+		}
+		if data.Commentary == nil && item.EntityURN.String() == updateURN.String() {
+			data.Commentary = item.Commentary
+			data.Actor = item.Actor
+			data.Content = item.Content
+		}
+	}
+	return data, nil
 }
