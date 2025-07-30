@@ -82,7 +82,12 @@ SELECT
     (
         'urn:li:msg_message:(urn:li:fsd_profile:' ||
         li_receiver_urn ||
-        SUBSTR(li_message_urn, INSTR(li_message_urn, ',')) ||
+        SUBSTR(li_message_urn,
+            -- only: postgres
+            POSITION(',' IN li_message_urn)
+            -- only: sqlite (line commented)
+--          INSTR(li_message_urn, ',')
+        ) ||
         ')'
     ), -- id
     '', -- part_id
@@ -110,17 +115,32 @@ SELECT
     (
         'urn:li:msg_message:(urn:li:fsd_profile:' ||
         li_receiver_urn ||
-        SUBSTR(li_message_urn, INSTR(li_message_urn, ',')) ||
+        SUBSTR(li_message_urn,
+            -- only: postgres
+            POSITION(',' IN li_message_urn)
+            -- only: sqlite (line commented)
+--          INSTR(li_message_urn, ',')
+        ) ||
         ')'
     ), -- message_id
     '', -- message_part_id
     li_sender_urn, -- sender_id
     reaction, -- emoji_id
-    'urn:li:msg_conversation:(urn:li:fsd_profile:' || li_receiver_urn || ',' || SUBSTR(li_message_urn, 0, INSTR(li_message_urn, ',')) || ')', -- room_id
+    'urn:li:msg_conversation:(urn:li:fsd_profile:' || li_receiver_urn || ',' || SUBSTR(li_message_urn, 0,
+        -- only: postgres
+        POSITION(',' IN li_message_urn)
+        -- only: sqlite (line commented)
+--      INSTR(li_message_urn, ',')
+    ) || ')', -- room_id
     (
         SELECT CASE WHEN NOT li_is_group_chat THEN li_receiver_urn ELSE '' END
         FROM portal_old
-        WHERE li_thread_urn=SUBSTR(li_message_urn, 0, INSTR(li_message_urn, ','))
+        WHERE li_thread_urn=SUBSTR(li_message_urn, 0,
+        -- only: postgres
+        POSITION(',' IN li_message_urn)
+        -- only: sqlite (line commented)
+--      INSTR(li_message_urn, ',')
+    )
     ), -- room_receiver
     mxid,
     (
