@@ -45,7 +45,7 @@ INSERT INTO portal (
 SELECT
     '', -- bridge_id
     'urn:li:msg_conversation:(urn:li:fsd_profile:' || li_receiver_urn || ',' || li_thread_urn || ')', -- id
-    CASE WHEN li_is_group_chat=0 THEN li_receiver_urn ELSE '' END, -- receiver
+    CASE WHEN NOT li_is_group_chat THEN li_receiver_urn ELSE '' END, -- receiver
     mxid, -- mxid
     CASE WHEN NOT li_is_group_chat THEN li_other_user_urn END, -- other_user_id
     COALESCE(name, ''), -- name
@@ -89,7 +89,7 @@ SELECT
     mxid,
     'urn:li:msg_conversation:(urn:li:fsd_profile:' || li_receiver_urn || ',' || li_thread_urn || ')', -- room_id
     (
-        SELECT CASE WHEN li_is_group_chat=0 THEN li_receiver_urn ELSE '' END
+        SELECT CASE WHEN NOT li_is_group_chat THEN li_receiver_urn ELSE '' END
         FROM portal_old
         WHERE li_thread_urn=message_old.li_thread_urn
     ), -- room_receiver
@@ -118,7 +118,7 @@ SELECT
     reaction, -- emoji_id
     'urn:li:msg_conversation:(urn:li:fsd_profile:' || li_receiver_urn || ',' || SUBSTR(li_message_urn, 0, INSTR(li_message_urn, ',')) || ')', -- room_id
     (
-        SELECT CASE WHEN li_is_group_chat=0 THEN li_receiver_urn ELSE '' END
+        SELECT CASE WHEN NOT li_is_group_chat THEN li_receiver_urn ELSE '' END
         FROM portal_old
         WHERE li_thread_urn=SUBSTR(li_message_urn, 0, INSTR(li_message_urn, ','))
     ), -- room_receiver
