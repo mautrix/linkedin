@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS database_owner (
 	key   INTEGER PRIMARY KEY DEFAULT 0,
 	owner TEXT NOT NULL
 );
-INSERT INTO database_owner (key, owner) VALUES (0, "megabridge/mautrix-linkedin");
+INSERT INTO database_owner (key, owner) VALUES (0, 'megabridge/mautrix-linkedin');
 
 -- Python -> Go mx_ table migration
 ALTER TABLE mx_room_state DROP COLUMN is_encrypted;
