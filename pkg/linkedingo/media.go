@@ -24,6 +24,7 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"maunium.net/go/mautrix/event"
 
@@ -113,8 +114,17 @@ type AudioMetadata struct {
 	URL      string                `json:"url,omitempty"`
 }
 
+func (c *Client) newMediaRequest(ctx context.Context, url string, method string) *authedRequest {
+	req := c.newAuthedRequest(method, url)
+	index := strings.Index(url, "?")
+	// Query param order matters, v=beta&t=xx works, t=xx&v=beta doesn't.
+	req.WithRawQuery(url[index+1:])
+	return req
+}
+
 func (c *Client) Download(ctx context.Context, w io.Writer, url string) error {
-	resp, err := c.newAuthedRequest(http.MethodGet, url).DoRaw(ctx)
+	req := c.newMediaRequest(ctx, url, http.MethodGet)
+	resp, err := req.DoRaw(ctx)
 	if err != nil {
 		return err
 	}
@@ -133,7 +143,8 @@ func (c *Client) DownloadBytes(ctx context.Context, url string) ([]byte, error) 
 }
 
 func (c *Client) getFileInfoFromHeadRequest(ctx context.Context, url string) (info event.FileInfo, filename string, err error) {
-	headResp, err := c.newAuthedRequest(http.MethodHead, url).Do(ctx, nil)
+	req := c.newMediaRequest(ctx, url, http.MethodHead)
+	headResp, err := req.Do(ctx, nil)
 	if err != nil {
 		return info, "", err
 	}
