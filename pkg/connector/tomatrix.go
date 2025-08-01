@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -190,7 +189,6 @@ func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bri
 	linkPreview := event.BeeperLinkPreview{
 		LinkPreview: event.LinkPreview{
 			CanonicalURL: url,
-			Title:        url,
 		},
 		MatchedURL: url,
 	}
@@ -221,23 +219,18 @@ func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bri
 		}
 	}
 	if imageURL != "" {
-		resp, err := http.Get(imageURL)
-		if err == nil {
-			linkPreview.LinkPreview.ImageURL, linkPreview.ImageEncryption, err = intent.UploadMediaStream(ctx, portal.MXID, resp.ContentLength, false, func(file io.Writer) (*bridgev2.FileStreamResult, error) {
-				_, err := io.Copy(file, resp.Body)
-				if err != nil {
-					return nil, err
-				}
-				return &bridgev2.FileStreamResult{
-					MimeType: linkPreview.ImageType,
-					FileName: "image.jpeg",
-				}, nil
-			})
+		linkPreview.LinkPreview.ImageURL, linkPreview.ImageEncryption, err = intent.UploadMediaStream(ctx, portal.MXID, 0, false, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
+			err := l.client.Download(ctx, w, imageURL)
 			if err != nil {
-				zerolog.Ctx(ctx).Err(err).Msg("failed to upload post thumbnail")
+				return nil, err
 			}
-		} else {
-			zerolog.Ctx(ctx).Err(err).Msg("failed to download post thumbnail")
+			return &bridgev2.FileStreamResult{
+				MimeType: linkPreview.ImageType,
+				FileName: "image.jpeg",
+			}, nil
+		})
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("failed to upload post thumbnail")
 		}
 	}
 
