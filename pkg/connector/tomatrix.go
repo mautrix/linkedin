@@ -35,6 +35,7 @@ import (
 
 func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg linkedingo.Message) (*bridgev2.ConvertedMessage, error) {
 	var cm bridgev2.ConvertedMessage
+	var textPart *bridgev2.ConvertedMessagePart
 
 	if len(msg.Body.Text) > 0 {
 		content, err := linkedinfmt.Parse(ctx, msg.Body.Text, msg.Body.Attributes, l.linkedinFmtParams)
@@ -42,9 +43,8 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 			return nil, err
 		}
 
-		cm.Parts = []*bridgev2.ConvertedMessagePart{
-			{Type: event.EventMessage, Content: content},
-		}
+		textPart = &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: content}
+		cm.Parts = []*bridgev2.ConvertedMessagePart{textPart}
 	}
 
 	for _, rc := range msg.RenderContent {
@@ -58,7 +58,7 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 		case rc.File != nil:
 			part, err = l.convertFileToMatrix(ctx, portal, intent, rc.File)
 		case rc.HostURNData != nil:
-			part, err = l.convertHostURNToMatrix(ctx, portal, intent, rc.HostURNData)
+			part, err = l.convertHostURNToMatrix(ctx, portal, intent, rc.HostURNData, textPart)
 		case rc.RepliedMessageContent != nil:
 			cm.ReplyTo = &networkid.MessageOptionalPartID{
 				MessageID: rc.RepliedMessageContent.OriginalMessage.MessageID(),
@@ -169,7 +169,7 @@ func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridge
 	}, err
 }
 
-func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, hostURNData *linkedingo.HostURNData) (cmp *bridgev2.ConvertedMessagePart, err error) {
+func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, hostURNData *linkedingo.HostURNData, textPart *bridgev2.ConvertedMessagePart) (cmp *bridgev2.ConvertedMessagePart, err error) {
 	if hostURNData.Type != "FEED_UPDATE" || hostURNData.HostURN.IsEmpty() {
 		zerolog.Ctx(ctx).Debug().Any("hostUrnData", hostURNData).Msg("Unhandled hostUrnData")
 		return nil, nil
@@ -187,9 +187,12 @@ func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bri
 	updateID = updateID[:index]
 
 	url := "https://www.linkedin.com/feed/update/" + updateID
-	linkPreview := event.LinkPreview{
-		CanonicalURL: url,
-		Title:        url,
+	linkPreview := event.BeeperLinkPreview{
+		LinkPreview: event.LinkPreview{
+			CanonicalURL: url,
+			Title:        url,
+		},
+		MatchedURL: url,
 	}
 	if data.Actor != nil {
 		linkPreview.Title = data.Actor.Name.Text
@@ -201,21 +204,26 @@ func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bri
 				text, _ = commentary["text"].(string)
 			}
 		}
-		linkPreview.Description = text
+		linkPreview.LinkPreview.Description = text
 	}
 	var imageURL string
 	if data.Thumbnail != nil {
 		imageURL = data.Thumbnail.GetLargestArtifactURL()
-	} else if data.Content != nil && data.Content.ImageComponent != nil && len(data.Content.ImageComponent.Images) > 0 {
-		image := data.Content.ImageComponent.Images[0]
-		if len(image.Attributes) > 0 && image.Attributes[0].DetailData != nil && image.Attributes[0].DetailData.VectorImage != nil {
+	} else if data.Content != nil {
+		var image *linkedingo.Image
+		if data.Content.ArticleComponent != nil && data.Content.ArticleComponent.LargeImage != nil {
+			image = data.Content.ArticleComponent.LargeImage
+		} else if data.Content.ImageComponent != nil && len(data.Content.ImageComponent.Images) > 0 {
+			image = &data.Content.ImageComponent.Images[0]
+		}
+		if image != nil && len(image.Attributes) > 0 && image.Attributes[0].DetailData != nil && image.Attributes[0].DetailData.VectorImage != nil {
 			imageURL = image.Attributes[0].DetailData.VectorImage.GetLargestArtifactURL()
 		}
 	}
 	if imageURL != "" {
 		resp, err := http.Get(imageURL)
 		if err == nil {
-			linkPreview.ImageURL, _, err = intent.UploadMediaStream(ctx, portal.MXID, resp.ContentLength, false, func(file io.Writer) (*bridgev2.FileStreamResult, error) {
+			linkPreview.LinkPreview.ImageURL, linkPreview.ImageEncryption, err = intent.UploadMediaStream(ctx, portal.MXID, resp.ContentLength, false, func(file io.Writer) (*bridgev2.FileStreamResult, error) {
 				_, err := io.Copy(file, resp.Body)
 				if err != nil {
 					return nil, err
@@ -233,16 +241,21 @@ func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bri
 		}
 	}
 
-	content := event.MessageEventContent{
-		MsgType: event.MsgText,
-		BeeperLinkPreviews: []*event.BeeperLinkPreview{{
-			LinkPreview: linkPreview,
-		}},
+	if textPart == nil {
+		content := event.MessageEventContent{
+			MsgType:            event.MsgText,
+			Body:               url,
+			BeeperLinkPreviews: []*event.BeeperLinkPreview{&linkPreview},
+		}
+		return &bridgev2.ConvertedMessagePart{
+			Type:    event.EventMessage,
+			Content: &content,
+		}, nil
+	} else {
+		textPart.Content.Body += " " + url
+		textPart.Content.BeeperLinkPreviews = []*event.BeeperLinkPreview{&linkPreview}
+		return nil, nil
 	}
-	return &bridgev2.ConvertedMessagePart{
-		Type:    event.EventMessage,
-		Content: &content,
-	}, nil
 }
 
 func (l *LinkedInClient) convertVectorImageToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, img *linkedingo.VectorImage) (cmp *bridgev2.ConvertedMessagePart, err error) {

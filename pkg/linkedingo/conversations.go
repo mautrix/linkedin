@@ -48,9 +48,13 @@ type IncludedData struct {
 }
 
 type Content struct {
-	ImageComponent *ImageComponent `json:"imageComponent,omitempty"`
+	ArticleComponent *ArticleComponent `json:"articleComponent,omitempty"`
+	ImageComponent   *ImageComponent   `json:"imageComponent,omitempty"`
 }
 
+type ArticleComponent struct {
+	LargeImage *Image `json:"largeImage,omitempty"`
+}
 type ImageComponent struct {
 	Images []Image `json:"images,omitempty"`
 }
