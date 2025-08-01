@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"sync"
 )
 
 // StringCookieJar is an [http.CookieJar] implementation that is backed by a
@@ -34,6 +35,7 @@ import (
 // a new [StringCookieJar].
 type StringCookieJar struct {
 	cookies map[string]*http.Cookie
+	lock    sync.RWMutex
 }
 
 var _ http.CookieJar = (*StringCookieJar)(nil)
@@ -44,6 +46,7 @@ var _ json.Unmarshaler = (*StringCookieJar)(nil)
 func NewEmptyStringCookieJar() *StringCookieJar {
 	return &StringCookieJar{
 		cookies: map[string]*http.Cookie{},
+		lock:    sync.RWMutex{},
 	}
 }
 
@@ -55,20 +58,28 @@ func NewJarFromCookieHeader(cookieHeader string) (*StringCookieJar, error) {
 }
 
 func (s *StringCookieJar) Cookies(u *url.URL) []*http.Cookie {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	return slices.Collect(maps.Values(s.cookies))
 }
 
 func (s *StringCookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	for _, c := range cookies {
 		s.cookies[c.Name] = c
 	}
 }
 
 func (s *StringCookieJar) AddCookie(cookie *http.Cookie) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	s.cookies[cookie.Name] = cookie
 }
 
 func (s *StringCookieJar) GetCookie(name string) (value string) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	if c, ok := s.cookies[name]; ok {
 		value = c.Value
 	}
@@ -90,6 +101,8 @@ func (s *StringCookieJar) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request")
 	}
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	for _, c := range s.cookies {
 		req.AddCookie(c)
 	}
