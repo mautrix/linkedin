@@ -18,7 +18,7 @@ func (c *Client) RegisterAndroidPush(ctx context.Context, token string) error {
 		return fmt.Errorf("failed to generate device id: %w", err)
 	}
 	trackHeader := fmt.Sprintf(
-		`{"osName":"Android OS","osVersion":"34","clientVersion":"4.1.1059","clientMinorVersion":196700,"model":"Google_Pixel 5a","displayDensity":2.625,"displayWidth":1080,"displayHeight":2201,"dpi":"xhdpi","deviceType":"android","appId":"com.linkedin.android","deviceId":"%s","timezoneOffset":0,"timezone":"Europe\/London","storeId":"us_googleplay","isAdTrackingLimited":false,"mpName":"voyager-android","mpVersion":"2.137.73"}`,
+		`{"osName":"Android OS","osVersion":"35","clientVersion":"4.1.1087.2","clientMinorVersion":199502,"model":"Google_Pixel 5a","displayDensity":2.625,"displayWidth":1080,"displayHeight":2201,"dpi":"xhdpi","deviceType":"android","appId":"com.linkedin.android","deviceId":"%s","storeId":"us_googleplay","isAdTrackingLimited":true,"mpName":"voyager-android","mpVersion":"2.165.98"}`,
 		deviceId.String(),
 	)
 

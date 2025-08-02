@@ -96,7 +96,7 @@
 			"extensions": {}
 		},
 		"liveVideoPostTopic": {
-			"queryId": "liveVideoVoyagerFeedDashLiveUpdatesRealtimeDecoration.96dba07244496804ecba6faffe521809",
+			"queryId": "liveVideoVoyagerFeedDashLiveUpdatesRealtimeDecoration.8a49ee0fcd7639164d4d8ffc3d3aa75d",
 			"variables": {},
 			"extensions": {}
 		},
@@ -125,18 +125,13 @@
 			"variables": {},
 			"extensions": {}
 		},
-		"eventToastsTopic": {
-			"queryId": "voyagerEventsDashProfessionalEventsRealtimeResource.6b42abd3511e267e84a6765257deea50",
-			"variables": {},
-			"extensions": {}
-		},
 		"coachStreamingResponsesTopic": {
-			"queryId": "voyagerCoachDashGaiRealtimeDecoration.efc252713e6b496038bad63527626891",
+			"queryId": "voyagerCoachDashGaiRealtimeDecoration.cd698d3c9740c1f159c8c25819903bfb",
 			"variables": {},
 			"extensions": {}
 		},
 		"realtimeSearchResultClustersTopic": {
-			"queryId": "voyagerSearchDashRealtimeDecoration.892a35c92a98bb685e62f89577c5c1e8",
+			"queryId": "voyagerSearchDashRealtimeDecoration.86ac87ad3bc1ac95ff6e66b318283658",
 			"variables": {},
 			"extensions": {}
 		},

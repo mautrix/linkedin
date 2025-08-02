@@ -134,13 +134,7 @@ func (a *authedRequest) WithContentType(contentType string) *authedRequest {
 func (a *authedRequest) WithXLIHeaders() *authedRequest {
 	return a.
 		WithHeader("Referer", linkedInMessagingBaseURL+"/").
-		WithHeader("X-LI-Accept", contentTypeJSONLinkedInNormalized).
 		WithHeader("X-LI-Page-Instance", a.client.pageInstance).
-		WithHeader("X-LI-Query-Accept", contentTypeGraphQL).
-		WithHeader("X-LI-Query-Map", realtimeQueryMap).
-		WithHeader("X-LI-Realtime-Session", a.client.realtimeSessionID.String()).
-		WithHeader("X-LI-Recipe-Accept", contentTypeJSONLinkedInNormalized).
-		WithHeader("X-LI-Recipe-Map", realtimeRecipeMap).
 		WithHeader("X-LI-Track", a.client.xLITrack).
 		WithHeader("X-RestLI-Protocol-Version", "2.0.0")
 }
@@ -151,6 +145,12 @@ func (a *authedRequest) WithRealtimeConnectHeaders() *authedRequest {
 		WithHeader("Sec-Fetch-Dest", "empty").
 		WithHeader("Sec-Fetch-Mode", "cors").
 		WithHeader("Sec-Fetch-Site", "same-origin").
+		WithHeader("X-LI-Accept", contentTypeJSONLinkedInNormalized).
+		WithHeader("X-LI-Query-Accept", contentTypeGraphQL).
+		WithHeader("X-LI-Query-Map", realtimeQueryMap).
+		WithHeader("X-LI-Recipe-Accept", contentTypeJSONLinkedInNormalized).
+		WithHeader("X-LI-Recipe-Map", realtimeRecipeMap).
+		WithHeader("X-LI-Realtime-Session", a.client.realtimeSessionID.String()).
 		WithXLIHeaders()
 }
 
