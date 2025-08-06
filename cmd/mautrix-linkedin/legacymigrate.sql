@@ -28,7 +28,13 @@ SELECT
     false, -- avatar_set (need to set it on the new case-insensitive ghost mxid)
     false, -- contact_info_set (need to set it on the new case-insensitive ghost mxid)
     false, -- is_bot
-    '["linkedin:' || li_member_urn || '"]', -- identifiers
+    -- only: postgres
+    jsonb_build_array
+    -- only: sqlite (line commented)
+--  json_array
+    (
+        'linkedin:' || li_member_urn
+    ), -- identifiers
     '{}' -- metadata
 FROM puppet_old;
 
@@ -39,7 +45,7 @@ INSERT INTO portal (
 SELECT
     '', -- bridge_id
     'urn:li:msg_conversation:(urn:li:fsd_profile:' || li_receiver_urn || ',' || li_thread_urn || ')', -- id
-    CASE WHEN li_is_group_chat=0 THEN li_receiver_urn ELSE '' END, -- receiver
+    CASE WHEN NOT li_is_group_chat THEN li_receiver_urn ELSE '' END, -- receiver
     mxid, -- mxid
     CASE WHEN NOT li_is_group_chat THEN li_other_user_urn END, -- other_user_id
     COALESCE(name, ''), -- name
@@ -76,14 +82,19 @@ SELECT
     (
         'urn:li:msg_message:(urn:li:fsd_profile:' ||
         li_receiver_urn ||
-        SUBSTR(li_message_urn, INSTR(li_message_urn, ',')) ||
+        SUBSTR(li_message_urn,
+            -- only: postgres
+            POSITION(',' IN li_message_urn)
+            -- only: sqlite (line commented)
+--          INSTR(li_message_urn, ',')
+        ) ||
         ')'
     ), -- id
     '', -- part_id
     mxid,
     'urn:li:msg_conversation:(urn:li:fsd_profile:' || li_receiver_urn || ',' || li_thread_urn || ')', -- room_id
     (
-        SELECT CASE WHEN li_is_group_chat=0 THEN li_receiver_urn ELSE '' END
+        SELECT CASE WHEN NOT li_is_group_chat THEN li_receiver_urn ELSE '' END
         FROM portal_old
         WHERE li_thread_urn=message_old.li_thread_urn
     ), -- room_receiver
@@ -104,17 +115,32 @@ SELECT
     (
         'urn:li:msg_message:(urn:li:fsd_profile:' ||
         li_receiver_urn ||
-        SUBSTR(li_message_urn, INSTR(li_message_urn, ',')) ||
+        SUBSTR(li_message_urn,
+            -- only: postgres
+            POSITION(',' IN li_message_urn)
+            -- only: sqlite (line commented)
+--          INSTR(li_message_urn, ',')
+        ) ||
         ')'
     ), -- message_id
     '', -- message_part_id
     li_sender_urn, -- sender_id
     reaction, -- emoji_id
-    'urn:li:msg_conversation:(urn:li:fsd_profile:' || li_receiver_urn || ',' || SUBSTR(li_message_urn, 0, INSTR(li_message_urn, ',')) || ')', -- room_id
+    'urn:li:msg_conversation:(urn:li:fsd_profile:' || li_receiver_urn || ',' || SUBSTR(li_message_urn, 0,
+        -- only: postgres
+        POSITION(',' IN li_message_urn)
+        -- only: sqlite (line commented)
+--      INSTR(li_message_urn, ',')
+    ) || ')', -- room_id
     (
-        SELECT CASE WHEN li_is_group_chat=0 THEN li_receiver_urn ELSE '' END
+        SELECT CASE WHEN NOT li_is_group_chat THEN li_receiver_urn ELSE '' END
         FROM portal_old
-        WHERE li_thread_urn=SUBSTR(li_message_urn, 0, INSTR(li_message_urn, ','))
+        WHERE li_thread_urn=SUBSTR(li_message_urn, 0,
+        -- only: postgres
+        POSITION(',' IN li_message_urn)
+        -- only: sqlite (line commented)
+--      INSTR(li_message_urn, ',')
+    )
     ), -- room_receiver
     mxid,
     (
@@ -139,7 +165,7 @@ CREATE TABLE IF NOT EXISTS database_owner (
 	key   INTEGER PRIMARY KEY DEFAULT 0,
 	owner TEXT NOT NULL
 );
-INSERT INTO database_owner (key, owner) VALUES (0, "megabridge/mautrix-linkedin");
+INSERT INTO database_owner (key, owner) VALUES (0, 'megabridge/mautrix-linkedin');
 
 -- Python -> Go mx_ table migration
 ALTER TABLE mx_room_state DROP COLUMN is_encrypted;
