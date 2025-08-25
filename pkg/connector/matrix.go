@@ -79,7 +79,8 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 			}
 
 			filename := getMediaFilename(msg.Content)
-			if msg.Content.MsgType == event.MsgAudio {
+			mime := msg.Content.GetInfo().MimeType
+			if msg.Content.MSC3245Voice != nil && mime != "audio/mp4" {
 				if !ffmpeg.Supported() {
 					return errors.New("ffmpeg is required to send voice message")
 				}

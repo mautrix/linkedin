@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 
+	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/event"
@@ -32,9 +33,15 @@ func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
 	return 1, 1
 }
 
-const MaxTextLength = 4096
-const MaxCaptionLength = 1024
-const MaxFileSize = 2 * 1024 * 1024 * 1024
+const MaxTextLength = 8000
+const MaxFileSize = 20 * 1024 * 1024
+
+func supportedIfFFmpeg() event.CapabilitySupportLevel {
+	if ffmpeg.Supported() {
+		return event.CapLevelPartialSupport
+	}
+	return event.CapLevelRejected
+}
 
 var formattingCaps = event.FormattingFeatureMap{
 	event.FmtBold:               event.CapLevelDropped,
@@ -65,15 +72,15 @@ var fileCaps = event.FileFeatureMap{
 			"image/webp": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
-		MaxSize:          10 * 1024 * 1024,
+		MaxCaptionLength: MaxTextLength,
+		MaxSize:          MaxFileSize,
 	},
 	event.MsgVideo: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
 			"video/mp4": event.CapLevelPartialSupport,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
 	event.MsgAudio: {
@@ -83,7 +90,7 @@ var fileCaps = event.FileFeatureMap{
 			// TODO some other formats are probably supported too
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
 	event.MsgFile: {
@@ -91,7 +98,7 @@ var fileCaps = event.FileFeatureMap{
 			"*/*": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
 	event.CapMsgGIF: {
@@ -100,7 +107,7 @@ var fileCaps = event.FileFeatureMap{
 			"video/mp4": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
 	event.CapMsgSticker: {
@@ -113,12 +120,12 @@ var fileCaps = event.FileFeatureMap{
 	},
 	event.CapMsgVoice: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"audio/ogg":  event.CapLevelFullySupported,
-			"audio/mpeg": event.CapLevelFullySupported,
-			"audio/mp4":  event.CapLevelFullySupported,
+			"audio/aac": supportedIfFFmpeg(),
+			"audio/ogg": supportedIfFFmpeg(),
+			"audio/mp4": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
 }
