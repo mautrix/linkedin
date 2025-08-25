@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -29,6 +30,7 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
+	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/variationselector"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/matrixfmt"
@@ -65,23 +67,47 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 
 	if msg.Content.MsgType.IsMedia() {
 		err := l.main.Bridge.Bot.DownloadMediaToFile(ctx, msg.Content.URL, msg.Content.File, false, func(f *os.File) error {
-			attachmentType := linkedingo.MediaUploadTypePhotoAttachment
-			if msg.Content.MsgType != event.MsgImage {
-				attachmentType = linkedingo.MediaUploadTypeFileAttachment
-			}
 
-			if msg.Content.MsgType == event.MsgVideo {
+			attachmentType := linkedingo.MediaUploadTypeFileAttachment
+			switch msg.Content.MsgType {
+			case event.MsgImage:
+				attachmentType = linkedingo.MediaUploadTypePhotoAttachment
+			case event.MsgVideo:
 				attachmentType = linkedingo.MediaUploadTypeVideoAttachment
+			case event.MsgAudio:
+				attachmentType = linkedingo.MediaUploadTypeVoiceMessage
 			}
 
 			filename := getMediaFilename(msg.Content)
+			mime := msg.Content.GetInfo().MimeType
+			if msg.Content.MSC3245Voice != nil && mime != "audio/mp4" {
+				if !ffmpeg.Supported() {
+					return errors.New("ffmpeg is required to send voice message")
+				}
+				outPath, err := ffmpeg.ConvertPath(ctx, f.Name(), ".m4a", []string{}, []string{"-c:a", "aac", "-b:a", "32k"}, false)
+				if err != nil {
+					return err
+				}
+				f, err = os.Open(outPath)
+				if err != nil {
+					return err
+				}
+				fileInfo, err := os.Stat(f.Name())
+				if err != nil {
+					return err
+				}
+				msg.Content.Info.Size = int(fileInfo.Size())
+				defer f.Close()
+			}
+
 			urn, err := l.client.UploadMedia(ctx, attachmentType, filename, msg.Content.Info.MimeType, msg.Content.Info.Size, f)
 			if err != nil {
 				return err
 			}
 
+			switch msg.Content.MsgType {
 			//handle video attachment
-			if msg.Content.MsgType == event.MsgVideo {
+			case event.MsgVideo:
 				id := uuid.New()
 				blob_string := "blob:https://www.linkedin.com/" + id.String()
 
@@ -116,7 +142,14 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 						ProgressiveStreams: progressiveStreamsContent,
 					},
 				})
-			} else {
+			case event.MsgAudio:
+				renderContent = append(renderContent, linkedingo.SendRenderContent{
+					Audio: &linkedingo.SendAudio{
+						AssetURN: urn,
+						ByteSize: msg.Content.Info.Size,
+					},
+				})
+			default:
 				renderContent = append(renderContent, linkedingo.SendRenderContent{
 					File: &linkedingo.SendFile{
 						AssetURN:  urn,
