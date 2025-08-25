@@ -30,7 +30,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 1
+	return 1, 2
 }
 
 const MaxTextLength = 8000
@@ -120,7 +120,6 @@ var fileCaps = event.FileFeatureMap{
 	},
 	event.CapMsgVoice: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"audio/aac": supportedIfFFmpeg(),
 			"audio/ogg": supportedIfFFmpeg(),
 			"audio/mp4": event.CapLevelFullySupported,
 		},
