@@ -43,6 +43,14 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 	return event.CapLevelRejected
 }
 
+func capID() string {
+	base := "fi.mau.linkedin.capabilities.2025_01_21"
+	if ffmpeg.Supported() {
+		return base + "+ffmpeg"
+	}
+	return base
+}
+
 var formattingCaps = event.FormattingFeatureMap{
 	event.FmtBold:               event.CapLevelDropped,
 	event.FmtItalic:             event.CapLevelDropped,
@@ -144,7 +152,7 @@ func init() {
 
 func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
 	return &event.RoomFeatures{
-		ID:                  "fi.mau.linkedin.capabilities.2025_01_21",
+		ID:                  capID(),
 		Formatting:          formattingCaps,
 		File:                fileCaps,
 		MaxTextLength:       MaxTextLength,
