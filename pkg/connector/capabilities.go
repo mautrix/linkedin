@@ -117,14 +117,6 @@ var fileCaps = event.FileFeatureMap{
 		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
-	event.CapMsgSticker: {
-		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"image/webp": event.CapLevelFullySupported,
-			// TODO
-			//"image/lottie+json": event.CapLevelFullySupported,
-			//"video/webm": event.CapLevelFullySupported,
-		},
-	},
 	event.CapMsgVoice: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
 			"audio/ogg": supportedIfFFmpeg(),
