@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 
+	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/event"
@@ -29,12 +30,26 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 1
+	return 1, 2
 }
 
-const MaxTextLength = 4096
-const MaxCaptionLength = 1024
-const MaxFileSize = 2 * 1024 * 1024 * 1024
+const MaxTextLength = 8000
+const MaxFileSize = 20 * 1024 * 1024
+
+func supportedIfFFmpeg() event.CapabilitySupportLevel {
+	if ffmpeg.Supported() {
+		return event.CapLevelPartialSupport
+	}
+	return event.CapLevelRejected
+}
+
+func capID() string {
+	base := "fi.mau.linkedin.capabilities.2025_08_26"
+	if ffmpeg.Supported() {
+		return base + "+ffmpeg"
+	}
+	return base
+}
 
 var formattingCaps = event.FormattingFeatureMap{
 	event.FmtBold:               event.CapLevelDropped,
@@ -65,15 +80,15 @@ var fileCaps = event.FileFeatureMap{
 			"image/webp": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
-		MaxSize:          10 * 1024 * 1024,
+		MaxCaptionLength: MaxTextLength,
+		MaxSize:          MaxFileSize,
 	},
 	event.MsgVideo: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
 			"video/mp4": event.CapLevelPartialSupport,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
 	event.MsgAudio: {
@@ -83,7 +98,7 @@ var fileCaps = event.FileFeatureMap{
 			// TODO some other formats are probably supported too
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
 	event.MsgFile: {
@@ -91,34 +106,24 @@ var fileCaps = event.FileFeatureMap{
 			"*/*": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
 	event.CapMsgGIF: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
 			"image/gif": event.CapLevelPartialSupport,
-			"video/mp4": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
-	},
-	event.CapMsgSticker: {
-		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"image/webp": event.CapLevelFullySupported,
-			// TODO
-			//"image/lottie+json": event.CapLevelFullySupported,
-			//"video/webm": event.CapLevelFullySupported,
-		},
 	},
 	event.CapMsgVoice: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"audio/ogg":  event.CapLevelFullySupported,
-			"audio/mpeg": event.CapLevelFullySupported,
-			"audio/mp4":  event.CapLevelFullySupported,
+			"audio/ogg": supportedIfFFmpeg(),
+			"audio/mp4": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxCaptionLength,
+		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
 }
@@ -138,7 +143,7 @@ func init() {
 
 func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
 	return &event.RoomFeatures{
-		ID:                  "fi.mau.linkedin.capabilities.2025_01_21",
+		ID:                  capID(),
 		Formatting:          formattingCaps,
 		File:                fileCaps,
 		MaxTextLength:       MaxTextLength,
