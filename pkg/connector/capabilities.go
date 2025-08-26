@@ -44,7 +44,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID() string {
-	base := "fi.mau.linkedin.capabilities.2025_01_21"
+	base := "fi.mau.linkedin.capabilities.2025_08_26"
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -112,7 +112,6 @@ var fileCaps = event.FileFeatureMap{
 	event.CapMsgGIF: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
 			"image/gif": event.CapLevelPartialSupport,
-			"video/mp4": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
 		MaxCaptionLength: MaxTextLength,
