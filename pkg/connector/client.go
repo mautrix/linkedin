@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
@@ -42,7 +43,8 @@ type LinkedInClient struct {
 	userLogin *bridgev2.UserLogin
 	client    *linkedingo.Client
 
-	firstConnection bool
+	firstConnection      bool
+	conversationLastRead map[linkedingo.URN]jsontime.UnixMilli
 
 	linkedinFmtParams linkedinfmt.FormatParams
 	matrixParser      *matrixfmt.HTMLParser
@@ -67,10 +69,11 @@ var (
 func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridgev2.UserLogin) *LinkedInClient {
 	userID := networkid.UserID(login.ID)
 	client := &LinkedInClient{
-		main:            lc,
-		userID:          userID,
-		userLogin:       login,
-		firstConnection: true,
+		main:                 lc,
+		userID:               userID,
+		userLogin:            login,
+		firstConnection:      true,
+		conversationLastRead: map[linkedingo.URN]jsontime.UnixMilli{},
 	}
 	client.client = linkedingo.NewClient(
 		ctx,

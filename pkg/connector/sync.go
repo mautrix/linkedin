@@ -61,6 +61,8 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 				Time("last_activity_at", conv.LastActivityAt.Time).
 				Logger()
 
+			l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
+
 			if conv.LastActivityAt.Before(updatedBefore) {
 				updatedBefore = conv.LastActivityAt.Time
 			}
