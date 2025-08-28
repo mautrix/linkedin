@@ -125,7 +125,7 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 
 		resp.Messages = append(resp.Messages, &backfillMessage)
 
-		if resp.MarkRead && msg.DeliveredAt.UnixMilli() > lastRead.UnixMilli() {
+		if resp.MarkRead && msg.DeliveredAt.After(lastRead.Time) {
 			resp.MarkRead = false
 		}
 	}
