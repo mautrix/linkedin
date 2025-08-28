@@ -37,13 +37,14 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 	}
 
 	resp := bridgev2.FetchMessagesResponse{
-		Forward: fetchParams.Forward,
-		// MarkRead: markRead,
+		Forward:  fetchParams.Forward,
+		MarkRead: true,
 	}
 
+	convURN := linkedingo.NewURN(fetchParams.Portal.ID)
 	var messages []linkedingo.Message
 	if fetchParams.Cursor != "" {
-		msgs, err := l.client.GetMessagesWithPrevCursor(ctx, linkedingo.NewURN(fetchParams.Portal.ID), string(fetchParams.Cursor), fetchParams.Count)
+		msgs, err := l.client.GetMessagesWithPrevCursor(ctx, convURN, string(fetchParams.Cursor), fetchParams.Count)
 		if err != nil {
 			return nil, err
 		} else if len(msgs.Elements) == 0 {
@@ -67,6 +68,8 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		stopAt = fetchParams.AnchorMessage.Timestamp
 		log = log.With().Time("stop_at", stopAt).Logger()
 	}
+
+	lastRead := l.conversationLastRead[convURN]
 
 	for _, msg := range messages {
 		log := log.With().Stringer("entity_urn", msg.EntityURN).Logger()
@@ -121,6 +124,10 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		}
 
 		resp.Messages = append(resp.Messages, &backfillMessage)
+
+		if resp.MarkRead && msg.DeliveredAt.UnixMilli() > lastRead.UnixMilli() {
+			resp.MarkRead = false
+		}
 	}
 
 	resp.HasMore = len(resp.Messages) > 0

@@ -107,6 +107,7 @@ type Conversation struct {
 	Title                    string                           `json:"title,omitempty"`
 	EntityURN                URN                              `json:"entityUrn,omitempty"`
 	LastActivityAt           jsontime.UnixMilli               `json:"lastActivityAt,omitempty"`
+	LastReadAt               jsontime.UnixMilli               `json:"lastReadAt,omitempty"`
 	GroupChat                bool                             `json:"groupChat,omitempty"`
 	ConversationParticipants []MessagingParticipant           `json:"conversationParticipants,omitempty"`
 	Read                     bool                             `json:"read,omitempty"`
