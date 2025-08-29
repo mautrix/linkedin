@@ -62,9 +62,10 @@ type AttributeType struct {
 }
 
 type SendRenderContent struct {
-	Audio *SendAudio `json:"audio,omitempty"`
-	File  *SendFile  `json:"file,omitempty"`
-	Video *SendVideo `json:"video,omitempty"`
+	Audio                 *SendAudio          `json:"audio,omitempty"`
+	File                  *SendFile           `json:"file,omitempty"`
+	Video                 *SendVideo          `json:"video,omitempty"`
+	RepliedMessageContent *SendRepliedMessage `json:"repliedMessageContent,omitempty"`
 }
 
 type SendAudio struct {
@@ -95,6 +96,13 @@ type SendThumbnail struct {
 type SendArtifacts struct {
 	Width  int `json:"width"`
 	Height int `json:"height"`
+}
+
+type SendRepliedMessage struct {
+	OriginalSenderURN  URN                `json:"originalSenderUrn"`
+	OriginalSendAt     jsontime.UnixMilli `json:"originalSendAt"`
+	OriginalMessageURN URN                `json:"originalMessageUrn"`
+	MessageBody        AttributedText     `json:"messageBody"`
 }
 
 type MessageSentResponse struct {

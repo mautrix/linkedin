@@ -31,6 +31,7 @@ import (
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/util/ffmpeg"
+	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/variationselector"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/matrixfmt"
@@ -166,6 +167,23 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 		}
 	}
 
+	if msg.ReplyTo != nil {
+		intent := l.userLogin.Bridge.Matrix.GhostIntent(l.userID)
+		evt, err := intent.GetEvent(ctx, msg.Event.RoomID, msg.ReplyTo.MXID)
+		if err != nil {
+			return nil, err
+		}
+		renderContent = append(renderContent, linkedingo.SendRenderContent{
+			RepliedMessageContent: &linkedingo.SendRepliedMessage{
+				OriginalSenderURN:  linkedingo.NewURN(string(msg.ReplyTo.SenderID)).WithPrefix("urn:li:msg_messagingParticipant:urn:li:fsd_profile"),
+				OriginalSendAt:     jsontime.UnixMilli{Time: msg.ReplyTo.Timestamp},
+				OriginalMessageURN: linkedingo.NewURN(string(msg.ReplyTo.ID)),
+				MessageBody: linkedingo.AttributedText{
+					Text: evt.Content.AsMessage().Body,
+				},
+			},
+		})
+	}
 	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent)
 	if err != nil {
 		return nil, err
