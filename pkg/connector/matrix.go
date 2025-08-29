@@ -174,13 +174,14 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 			zerolog.Ctx(ctx).Debug().Err(err).Stringer("romm_id", msg.Event.RoomID).Stringer("event_id", msg.ReplyTo.MXID).Msg("failed to get ReplyTo event")
 		}
 		if evt != nil {
+			body := matrixfmt.Parse(ctx, l.matrixParser, evt.Content.AsMessage())
 			renderContent = append(renderContent, linkedingo.SendRenderContent{
 				RepliedMessageContent: &linkedingo.SendRepliedMessage{
 					OriginalSenderURN:  linkedingo.NewURN(string(msg.ReplyTo.SenderID)).WithPrefix("urn:li:msg_messagingParticipant:urn:li:fsd_profile"),
 					OriginalSendAt:     jsontime.UnixMilli{Time: msg.ReplyTo.Timestamp},
 					OriginalMessageURN: linkedingo.NewURN(string(msg.ReplyTo.ID)),
 					MessageBody: linkedingo.AttributedText{
-						Text: evt.Content.AsMessage().Body,
+						Text: body.Text,
 					},
 				},
 			})
