@@ -30,7 +30,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 2
+	return 1, 3
 }
 
 const MaxTextLength = 8000
@@ -44,7 +44,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID() string {
-	base := "fi.mau.linkedin.capabilities.2025_08_26"
+	base := "fi.mau.linkedin.capabilities.2025_08_29"
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -148,7 +148,7 @@ func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Por
 		File:                fileCaps,
 		MaxTextLength:       MaxTextLength,
 		LocationMessage:     event.CapLevelDropped,
-		Reply:               event.CapLevelDropped,
+		Reply:               event.CapLevelFullySupported,
 		Edit:                event.CapLevelFullySupported, // TODO note that edits are restricted to specific msgtypes
 		Delete:              event.CapLevelDropped,
 		Reaction:            event.CapLevelFullySupported,
