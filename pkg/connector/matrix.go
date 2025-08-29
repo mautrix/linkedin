@@ -171,18 +171,20 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 		intent := l.userLogin.Bridge.Matrix.GhostIntent(l.userID)
 		evt, err := intent.GetEvent(ctx, msg.Event.RoomID, msg.ReplyTo.MXID)
 		if err != nil {
-			return nil, err
+			zerolog.Ctx(ctx).Debug().Err(err).Stringer("romm_id", msg.Event.RoomID).Stringer("event_id", msg.ReplyTo.MXID).Msg("failed to get ReplyTo event")
 		}
-		renderContent = append(renderContent, linkedingo.SendRenderContent{
-			RepliedMessageContent: &linkedingo.SendRepliedMessage{
-				OriginalSenderURN:  linkedingo.NewURN(string(msg.ReplyTo.SenderID)).WithPrefix("urn:li:msg_messagingParticipant:urn:li:fsd_profile"),
-				OriginalSendAt:     jsontime.UnixMilli{Time: msg.ReplyTo.Timestamp},
-				OriginalMessageURN: linkedingo.NewURN(string(msg.ReplyTo.ID)),
-				MessageBody: linkedingo.AttributedText{
-					Text: evt.Content.AsMessage().Body,
+		if evt != nil {
+			renderContent = append(renderContent, linkedingo.SendRenderContent{
+				RepliedMessageContent: &linkedingo.SendRepliedMessage{
+					OriginalSenderURN:  linkedingo.NewURN(string(msg.ReplyTo.SenderID)).WithPrefix("urn:li:msg_messagingParticipant:urn:li:fsd_profile"),
+					OriginalSendAt:     jsontime.UnixMilli{Time: msg.ReplyTo.Timestamp},
+					OriginalMessageURN: linkedingo.NewURN(string(msg.ReplyTo.ID)),
+					MessageBody: linkedingo.AttributedText{
+						Text: evt.Content.AsMessage().Body,
+					},
 				},
-			},
-		})
+			})
+		}
 	}
 	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent)
 	if err != nil {
