@@ -30,7 +30,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 3
+	return 1, 4
 }
 
 const MaxTextLength = 8000
@@ -44,7 +44,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID() string {
-	base := "fi.mau.linkedin.capabilities.2025_08_29"
+	base := "fi.mau.linkedin.capabilities.2025_09_02"
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -75,6 +75,7 @@ var formattingCaps = event.FormattingFeatureMap{
 var fileCaps = event.FileFeatureMap{
 	event.MsgImage: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
+			"image/gif":  event.CapLevelFullySupported,
 			"image/jpeg": event.CapLevelFullySupported,
 			"image/png":  event.CapLevelFullySupported,
 			"image/webp": event.CapLevelFullySupported,
@@ -111,7 +112,7 @@ var fileCaps = event.FileFeatureMap{
 	},
 	event.CapMsgGIF: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"image/gif": event.CapLevelPartialSupport,
+			"image/gif": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
 		MaxCaptionLength: MaxTextLength,
