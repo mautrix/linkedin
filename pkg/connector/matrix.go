@@ -187,7 +187,11 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 			})
 		}
 	}
-	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent)
+	transactionID := string(msg.InputTransactionID)
+	if transactionID == "" {
+		transactionID = uuid.NewString()
+	}
+	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent, transactionID)
 	if err != nil {
 		return nil, err
 	}

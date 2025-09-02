@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/random"
@@ -43,7 +42,7 @@ type SendMessage struct {
 	Body                SendMessageBody     `json:"body,omitempty"`
 	RenderContentUnions []SendRenderContent `json:"renderContentUnions,omitempty"`
 	ConversationURN     URN                 `json:"conversationUrn,omitempty"`
-	OriginToken         uuid.UUID           `json:"originToken,omitempty"`
+	OriginToken         string              `json:"originToken,omitempty"`
 }
 
 type SendMessageBody struct {
@@ -172,13 +171,13 @@ type RepliedMessage struct {
 	OriginalMessage Message `json:"originalMessage,omitempty"`
 }
 
-func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body SendMessageBody, renderContent []SendRenderContent) (*MessageSentResponse, error) {
+func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body SendMessageBody, renderContent []SendRenderContent, transactionID string) (*MessageSentResponse, error) {
 	payload := sendMessagePayload{
 		Message: SendMessage{
 			Body:                body,
 			RenderContentUnions: renderContent,
 			ConversationURN:     conversationURN,
-			OriginToken:         uuid.New(),
+			OriginToken:         transactionID,
 		},
 		MailboxURN: c.userEntityURN.WithPrefix("urn", "li", "fsd_profile"),
 		TrackingID: random.String(16),
