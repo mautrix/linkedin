@@ -19,7 +19,11 @@ package connector
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/networkid"
+	"maunium.net/go/mautrix/event"
+	"maunium.net/go/mautrix/id"
 )
 
 type LinkedInConnector struct {
@@ -28,6 +32,7 @@ type LinkedInConnector struct {
 }
 
 var _ bridgev2.NetworkConnector = (*LinkedInConnector)(nil)
+var _ bridgev2.TransactionIDGeneratingNetwork = (*LinkedInConnector)(nil)
 
 func (l *LinkedInConnector) Init(bridge *bridgev2.Bridge) {
 	l.Bridge = bridge
@@ -51,4 +56,8 @@ func (lc *LinkedInConnector) GetName() bridgev2.BridgeName {
 		BeeperBridgeType: "linkedin",
 		DefaultPort:      29341,
 	}
+}
+
+func (lc *LinkedInConnector) GenerateTransactionID(userID id.UserID, roomID id.RoomID, eventType event.Type) networkid.RawTransactionID {
+	return networkid.RawTransactionID(uuid.NewString())
 }
