@@ -53,6 +53,8 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 
 	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
 	switch decoratedEvent.Topic.NthPrefixPart(2) {
+	case linkedingo.RealtimeEventTopicConversationDelete:
+		l.onRealtimeConversationDelete(ctx, decoratedEvent.Payload.Data.DecoratedConversationDelete.Result)
 	case linkedingo.RealtimeEventTopicMessages:
 		l.onRealtimeMessage(ctx, decoratedEvent.Payload.Data.DecoratedMessage.Result)
 	case linkedingo.RealtimeEventTopicTypingIndicators:
@@ -64,6 +66,18 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 	default:
 		log.Warn().Msg("Unsupported event topic")
 	}
+}
+
+func (l *LinkedInClient) onRealtimeConversationDelete(ctx context.Context, conv linkedingo.Conversation) {
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatDelete{
+		EventMeta: simplevent.EventMeta{
+			Type: bridgev2.RemoteEventChatDelete,
+			LogContext: func(c zerolog.Context) zerolog.Context {
+				return c.Stringer("entity_urn", conv.EntityURN)
+			},
+			PortalKey: l.makePortalKey(conv),
+		},
+	})
 }
 
 func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.Message) {

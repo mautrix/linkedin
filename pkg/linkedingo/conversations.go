@@ -163,3 +163,7 @@ func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefor
 	}
 	return response.Data.MessengerConversationsByCategoryQuery, nil
 }
+
+type DecoratedConversationDelete struct {
+	Result Conversation `json:"result,omitempty"`
+}

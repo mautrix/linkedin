@@ -43,7 +43,7 @@ const (
 
 const (
 	RealtimeEventTopicConversations              = "conversationsTopic"
-	RealtimeEventTopicConversationsDelete        = "conversationDeletesTopic"
+	RealtimeEventTopicConversationDelete         = "conversationDeletesTopic"
 	RealtimeEventTopicMessageSeenReceipts        = "messageSeenReceiptsTopic"
 	RealtimeEventTopicMessages                   = "messagesTopic"
 	RealtimeEventTopicReplySuggestionV2          = "replySuggestionTopicV2"
