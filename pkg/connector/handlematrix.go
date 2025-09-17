@@ -38,6 +38,14 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
+var (
+	_ bridgev2.EditHandlingNetworkAPI        = (*LinkedInClient)(nil)
+	_ bridgev2.ReactionHandlingNetworkAPI    = (*LinkedInClient)(nil)
+	_ bridgev2.RedactionHandlingNetworkAPI   = (*LinkedInClient)(nil)
+	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*LinkedInClient)(nil)
+	_ bridgev2.TypingHandlingNetworkAPI      = (*LinkedInClient)(nil)
+)
+
 func getMediaFilename(content *event.MessageEventContent) (filename string) {
 	if content.FileName != "" {
 		filename = content.FileName

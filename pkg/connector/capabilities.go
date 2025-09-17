@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"go.mau.fi/util/ffmpeg"
-	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/event"
 )
@@ -127,19 +126,6 @@ var fileCaps = event.FileFeatureMap{
 		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
-}
-var premiumFileCaps event.FileFeatureMap
-
-func init() {
-	premiumFileCaps = make(event.FileFeatureMap, len(fileCaps))
-	for k, v := range fileCaps {
-		cloned := ptr.Clone(v)
-		if k == event.MsgFile || k == event.MsgVideo || k == event.MsgAudio {
-			cloned.MaxSize *= 2
-		}
-		cloned.MaxCaptionLength *= 2
-		premiumFileCaps[k] = cloned
-	}
 }
 
 func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {

@@ -27,6 +27,10 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
+var (
+	_ bridgev2.BackfillingNetworkAPI = (*LinkedInClient)(nil)
+)
+
 func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
 	log := zerolog.Ctx(ctx).With().Str("method", "fetch_messages").Logger()
 	ctx = log.WithContext(ctx)
