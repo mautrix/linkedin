@@ -294,6 +294,7 @@ func (parser *HTMLParser) basicFormatToString(node *html.Node, ctx Context) *Ent
 	case "ol":
 		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleList, Ordered: true})
 	case "li":
+		str = NewEntityString("- ").Append(str).AppendString("\n")
 		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleListItem})
 	case "p":
 		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleParagraph})
