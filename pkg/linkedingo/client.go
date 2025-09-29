@@ -49,6 +49,8 @@ type Client struct {
 	pageInstance   string
 	xLITrack       string
 	serviceVersion string
+
+	syncToken string
 }
 
 func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pageInstance, xLiTrack string, handlers Handlers) *Client {

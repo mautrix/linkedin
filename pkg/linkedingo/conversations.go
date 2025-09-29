@@ -34,6 +34,7 @@ type GraphQlResponse struct {
 
 type GraphQLData struct {
 	MessengerConversationsByCategoryQuery           *CollectionResponse[ConversationCursorMetadata, Conversation] `json:"messengerConversationsByCategoryQuery,omitempty"`
+	MessengerConversationsBySyncToken               *CollectionResponse[ConversationSyncMetadata, Conversation]   `json:"messengerConversationsBySyncToken,omitempty"`
 	MessengerMessagesByAnchorTimestamp              *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByAnchorTimestamp,omitempty"`
 	MessengerMessagesByConversation                 *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByConversation,omitempty"`
 	MessengerMessagingParticipantsByMessageAndEmoji *CollectionResponse[any, MessagingParticipant]                `json:"messengerMessagingParticipantsByMessageAndEmoji,omitempty"`
@@ -96,6 +97,11 @@ type ConversationCursorMetadata struct {
 	NextCursor string `json:"nextCursor,omitempty"`
 }
 
+// ConversationSyncMetadata represents a com.linkedin.messenger.SyncMetadata object.
+type ConversationSyncMetadata struct {
+	NewSyncToken string `json:"newSyncToken,omitempty"`
+}
+
 // MessageMetadata represents a com.linkedin.messenger.MessageMetadata object.
 type MessageMetadata struct {
 	NextCursor string `json:"nextCursor,omitempty"`
@@ -112,6 +118,7 @@ type Conversation struct {
 	ConversationParticipants []MessagingParticipant           `json:"conversationParticipants,omitempty"`
 	Read                     bool                             `json:"read,omitempty"`
 	Messages                 CollectionResponse[any, Message] `json:"messages,omitempty"`
+	Categories               []string                         `json:"categories,omitempty"`
 }
 
 // MessagingParticipant represents a
@@ -162,6 +169,31 @@ func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefor
 		return nil, err
 	}
 	return response.Data.MessengerConversationsByCategoryQuery, nil
+}
+
+func (c *Client) GetConversations(ctx context.Context) (*CollectionResponse[ConversationSyncMetadata, Conversation], error) {
+	zerolog.Ctx(ctx).Info().Msg("Getting conversations")
+	req := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL)
+	mailboxUrn := url.QueryEscape(c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String())
+	if c.syncToken != "" {
+		req.WithGraphQLQuery(graphQLQueryIDMessengerConversationsWithSyncToken, map[string]string{
+			"mailboxUrn": mailboxUrn,
+			"syncToken":  c.syncToken,
+		})
+	} else {
+		req.WithGraphQLQuery(graphQLQueryIDMessengerConversations, map[string]string{
+			"mailboxUrn": mailboxUrn,
+		})
+
+	}
+	var response GraphQlResponse
+	_, err := req.Do(ctx, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	c.syncToken = response.Data.MessengerConversationsBySyncToken.Metadata.NewSyncToken
+	return response.Data.MessengerConversationsBySyncToken, nil
 }
 
 type DecoratedConversationDelete struct {
