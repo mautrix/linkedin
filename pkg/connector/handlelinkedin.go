@@ -53,6 +53,8 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 
 	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
 	switch decoratedEvent.Topic.NthPrefixPart(2) {
+	case linkedingo.RealtimeEventTopicConversations:
+		l.onRealtimeConversations(ctx)
 	case linkedingo.RealtimeEventTopicConversationDelete:
 		l.onRealtimeConversationDelete(ctx, decoratedEvent.Payload.Data.DecoratedConversationDelete.Result)
 	case linkedingo.RealtimeEventTopicMessages:
@@ -66,6 +68,15 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 	default:
 		log.Warn().Msg("Unsupported event topic")
 	}
+}
+
+func (l *LinkedInClient) onRealtimeConversations(ctx context.Context) {
+	convs, err := l.client.GetConversations(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("failed to get conversations")
+	}
+
+	l.handleConversations(ctx, convs.Elements)
 }
 
 func (l *LinkedInClient) onRealtimeConversationDelete(ctx context.Context, conv linkedingo.Conversation) {
@@ -88,11 +99,10 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 				Stringer("entity_urn", msg.EntityURN).
 				Stringer("sender", msg.Sender.EntityURN)
 		},
-		PortalKey:    l.makePortalKey(msg.Conversation),
-		CreatePortal: true,
-		Sender:       l.makeSender(msg.Sender),
-		Timestamp:    msg.DeliveredAt.Time,
-		StreamOrder:  msg.DeliveredAt.UnixMilli(),
+		PortalKey:   l.makePortalKey(msg.Conversation),
+		Sender:      l.makeSender(msg.Sender),
+		Timestamp:   msg.DeliveredAt.Time,
+		StreamOrder: msg.DeliveredAt.UnixMilli(),
 	}
 
 	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)

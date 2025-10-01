@@ -60,8 +60,10 @@ const (
 )
 
 const (
-	graphQLQueryIDMessengerConversationsWithCursor   = "messengerConversations.8656fb361a8ad0c178e8d3ff1a84ce26"
-	graphQLQueryIDMessengerMessagesByAnchorTimestamp = "messengerMessages.4088d03bc70c91c3fa68965cb42336de"
-	graphQLQueryIDMessengerMessagesByPrevCursor      = "messengerMessages.34c9888be71c8010fecfb575cb38308f"
-	graphQLQueryIDVoyagerFeedDashUpdates             = "voyagerFeedDashUpdates.c2a318e55b634e20689c80e3dd11952e"
+	graphQLQueryIDMessengerConversations              = "messengerConversations.f0873b936b43ed663997b215b2c28359"
+	graphQLQueryIDMessengerConversationsWithSyncToken = "messengerConversations.74c17e85611b60b7ba2700481151a316"
+	graphQLQueryIDMessengerConversationsWithCursor    = "messengerConversations.8656fb361a8ad0c178e8d3ff1a84ce26"
+	graphQLQueryIDMessengerMessagesByAnchorTimestamp  = "messengerMessages.4088d03bc70c91c3fa68965cb42336de"
+	graphQLQueryIDMessengerMessagesByPrevCursor       = "messengerMessages.34c9888be71c8010fecfb575cb38308f"
+	graphQLQueryIDVoyagerFeedDashUpdates              = "voyagerFeedDashUpdates.c2a318e55b634e20689c80e3dd11952e"
 )
