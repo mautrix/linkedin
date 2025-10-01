@@ -18,8 +18,11 @@ package connector
 
 import (
 	"context"
+	"time"
 
 	"go.mau.fi/util/ffmpeg"
+	"go.mau.fi/util/jsontime"
+	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/event"
 )
@@ -29,7 +32,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 4
+	return 1, 5
 }
 
 const MaxTextLength = 8000
@@ -43,7 +46,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID() string {
-	base := "fi.mau.linkedin.capabilities.2025_09_02"
+	base := "fi.mau.linkedin.capabilities.2025_09_21"
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -85,17 +88,8 @@ var fileCaps = event.FileFeatureMap{
 	},
 	event.MsgVideo: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"video/mp4": event.CapLevelPartialSupport,
-		},
-		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxTextLength,
-		MaxSize:          MaxFileSize,
-	},
-	event.MsgAudio: {
-		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"audio/mpeg": event.CapLevelFullySupported,
-			"audio/mp4":  event.CapLevelFullySupported,
-			// TODO some other formats are probably supported too
+			"video/mp4":       event.CapLevelFullySupported,
+			"video/quicktime": event.CapLevelFullySupported,
 		},
 		Caption:          event.CapLevelFullySupported,
 		MaxCaptionLength: MaxTextLength,
@@ -137,7 +131,9 @@ func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Por
 		LocationMessage:     event.CapLevelDropped,
 		Reply:               event.CapLevelFullySupported,
 		Edit:                event.CapLevelFullySupported, // TODO note that edits are restricted to specific msgtypes
-		Delete:              event.CapLevelDropped,
+		Delete:              event.CapLevelFullySupported,
+		DeleteForMe:         false,
+		DeleteMaxAge:        ptr.Ptr(jsontime.S(60 * time.Minute)),
 		Reaction:            event.CapLevelFullySupported,
 		ReadReceipts:        true,
 		TypingNotifications: true,
