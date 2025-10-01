@@ -201,8 +201,8 @@ func (c *Client) DeleteConversation(ctx context.Context, conversationURN URN) er
 	zerolog.Ctx(ctx).Info().
 		Stringer("conversation_urn", conversationURN).
 		Msg("Deleting conversation")
-	path := fmt.Sprintf("urn:li:msg_conversation:(%s)", conversationURN.WithPrefix("urn", "li", "fsd_profile").String())
-	url := fmt.Sprintf("%s/%s", linkedInMessagingDashMessengerConversationsURL, path)
+	id := fmt.Sprintf("urn:li:msg_conversation:(%s)", conversationURN.WithPrefix("urn", "li", "fsd_profile").String())
+	url := fmt.Sprintf("%s/%s", linkedInMessagingDashMessengerConversationsURL, url.PathEscape(id))
 	req := c.newAuthedRequest(http.MethodDelete, url)
 	_, err := req.Do(ctx, nil)
 	return err
