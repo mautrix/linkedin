@@ -95,16 +95,6 @@ var fileCaps = event.FileFeatureMap{
 		MaxCaptionLength: MaxTextLength,
 		MaxSize:          MaxFileSize,
 	},
-	event.MsgAudio: {
-		MimeTypes: map[string]event.CapabilitySupportLevel{
-			"audio/mpeg": event.CapLevelFullySupported,
-			"audio/mp4":  event.CapLevelFullySupported,
-			// TODO some other formats are probably supported too
-		},
-		Caption:          event.CapLevelFullySupported,
-		MaxCaptionLength: MaxTextLength,
-		MaxSize:          MaxFileSize,
-	},
 	event.MsgFile: {
 		MimeTypes: map[string]event.CapabilitySupportLevel{
 			"*/*": event.CapLevelFullySupported,
