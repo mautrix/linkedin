@@ -55,6 +55,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 					},
 					PortalKey: l.makePortalKey(conv),
 				},
+				OnlyForMe: true,
 			})
 			continue
 		}
