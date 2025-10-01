@@ -198,12 +198,11 @@ func (c *Client) GetConversations(ctx context.Context) (*CollectionResponse[Conv
 }
 
 func (c *Client) DeleteConversation(ctx context.Context, conversationURN URN) error {
-	zerolog.Ctx(ctx).Info().
-		Stringer("conversation_urn", conversationURN).
-		Msg("Deleting conversation")
-	path := fmt.Sprintf("urn:li:msg_conversation:(%s)", conversationURN.WithPrefix("urn", "li", "fsd_profile").String())
-	url := fmt.Sprintf("%s/%s", linkedInMessagingDashMessengerConversationsURL, path)
-	req := c.newAuthedRequest(http.MethodDelete, url)
+	url := fmt.Sprintf("%s/%s", linkedInMessagingDashMessengerConversationsURL, url.QueryEscape(conversationURN.String()))
+	req := c.newAuthedRequest(http.MethodDelete, url).
+		WithCSRF().
+		WithWebpageHeaders().
+		WithXLIHeaders()
 	_, err := req.Do(ctx, nil)
 	return err
 }
