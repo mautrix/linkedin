@@ -45,8 +45,7 @@ var _ json.Unmarshaler = (*StringCookieJar)(nil)
 // NewEmptyStringCookieJar creates an empty [StringCookieJar].
 func NewEmptyStringCookieJar() *StringCookieJar {
 	return &StringCookieJar{
-		cookies: map[string]*http.Cookie{},
-		lock:    sync.RWMutex{},
+		cookies: make(map[string]*http.Cookie),
 	}
 }
 

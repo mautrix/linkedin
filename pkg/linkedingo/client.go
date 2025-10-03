@@ -26,14 +26,14 @@ import (
 )
 
 const BrowserName = "Chrome"
-const ChromeVersion = "135"
+const ChromeVersion = "141"
 const UserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + ChromeVersion + ".0.0.0 Safari/537.36"
 const SecCHUserAgent = `"Chromium";v="` + ChromeVersion + `", "Google Chrome";v="` + ChromeVersion + `", "Not-A.Brand";v="99"`
 const OSName = "Linux"
 const SecCHPlatform = `"` + OSName + `"`
 const SecCHMobile = "?0"
 const SecCHPrefersColorScheme = "light"
-const ServiceVersion = "1.13.36969"
+const ServiceVersion = "1.13.39523"
 
 type Client struct {
 	http          *http.Client
