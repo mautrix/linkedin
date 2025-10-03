@@ -284,25 +284,15 @@ func (parser *HTMLParser) basicFormatToString(node *html.Node, ctx Context) *Ent
 	str := parser.nodeToTagAwareString(node.FirstChild, ctx)
 	switch node.Data {
 	case "b", "strong":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleBold})
+		return NewEntityString("**").Append(str).AppendString("**")
 	case "i", "em":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleItalic})
-	case "br":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleLineBreak})
-	case "ul":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleList, Ordered: false})
-	case "ol":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleList, Ordered: true})
+		return NewEntityString("_").Append(str).AppendString("_")
+	case "s", "del", "strike":
+		return NewEntityString("~~").Append(str).AppendString("~~")
+	case "tt", "code":
+		return NewEntityString("`").Append(str).AppendString("`")
 	case "li":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleListItem})
-	case "p":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleParagraph})
-	case "sub":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleSubscript})
-	case "sup":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleSuperscript})
-	case "u":
-		return str.Format(linkedinfmt.Style{Type: linkedinfmt.StyleUnderline})
+		return NewEntityString("- ").Append(str).AppendString("\n")
 	}
 	return str
 }
