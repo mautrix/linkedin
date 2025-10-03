@@ -18,6 +18,7 @@ package matrixfmt
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strings"
 
@@ -300,7 +301,7 @@ func (parser *HTMLParser) basicFormatToString(node *html.Node, ctx Context) *Ent
 func (parser *HTMLParser) headerToString(node *html.Node, ctx Context) *EntityString {
 	length := int(node.Data[1] - '0')
 	prefix := strings.Repeat("#", length) + " "
-	return NewEntityString(prefix).Append(parser.nodeToString(node.FirstChild, ctx)).Format(linkedinfmt.Style{Type: linkedinfmt.StyleBold})
+	return NewEntityString(prefix).Append(parser.nodeToString(node.FirstChild, ctx))
 }
 
 func (parser *HTMLParser) linkToString(node *html.Node, ctx Context) *EntityString {
@@ -326,7 +327,7 @@ func (parser *HTMLParser) linkToString(node *html.Node, ctx Context) *EntityStri
 			return NewEntityString("@" + username).Format(linkedinfmt.Mention{UserID: userID})
 		}
 	}
-	return ent.Format(linkedinfmt.Style{Type: linkedinfmt.StyleHyperlink, URL: href})
+	return ent.AppendString(fmt.Sprintf(" (%s)", href))
 }
 
 func (parser *HTMLParser) tagToString(node *html.Node, ctx Context) *EntityString {
