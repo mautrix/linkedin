@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -166,6 +167,8 @@ func (a *authedRequest) WithWebpageHeaders() *authedRequest {
 		WithHeader("Upgrade-Insecure-Requests", "1")
 }
 
+var reqIDCounter atomic.Int64
+
 func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 	if a.parseErr != nil {
 		return nil, a.parseErr
@@ -181,6 +184,14 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 		}
 	}
 
+	reqID := reqIDCounter.Add(1)
+	log := zerolog.Ctx(ctx).With().
+		Int64("req_id", reqID).
+		Str("method", a.method).
+		Stringer("url", a.url).
+		Logger()
+	ctx = log.WithContext(ctx)
+
 	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), a.body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
@@ -192,15 +203,11 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 	dur := time.Since(start)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).
-			Str("method", a.method).
-			Stringer("url", a.url).
 			Dur("duration", dur).
 			Msg("Failed to send request")
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	zerolog.Ctx(ctx).Debug().
-		Str("method", a.method).
-		Stringer("url", a.url).
 		Int("status", resp.StatusCode).
 		Dur("duration", dur).
 		Msg("Request completed")

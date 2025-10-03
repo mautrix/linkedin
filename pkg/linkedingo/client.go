@@ -91,6 +91,9 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 			// Disallow redirects entirely:
 			// https://stackoverflow.com/a/38150816/2319844
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				zerolog.Ctx(req.Context()).Warn().
+					Stringer("redirected_to", req.URL).
+					Msg("HTTP request was redirected")
 				return http.ErrUseLastResponse
 			},
 		},
