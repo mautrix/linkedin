@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -47,6 +48,24 @@ type authedRequest struct {
 	body        io.Reader
 
 	client *Client
+}
+
+var (
+	ErrTokenInvalidated = errors.New("access token is no longer valid")
+)
+
+func (c *Client) checkHTTPRedirect(req *http.Request, via []*http.Request) error {
+	if req.Response == nil {
+		return nil
+	}
+	respCookies := req.Response.Cookies()
+	for _, cookie := range respCookies {
+		if cookie.Name == "li_at" && (cookie.Expires.Unix() == 0 || cookie.Value == "delete me") {
+			return fmt.Errorf("%w: %s cookie was deleted", ErrTokenInvalidated, cookie.Name)
+		}
+	}
+	// Don't allow redirects
+	return http.ErrUseLastResponse
 }
 
 func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {

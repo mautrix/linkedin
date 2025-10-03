@@ -74,7 +74,7 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 		log.Warn().Msg("mpVersion is empty, using default")
 		serviceVersion = ServiceVersion
 	}
-	return &Client{
+	cli := &Client{
 		userEntityURN:     userEntityURN,
 		jar:               jar,
 		pageInstance:      pageInstance,
@@ -82,22 +82,15 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 		serviceVersion:    serviceVersion,
 		realtimeSessionID: uuid.New(),
 		handlers:          handlers,
-		http: &http.Client{
-			Transport: &http.Transport{
-				Proxy: http.ProxyFromEnvironment,
-			},
-			Jar: jar,
-
-			// Disallow redirects entirely:
-			// https://stackoverflow.com/a/38150816/2319844
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				zerolog.Ctx(req.Context()).Warn().
-					Stringer("redirected_to", req.URL).
-					Msg("HTTP request was redirected")
-				return http.ErrUseLastResponse
-			},
-		},
 	}
+	cli.http = &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+		},
+		Jar:           jar,
+		CheckRedirect: cli.checkHTTPRedirect,
+	}
+	return cli
 }
 
 type Handlers struct {

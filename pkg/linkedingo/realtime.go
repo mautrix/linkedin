@@ -162,7 +162,10 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			WithRealtimeConnectHeaders().
 			WithHeader("Accept", contentTypeTextEventStream).
 			DoRaw(ctx)
-		if err != nil {
+		if errors.Is(err, ErrTokenInvalidated) {
+			c.handlers.onBadCredentials(ctx, err)
+			return
+		} else if err != nil {
 			connectAttempts += 1
 			if connectAttempts > MaxConnectionAttempts {
 				c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect: %w", err))
