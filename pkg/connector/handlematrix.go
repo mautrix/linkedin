@@ -224,7 +224,8 @@ func (l *LinkedInClient) HandleMatrixMessageRemove(ctx context.Context, msg *bri
 }
 
 func (l *LinkedInClient) PreHandleMatrixReaction(ctx context.Context, msg *bridgev2.MatrixReaction) (bridgev2.MatrixReactionPreResponse, error) {
-	emojiID := networkid.EmojiID(msg.Content.RelatesTo.Key)
+	fullyQualifiedEmoji := variationselector.FullyQualify(msg.Content.RelatesTo.Key)
+	emojiID := networkid.EmojiID(fullyQualifiedEmoji)
 	zerolog.Ctx(ctx).Debug().
 		Str("conversion_direction", "to_linkedin").
 		Str("handler", "pre_handle_matrix_reaction").
@@ -235,7 +236,7 @@ func (l *LinkedInClient) PreHandleMatrixReaction(ctx context.Context, msg *bridg
 	return bridgev2.MatrixReactionPreResponse{
 		SenderID: l.userID,
 		EmojiID:  emojiID,
-		Emoji:    variationselector.FullyQualify(msg.Content.RelatesTo.Key),
+		Emoji:    fullyQualifiedEmoji,
 	}, nil
 }
 
