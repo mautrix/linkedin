@@ -67,10 +67,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 
 	// Handle emotes by adding a "*" and the user's name to the message
 	if msg.Content.MsgType == event.MsgEmote {
-		if msg.Content.FormattedBody == "" {
-			msg.Content.FormattedBody = msg.Content.Body
-		}
-		msg.Content.Format = event.FormatHTML
+		msg.Content.EnsureHasHTML()
 		msg.Content.Body = fmt.Sprintf("* %s %s", l.userLogin.RemoteName, msg.Content.Body)
 		msg.Content.FormattedBody = fmt.Sprintf(`* <a href="https://matrix.to/#/%s">%s</a> %s`, l.userLogin.UserMXID, l.userLogin.RemoteName, msg.Content.FormattedBody)
 		msg.Content.Mentions = &event.Mentions{UserIDs: []id.UserID{l.userLogin.UserMXID}}
