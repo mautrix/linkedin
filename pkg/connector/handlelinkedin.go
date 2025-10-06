@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -30,6 +31,13 @@ func (l *LinkedInClient) onBadCredentials(ctx context.Context, err error) {
 		Message:    err.Error(),
 	})
 	l.Disconnect()
+	if errors.Is(err, linkedingo.ErrTokenInvalidated) {
+		l.userLogin.Metadata.(*UserLoginMetadata).Cookies.Clear()
+		err = l.userLogin.Save(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("failed to clear cookies after token invalidation")
+		}
+	}
 }
 
 func (l *LinkedInClient) onUnknownError(ctx context.Context, err error) {

@@ -70,6 +70,12 @@ func (s *StringCookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {
 	}
 }
 
+func (s *StringCookieJar) Clear() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	clear(s.cookies)
+}
+
 func (s *StringCookieJar) AddCookie(cookie *http.Cookie) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
