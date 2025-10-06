@@ -55,7 +55,13 @@ func getMediaFilename(content *event.MessageEventContent) (filename string) {
 	return filename
 }
 
+var ErrNotLoggedIn = bridgev2.WrapErrorInStatus(fmt.Errorf("you're %w", bridgev2.ErrNotLoggedIn)).
+	WithSendNotice(true).WithIsCertain(true).WithErrorAsMessage()
+
 func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (*bridgev2.MatrixMessageResponse, error) {
+	if !l.IsLoggedIn() {
+		return nil, ErrNotLoggedIn
+	}
 	conversationURN := linkedingo.NewURN(msg.Portal.ID)
 
 	// Handle emotes by adding a "*" and the user's name to the message
@@ -216,10 +222,16 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 }
 
 func (l *LinkedInClient) HandleMatrixEdit(ctx context.Context, msg *bridgev2.MatrixEdit) error {
+	if !l.IsLoggedIn() {
+		return ErrNotLoggedIn
+	}
 	return l.client.EditMessage(ctx, linkedingo.NewURN(msg.EditTarget.ID), matrixfmt.Parse(ctx, l.matrixParser, msg.Content))
 }
 
 func (l *LinkedInClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2.MatrixMessageRemove) error {
+	if !l.IsLoggedIn() {
+		return ErrNotLoggedIn
+	}
 	return l.client.RecallMessage(ctx, linkedingo.NewURN(msg.TargetMessage.ID))
 }
 
@@ -241,6 +253,9 @@ func (l *LinkedInClient) PreHandleMatrixReaction(ctx context.Context, msg *bridg
 }
 
 func (l *LinkedInClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2.MatrixReaction) (reaction *database.Reaction, err error) {
+	if !l.IsLoggedIn() {
+		return nil, ErrNotLoggedIn
+	}
 	return &database.Reaction{}, l.client.SendReaction(ctx, linkedingo.NewURN(msg.TargetMessage.ID), msg.PreHandleResp.Emoji)
 }
 
@@ -249,11 +264,17 @@ func (l *LinkedInClient) HandleMatrixReactionRemove(ctx context.Context, msg *br
 }
 
 func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
+	if !l.IsLoggedIn() {
+		return ErrNotLoggedIn
+	}
 	_, err := l.client.MarkConversationRead(ctx, linkedingo.NewURN(msg.Portal.ID))
 	return err
 }
 
 func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
+	if !l.IsLoggedIn() {
+		return ErrNotLoggedIn
+	}
 	if msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
 		return l.client.StartTyping(ctx, linkedingo.NewURN(msg.Portal.ID))
 	}
