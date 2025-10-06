@@ -211,25 +211,62 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 		Logger()
 	ctx = log.WithContext(ctx)
 
+	retryIn := 2 * time.Second
+	for retryCount := 0; ; retryCount++ {
+		start := time.Now()
+		resp, err := a.doRawRetry(ctx)
+		dur := time.Since(start)
+		if errors.Is(err, ErrTokenInvalidated) || retryCount >= 5 {
+			logEvt := log.Error()
+			if resp != nil {
+				_ = resp.Body.Close()
+				logEvt.Int("status", resp.StatusCode)
+			}
+			logEvt.Err(err).
+				Dur("duration", dur).
+				Msg("Failed to send request")
+			return nil, err
+		} else if err != nil {
+			log.Warn().Err(err).
+				Dur("duration", dur).
+				Dur("retry_in", retryIn).
+				Msg("Failed to send request, retrying")
+		} else if resp.StatusCode == http.StatusBadGateway || resp.StatusCode == http.StatusServiceUnavailable || resp.StatusCode == http.StatusGatewayTimeout {
+			log.Warn().
+				Dur("duration", dur).
+				Int("status", resp.StatusCode).
+				Dur("retry_in", retryIn).
+				Msg("HTTP 50x while sending request, retrying")
+		} else {
+			log.Debug().
+				Int("status", resp.StatusCode).
+				Dur("duration", dur).
+				Msg("Request completed")
+			return resp, nil
+		}
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(retryIn):
+		}
+		retryIn *= 2
+	}
+}
+
+func (a *authedRequest) doRawRetry(ctx context.Context) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), a.body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
 	req.Header = a.header
 
-	start := time.Now()
 	resp, err := a.client.http.Do(req)
-	dur := time.Since(start)
 	if err != nil {
-		zerolog.Ctx(ctx).Err(err).
-			Dur("duration", dur).
-			Msg("Failed to send request")
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	zerolog.Ctx(ctx).Debug().
-		Int("status", resp.StatusCode).
-		Dur("duration", dur).
-		Msg("Request completed")
 	return resp, nil
 }
 
