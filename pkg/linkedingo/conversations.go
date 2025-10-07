@@ -18,6 +18,7 @@ package linkedingo
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -194,6 +195,16 @@ func (c *Client) GetConversations(ctx context.Context) (*CollectionResponse[Conv
 
 	c.syncToken = response.Data.MessengerConversationsBySyncToken.Metadata.NewSyncToken
 	return response.Data.MessengerConversationsBySyncToken, nil
+}
+
+func (c *Client) DeleteConversation(ctx context.Context, conversationURN URN) error {
+	url := fmt.Sprintf("%s/%s", linkedInMessagingDashMessengerConversationsURL, url.QueryEscape(conversationURN.String()))
+	req := c.newAuthedRequest(http.MethodDelete, url).
+		WithCSRF().
+		WithWebpageHeaders().
+		WithXLIHeaders()
+	_, err := req.Do(ctx, nil)
+	return err
 }
 
 type DecoratedConversationDelete struct {

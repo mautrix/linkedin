@@ -138,5 +138,6 @@ func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Por
 		Reaction:            event.CapLevelFullySupported,
 		ReadReceipts:        true,
 		TypingNotifications: true,
+		DeleteChat:          true,
 	}
 }

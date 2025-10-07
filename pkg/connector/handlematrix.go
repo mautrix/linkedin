@@ -44,6 +44,7 @@ var (
 	_ bridgev2.RedactionHandlingNetworkAPI   = (*LinkedInClient)(nil)
 	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*LinkedInClient)(nil)
 	_ bridgev2.TypingHandlingNetworkAPI      = (*LinkedInClient)(nil)
+	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*LinkedInClient)(nil)
 )
 
 func getMediaFilename(content *event.MessageEventContent) (filename string) {
@@ -279,4 +280,8 @@ func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.M
 		return l.client.StartTyping(ctx, linkedingo.NewURN(msg.Portal.ID))
 	}
 	return nil
+}
+
+func (l *LinkedInClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
+	return l.client.DeleteConversation(ctx, linkedingo.NewURN(chat.Portal.ID))
 }
