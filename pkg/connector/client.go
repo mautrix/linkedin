@@ -80,8 +80,12 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 
 				if client.sessID != conn.SessID {
+					zerolog.Ctx(ctx).Debug().
+						Stringer("old_sess_id", client.sessID).
+						Stringer("new_sess_id", conn.SessID).
+						Msg("Session ID changed, resyncing conversations")
 					go client.syncConversations(ctx)
-					client.sessID = conn.ID
+					client.sessID = conn.SessID
 				}
 			},
 			TransientDisconnect: client.onTransientDisconnect,
