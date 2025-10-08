@@ -72,7 +72,9 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 		login.Metadata.(*UserLoginMetadata).XLITrack,
 		linkedingo.Handlers{
 			Heartbeat: func(ctx context.Context) {
-				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+				if login.BridgeState.GetPrevUnsent().StateEvent != status.StateConnected {
+					login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+				}
 			},
 			ClientConnection: func(ctx context.Context, conn *linkedingo.ClientConnection) {
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
