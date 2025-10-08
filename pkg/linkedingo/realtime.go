@@ -173,8 +173,17 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				return
 			}
 			c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect: %w", err))
-			time.Sleep(time.Second * time.Duration(connectAttempts))
-			continue
+			backoff := time.Duration(connectAttempts*2) * time.Second
+			if backoff > time.Minute {
+				backoff = time.Minute
+			}
+			select {
+			case <-time.After(backoff):
+				continue
+			case <-ctx.Done():
+				log.Info().Msg("Realtime connection loop canceled")
+				return
+			}
 		} else if c.realtimeResp.StatusCode != http.StatusOK {
 			switch c.realtimeResp.StatusCode {
 			case http.StatusUnauthorized, http.StatusFound:
@@ -190,8 +199,17 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 					return
 				}
 				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect due to status code: %d", c.realtimeResp.StatusCode))
-				time.Sleep(time.Second * time.Duration(connectAttempts))
-				continue
+				backoff := time.Duration(connectAttempts*2) * time.Second
+				if backoff > time.Minute {
+					backoff = time.Minute
+				}
+				select {
+				case <-time.After(backoff):
+					continue
+				case <-ctx.Done():
+					log.Info().Msg("Realtime connection loop canceled")
+					return
+				}
 			}
 			return
 		}
