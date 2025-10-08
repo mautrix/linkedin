@@ -1,3 +1,16 @@
+# v25.11 (unreleased)
+
+* Renamed to mautrix-linkedin and migrated from github.com/beeper to
+  github.com/mautrix. Docker images and CI can now be found on mau.dev as with
+  all other mautrix bridges.
+* Rewrote bridge in Go using bridgev2 architecture.
+  * To migrate the bridge, simply upgrade in-place. The database and config
+    will be migrated automatically, although some parts of the config aren't
+    migrated (e.g. log config).
+  * It is recommended to check the config file after upgrading. If you have
+    prevented the bridge from writing to the config, you should update it
+    manually.
+
 # v0.5.4
 
 **Migrated away from Poetry**. The dependency management was getting very
