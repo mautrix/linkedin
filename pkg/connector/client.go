@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix/bridgev2"
@@ -38,7 +39,7 @@ type LinkedInClient struct {
 	userLogin *bridgev2.UserLogin
 	client    *linkedingo.Client
 
-	firstConnection      bool
+	sessID               uuid.UUID
 	conversationLastRead map[linkedingo.URN]jsontime.UnixMilli
 
 	linkedinFmtParams linkedinfmt.FormatParams
@@ -61,7 +62,6 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 		main:                 lc,
 		userID:               userID,
 		userLogin:            login,
-		firstConnection:      true,
 		conversationLastRead: map[linkedingo.URN]jsontime.UnixMilli{},
 	}
 	client.client = linkedingo.NewClient(
@@ -74,12 +74,12 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			Heartbeat: func(ctx context.Context) {
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 			},
-			ClientConnection: func(context.Context, *linkedingo.ClientConnection) {
+			ClientConnection: func(ctx context.Context, conn *linkedingo.ClientConnection) {
 				login.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 
-				if client.firstConnection {
+				if client.sessID != conn.SessID {
 					go client.syncConversations(ctx)
-					client.firstConnection = false
+					client.sessID = conn.ID
 				}
 			},
 			TransientDisconnect: client.onTransientDisconnect,

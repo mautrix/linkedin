@@ -61,7 +61,8 @@ type RealtimeEvent struct {
 type Heartbeat struct{}
 
 type ClientConnection struct {
-	ID uuid.UUID `json:"id"`
+	ID     uuid.UUID `json:"id"`
+	SessID uuid.UUID `json:"-"`
 }
 
 type DecoratedEvent struct {
@@ -178,6 +179,10 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			switch c.realtimeResp.StatusCode {
 			case http.StatusUnauthorized, http.StatusFound:
 				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", c.realtimeResp.StatusCode))
+			case http.StatusBadRequest:
+				log.Warn().Msg("Got 400 on connect, resetting realtime session ID")
+				c.realtimeSessionID = uuid.New()
+				fallthrough
 			default:
 				connectAttempts += 1
 				if connectAttempts > MaxConnectionAttempts {
@@ -228,6 +233,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				c.handlers.onHeartbeat(ctx)
 			case realtimeEvent.ClientConnection != nil:
 				log.Info().Msg("Client connected")
+				realtimeEvent.ClientConnection.SessID = c.realtimeSessionID
 				c.handlers.onClientConnection(ctx, realtimeEvent.ClientConnection)
 			case realtimeEvent.DecoratedEvent != nil:
 				log.Debug().
