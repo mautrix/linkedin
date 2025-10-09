@@ -41,9 +41,7 @@ type Client struct {
 	userEntityURN URN
 
 	realtimeSessionID uuid.UUID
-	realtimeCtx       context.Context
 	realtimeCancelFn  context.CancelFunc
-	realtimeResp      *http.Response
 
 	handlers Handlers
 

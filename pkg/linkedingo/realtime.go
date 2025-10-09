@@ -90,11 +90,9 @@ func (c *Client) RealtimeConnect(ctx context.Context) error {
 		Str("loop", "realtime_connect").
 		Str("page_instance", c.pageInstance).
 		Logger()
-	ctx = log.WithContext(ctx)
-
-	c.realtimeCtx, c.realtimeCancelFn = context.WithCancel(ctx)
-	go c.runHeartbeatsLoop(c.realtimeCtx)
-	go c.realtimeConnectLoop(c.realtimeCtx)
+	ctx, c.realtimeCancelFn = context.WithCancel(log.WithContext(ctx))
+	go c.runHeartbeatsLoop(ctx)
+	go c.realtimeConnectLoop(ctx)
 	return nil
 }
 
@@ -156,8 +154,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 		default:
 		}
 
-		var err error
-		c.realtimeResp, err = c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL).
+		realtimeResp, err := c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL).
 			WithQueryParam("rc", "1").
 			WithCSRF().
 			WithRealtimeConnectHeaders().
@@ -184,10 +181,10 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				log.Info().Msg("Realtime connection loop canceled")
 				return
 			}
-		} else if c.realtimeResp.StatusCode != http.StatusOK {
-			switch c.realtimeResp.StatusCode {
+		} else if realtimeResp.StatusCode != http.StatusOK {
+			switch realtimeResp.StatusCode {
 			case http.StatusUnauthorized, http.StatusFound:
-				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", c.realtimeResp.StatusCode))
+				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", realtimeResp.StatusCode))
 			case http.StatusBadRequest:
 				log.Warn().Msg("Got 400 on connect, resetting realtime session ID")
 				c.realtimeSessionID = uuid.New()
@@ -195,10 +192,10 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			default:
 				connectAttempts += 1
 				if connectAttempts > MaxConnectionAttempts {
-					c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect due to status code %d", c.realtimeResp.StatusCode))
+					c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect due to status code %d", realtimeResp.StatusCode))
 					return
 				}
-				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect due to status code: %d", c.realtimeResp.StatusCode))
+				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect due to status code: %d", realtimeResp.StatusCode))
 				backoff := time.Duration(connectAttempts*2) * time.Second
 				if backoff > time.Minute {
 					backoff = time.Minute
@@ -218,7 +215,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 		connectAttempts = 0
 
 		log.Info().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Reading realtime stream")
-		reader := bufio.NewReader(c.realtimeResp.Body)
+		reader := bufio.NewReader(realtimeResp.Body)
 		for {
 			line, err := reader.ReadBytes('\n')
 			if err != nil {
