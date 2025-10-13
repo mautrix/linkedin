@@ -18,12 +18,12 @@ package linkedingo
 
 import (
 	"encoding/json"
-	"fmt"
-	"maps"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
-	"slices"
-	"sync"
+
+	"go.mau.fi/util/exerrors"
+	"golang.org/x/net/publicsuffix"
 )
 
 // StringCookieJar is an [http.CookieJar] implementation that is backed by a
@@ -34,94 +34,72 @@ import (
 // The zero value is not a valid [StringCookieJar]. Use [NewEmptyStringCookieJar] to create
 // a new [StringCookieJar].
 type StringCookieJar struct {
-	cookies map[string]*http.Cookie
-	lock    sync.RWMutex
+	http.CookieJar
 }
 
-var _ http.CookieJar = (*StringCookieJar)(nil)
-var _ json.Marshaler = (*StringCookieJar)(nil)
-var _ json.Unmarshaler = (*StringCookieJar)(nil)
+var CookieBaseURL = exerrors.Must(url.Parse("https://www.linkedin.com"))
+
+var (
+	_ http.CookieJar   = (*StringCookieJar)(nil)
+	_ json.Marshaler   = (*StringCookieJar)(nil)
+	_ json.Unmarshaler = (*StringCookieJar)(nil)
+)
 
 // NewEmptyStringCookieJar creates an empty [StringCookieJar].
 func NewEmptyStringCookieJar() *StringCookieJar {
 	return &StringCookieJar{
-		cookies: make(map[string]*http.Cookie),
+		CookieJar: exerrors.Must(cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})),
 	}
 }
 
 // NewJarFromCookieHeader creates a [StringCookieJar] from a cookie header string. It
 // errors if parsing the cookie header fails.
 func NewJarFromCookieHeader(cookieHeader string) (*StringCookieJar, error) {
-	cookies, err := parseCookieHeaderString(cookieHeader)
-	return &StringCookieJar{cookies: cookies}, err
-}
-
-func (s *StringCookieJar) Cookies(u *url.URL) []*http.Cookie {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return slices.Collect(maps.Values(s.cookies))
-}
-
-func (s *StringCookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	for _, c := range cookies {
-		s.cookies[c.Name] = c
-	}
-}
-
-func (s *StringCookieJar) Clear() {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	clear(s.cookies)
-}
-
-func (s *StringCookieJar) AddCookie(cookie *http.Cookie) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	s.cookies[cookie.Name] = cookie
-}
-
-func (s *StringCookieJar) GetCookie(name string) (value string) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	if c, ok := s.cookies[name]; ok {
-		value = c.Value
-	}
-	return
+	jar := NewEmptyStringCookieJar()
+	return jar, jar.parseCookieHeaderString(cookieHeader)
 }
 
 func (s *StringCookieJar) UnmarshalJSON(data []byte) (err error) {
-	var cookieHeader string
-	err = json.Unmarshal(data, &cookieHeader)
+	*s = *NewEmptyStringCookieJar()
+	if data[0] == '"' {
+		var cookieHeader string
+		err = json.Unmarshal(data, &cookieHeader)
+		if err != nil {
+			return
+		}
+		return s.parseCookieHeaderString(cookieHeader)
+	}
+	var cookies []*http.Cookie
+	err = json.Unmarshal(data, &cookies)
 	if err != nil {
 		return
 	}
-	s.cookies, err = parseCookieHeaderString(cookieHeader)
+	s.SetCookies(CookieBaseURL, cookies)
 	return
 }
 
-func (s *StringCookieJar) MarshalJSON() ([]byte, error) {
-	req, err := http.NewRequest(http.MethodGet, "", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request")
+func (s *StringCookieJar) GetCookie(name string) string {
+	for _, cookie := range s.Cookies(CookieBaseURL) {
+		if cookie.Name == name {
+			return cookie.Value
+		}
 	}
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	for _, c := range s.cookies {
-		req.AddCookie(c)
-	}
-	return json.Marshal(req.Header.Get("Cookie"))
+	return ""
 }
 
-func parseCookieHeaderString(cookieString string) (map[string]*http.Cookie, error) {
+func (s *StringCookieJar) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.Cookies(CookieBaseURL))
+}
+
+func (s *StringCookieJar) Clear() {
+	*s = *NewEmptyStringCookieJar()
+}
+
+func (s *StringCookieJar) parseCookieHeaderString(cookieString string) error {
 	cookies, err := http.ParseCookie(cookieString)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	cache := map[string]*http.Cookie{}
-	for _, c := range cookies {
-		cache[c.Name] = c
-	}
-	return cache, nil
+	s.SetCookies(CookieBaseURL, cookies)
+	return nil
 }

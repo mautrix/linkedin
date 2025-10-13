@@ -104,19 +104,18 @@ func MigrateLegacyDB() {
 		if err != nil {
 			return err
 		}
-		cookies := map[string]*linkedingo.StringCookieJar{}
+		cookies := map[string][]*http.Cookie{}
 		for rows.Next() {
 			var mxid, name, value string
 			if err := rows.Scan(&mxid, &name, &value); err != nil {
 				return err
 			}
-			if _, ok := cookies[mxid]; !ok {
-				cookies[mxid] = linkedingo.NewEmptyStringCookieJar()
-			}
-			cookies[mxid].AddCookie(&http.Cookie{Name: name, Value: value})
+			cookies[mxid] = append(cookies[mxid], &http.Cookie{Name: name, Value: value})
 		}
 		for mxid, jar := range cookies {
-			metadata := connector.UserLoginMetadata{Cookies: jar}
+			realJar := linkedingo.NewEmptyStringCookieJar()
+			realJar.SetCookies(linkedingo.CookieBaseURL, jar)
+			metadata := connector.UserLoginMetadata{Cookies: realJar}
 			if _, err := m.DB.Exec(ctx, "UPDATE user_login SET metadata = $1 WHERE user_mxid = $2", dbutil.JSON{Data: metadata}, mxid); err != nil {
 				return err
 			}

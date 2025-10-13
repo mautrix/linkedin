@@ -31,7 +31,7 @@ func TestCookieJarFromHeader(t *testing.T) {
 	jar, err := linkedingo.NewJarFromCookieHeader("foo=bar;baz=123")
 	require.NoError(t, err)
 
-	cookies := jar.Cookies(nil)
+	cookies := jar.Cookies(linkedingo.CookieBaseURL)
 	assert.Len(t, cookies, 2)
 	values := make([]string, len(cookies))
 	for i, c := range cookies {
@@ -46,15 +46,15 @@ func TestCookieJarFromHeader(t *testing.T) {
 func TestCookieJarSetCookies(t *testing.T) {
 	jar := linkedingo.NewEmptyStringCookieJar()
 
-	assert.Len(t, jar.Cookies(nil), 0)
+	assert.Len(t, jar.Cookies(linkedingo.CookieBaseURL), 0)
 
-	jar.SetCookies(nil, []*http.Cookie{
+	jar.SetCookies(linkedingo.CookieBaseURL, []*http.Cookie{
 		{Name: "a", Value: "123"},
 		{Name: "b", Value: "456"},
 		{Name: "c", Value: "789"},
 	})
 
-	cookies := jar.Cookies(nil)
+	cookies := jar.Cookies(linkedingo.CookieBaseURL)
 	assert.Len(t, cookies, 3)
 	cookieStrings := make([]string, len(cookies))
 	for i, c := range cookies {
@@ -68,12 +68,12 @@ func TestCookieJarSetCookies(t *testing.T) {
 	assert.Equal(t, "456", jar.GetCookie("b"))
 	assert.Equal(t, "789", jar.GetCookie("c"))
 
-	jar.SetCookies(nil, []*http.Cookie{
+	jar.SetCookies(linkedingo.CookieBaseURL, []*http.Cookie{
 		{Name: "a", Value: "999"},
 		{Name: "c", Value: "888"},
 	})
 
-	cookies = jar.Cookies(nil)
+	cookies = jar.Cookies(linkedingo.CookieBaseURL)
 	assert.Len(t, cookies, 3)
 	cookieStrings = make([]string, len(cookies))
 	for i, c := range cookies {
@@ -89,7 +89,7 @@ func TestCookieJarSetCookies(t *testing.T) {
 
 func TestMarshal(t *testing.T) {
 	jar := linkedingo.NewEmptyStringCookieJar()
-	jar.SetCookies(nil, []*http.Cookie{
+	jar.SetCookies(linkedingo.CookieBaseURL, []*http.Cookie{
 		{Name: "123", Value: "this is a test with spaces"},
 		{Name: "234", Value: "I'm a value with a quote"},
 		{Name: "this is a weird key", Value: "and value"},
@@ -97,24 +97,33 @@ func TestMarshal(t *testing.T) {
 
 	res, err := json.Marshal(jar)
 	require.NoError(t, err)
-	assert.EqualValues(t, '"', res[0])
-	assert.EqualValues(t, '"', res[len(res)-1])
-	assert.Contains(t, string(res), `this is a weird key=\"and value\"`)
-	assert.Contains(t, string(res), `123=\"this is a test with spaces\"`)
-	assert.Contains(t, string(res), `234=\"I'm a value with a quote\"`)
+	assert.Contains(t, string(res), `"Name":"this is a weird key","Value":"and value"`)
+	assert.Contains(t, string(res), `"Name":"123","Value":"this is a test with spaces"`)
+	assert.Contains(t, string(res), `"Name":"234","Value":"I'm a value with a quote"`)
 }
 
 type container struct {
 	Cookies *linkedingo.StringCookieJar `json:"cookies,omitempty"`
 }
 
-func TestUnmarshal(t *testing.T) {
+func TestUnmarshalLegacy(t *testing.T) {
 	serialized := []byte(`{"cookies":"foo=bar;baz=123"}`)
 	var c container
 	err := json.Unmarshal(serialized, &c)
 	require.NoError(t, err)
 
-	assert.Len(t, c.Cookies.Cookies(nil), 2)
+	assert.Len(t, c.Cookies.Cookies(linkedingo.CookieBaseURL), 2)
+	assert.Equal(t, "bar", c.Cookies.GetCookie("foo"))
+	assert.Equal(t, "123", c.Cookies.GetCookie("baz"))
+}
+
+func TestUnmarshalNew(t *testing.T) {
+	serialized := []byte(`{"cookies":[{"Name":"foo","Value":"bar"},{"Name":"baz","Value":"123"}]}`)
+	var c container
+	err := json.Unmarshal(serialized, &c)
+	require.NoError(t, err)
+
+	assert.Len(t, c.Cookies.Cookies(linkedingo.CookieBaseURL), 2)
 	assert.Equal(t, "bar", c.Cookies.GetCookie("foo"))
 	assert.Equal(t, "123", c.Cookies.GetCookie("baz"))
 }

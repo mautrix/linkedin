@@ -24,11 +24,13 @@ import (
 
 func (lc *LinkedInConnector) GetDBMetaTypes() database.MetaTypes {
 	return database.MetaTypes{
-		Reaction:  nil,
-		Portal:    nil,
-		Message:   nil,
-		Ghost:     nil,
-		UserLogin: func() any { return &UserLoginMetadata{} },
+		Reaction: nil,
+		Portal:   nil,
+		Message:  nil,
+		Ghost:    nil,
+		UserLogin: func() any {
+			return &UserLoginMetadata{}
+		},
 	}
 }
 
