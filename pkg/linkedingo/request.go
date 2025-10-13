@@ -216,7 +216,7 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 		start := time.Now()
 		resp, err := a.doRawRetry(ctx)
 		dur := time.Since(start)
-		if errors.Is(err, ErrTokenInvalidated) || retryCount >= 5 {
+		if errors.Is(err, ErrTokenInvalidated) {
 			logEvt := log.Error()
 			if resp != nil {
 				_ = resp.Body.Close()
@@ -227,11 +227,24 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 				Msg("Failed to send request")
 			return nil, err
 		} else if err != nil {
+			if retryCount >= 5 {
+				log.Err(err).
+					Dur("duration", dur).
+					Msg("Failed to send request, not retrying anymore")
+				return nil, err
+			}
 			log.Warn().Err(err).
 				Dur("duration", dur).
 				Dur("retry_in", retryIn).
 				Msg("Failed to send request, retrying")
 		} else if resp.StatusCode == http.StatusBadGateway || resp.StatusCode == http.StatusServiceUnavailable || resp.StatusCode == http.StatusGatewayTimeout {
+			if retryCount >= 5 {
+				log.Error().
+					Dur("duration", dur).
+					Int("status", resp.StatusCode).
+					Msg("HTTP 50x while sending request, not retrying anymore")
+				return nil, err
+			}
 			log.Warn().
 				Dur("duration", dur).
 				Int("status", resp.StatusCode).
