@@ -136,6 +136,7 @@ func (l *LinkedInClient) Connect(ctx context.Context) {
 		return
 	}
 
+	l.userLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnecting})
 	if err := l.client.RealtimeConnect(ctx); err != nil {
 		l.userLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
