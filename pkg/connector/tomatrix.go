@@ -56,6 +56,32 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 			part, err = l.convertExternalMediaToMatrix(ctx, portal, intent, rc.ExternalMedia)
 		case rc.File != nil:
 			part, err = l.convertFileToMatrix(ctx, portal, intent, rc.File)
+		case rc.ForwardedMessage != nil:
+			if textPart == nil {
+				content := &event.MessageEventContent{
+					MsgType: event.MsgText,
+					Body:    "",
+				}
+				textPart = &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: content}
+				cm.Parts = append(cm.Parts, textPart)
+			}
+			sender := rc.ForwardedMessage.OriginalSender.ParticipantType.Member
+			senderName := sender.FirstName.Text + " " + sender.LastName.Text + ":"
+			textPart.Content.Body += "\n> " + senderName + "\n" + rc.ForwardedMessage.ForwardedBody.Text + "\n" + rc.ForwardedMessage.FooterText.Text
+			content, err := linkedinfmt.Parse(ctx, rc.ForwardedMessage.ForwardedBody.Text, rc.ForwardedMessage.ForwardedBody.Attributes, l.linkedinFmtParams)
+			if err == nil {
+				textPart.Content.Format = event.FormatHTML
+				if textPart.Content.FormattedBody == "" {
+					textPart.Content.FormattedBody = textPart.Content.Body
+				}
+				fwdBody := content.FormattedBody
+				if fwdBody == "" {
+					fwdBody = content.Body
+				}
+				textPart.Content.FormattedBody += "<blockquote><p><strong>" + senderName + "</strong></p><pre>" + fwdBody + "</pre><p>" + rc.ForwardedMessage.FooterText.Text + "</p></blockquote>"
+			} else {
+				zerolog.Ctx(ctx).Debug().Err(err).Msg("failed to parse ForwardedMessage body")
+			}
 		case rc.HostURNData != nil:
 			part, err = l.convertHostURNToMatrix(ctx, portal, intent, rc.HostURNData, textPart)
 		case rc.RepliedMessageContent != nil:

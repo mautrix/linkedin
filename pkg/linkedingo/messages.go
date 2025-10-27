@@ -155,10 +155,18 @@ type RenderContent struct {
 	Audio                 *AudioMetadata     `json:"audio,omitempty"`
 	ExternalMedia         *ExternalMedia     `json:"externalMedia,omitempty"`
 	File                  *FileAttachment    `json:"file,omitempty"`
+	ForwardedMessage      *ForwardedMessage  `json:"forwardedMessageContent,omitempty"`
 	HostURNData           *HostURNData       `json:"hostUrnData,omitempty"`
 	RepliedMessageContent *RepliedMessage    `json:"repliedMessageContent,omitempty"`
 	VectorImage           *VectorImage       `json:"vectorImage,omitempty"`
 	Video                 *VideoPlayMetadata `json:"video,omitempty"`
+}
+
+type ForwardedMessage struct {
+	Type           string               `json:"_type,omitempty"`
+	FooterText     AttributedText       `json:"footerText,omitempty"`
+	ForwardedBody  AttributedText       `json:"forwardedBody,omitempty"`
+	OriginalSender MessagingParticipant `json:"originalSender,omitempty"`
 }
 
 type HostURNData struct {
