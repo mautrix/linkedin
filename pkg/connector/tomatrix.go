@@ -70,14 +70,9 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 			textPart.Content.Body += "\n> " + senderName + "\n" + rc.ForwardedMessage.ForwardedBody.Text + "\n" + rc.ForwardedMessage.FooterText.Text
 			content, err := linkedinfmt.Parse(ctx, rc.ForwardedMessage.ForwardedBody.Text, rc.ForwardedMessage.ForwardedBody.Attributes, l.linkedinFmtParams)
 			if err == nil {
-				textPart.Content.Format = event.FormatHTML
-				if textPart.Content.FormattedBody == "" {
-					textPart.Content.FormattedBody = textPart.Content.Body
-				}
+				textPart.Content.EnsureHasHTML()
+				content.EnsureHasHTML()
 				fwdBody := content.FormattedBody
-				if fwdBody == "" {
-					fwdBody = content.Body
-				}
 				textPart.Content.FormattedBody += "<blockquote><p><strong>" + senderName + "</strong></p><pre>" + fwdBody + "</pre><p>" + rc.ForwardedMessage.FooterText.Text + "</p></blockquote>"
 			} else {
 				zerolog.Ctx(ctx).Debug().Err(err).Msg("failed to parse ForwardedMessage body")
