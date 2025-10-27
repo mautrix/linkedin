@@ -66,17 +66,22 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 				cm.Parts = append(cm.Parts, textPart)
 			}
 			sender := rc.ForwardedMessage.OriginalSender.ParticipantType.Member
-			senderName := sender.FirstName.Text + " " + sender.LastName.Text + ":"
-			textPart.Content.Body += "\n> " + senderName + "\n" + rc.ForwardedMessage.ForwardedBody.Text + "\n" + rc.ForwardedMessage.FooterText.Text
+			senderName := fmt.Sprintf("%s %s:", sender.FirstName.Text, sender.LastName.Text)
 			content, err := linkedinfmt.Parse(ctx, rc.ForwardedMessage.ForwardedBody.Text, rc.ForwardedMessage.ForwardedBody.Attributes, l.linkedinFmtParams)
 			if err == nil {
 				textPart.Content.EnsureHasHTML()
 				content.EnsureHasHTML()
-				fwdBody := content.FormattedBody
-				textPart.Content.FormattedBody += "<blockquote><p><strong>" + senderName + "</strong></p><pre>" + fwdBody + "</pre><p>" + rc.ForwardedMessage.FooterText.Text + "</p></blockquote>"
+				textPart.Content.FormattedBody += fmt.Sprintf("<blockquote><p><strong>%s</strong></p>%s<p>%s</p></blockquote>",
+					senderName,
+					content.FormattedBody,
+					rc.ForwardedMessage.FooterText.Text)
 			} else {
 				zerolog.Ctx(ctx).Debug().Err(err).Msg("failed to parse ForwardedMessage body")
 			}
+			textPart.Content.Body += fmt.Sprintf("\n>%s\n%s\n%s",
+				senderName,
+				rc.ForwardedMessage.ForwardedBody.Text,
+				rc.ForwardedMessage.FooterText.Text)
 		case rc.HostURNData != nil:
 			part, err = l.convertHostURNToMatrix(ctx, portal, intent, rc.HostURNData, textPart)
 		case rc.RepliedMessageContent != nil:
