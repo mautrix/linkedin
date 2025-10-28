@@ -35,6 +35,20 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 	var updated, created int
 
 	for _, conv := range convs {
+		chatDeleteEvent := &simplevent.ChatDelete{
+			EventMeta: simplevent.EventMeta{
+				Type: bridgev2.RemoteEventChatDelete,
+				LogContext: func(c zerolog.Context) zerolog.Context {
+					return c.Stringer("entity_urn", conv.EntityURN)
+				},
+				PortalKey: l.makePortalKey(conv),
+			},
+			OnlyForMe: true,
+		}
+		if slices.Contains(conv.Categories, "SPAM") {
+			l.main.Bridge.QueueRemoteEvent(l.userLogin, chatDeleteEvent)
+			continue
+		}
 		if !slices.Contains(conv.Categories, "INBOX") {
 			continue
 		}
@@ -47,16 +61,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			}
 		}
 		if !isMember {
-			l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatDelete{
-				EventMeta: simplevent.EventMeta{
-					Type: bridgev2.RemoteEventChatDelete,
-					LogContext: func(c zerolog.Context) zerolog.Context {
-						return c.Stringer("entity_urn", conv.EntityURN)
-					},
-					PortalKey: l.makePortalKey(conv),
-				},
-				OnlyForMe: true,
-			})
+			l.main.Bridge.QueueRemoteEvent(l.userLogin, chatDeleteEvent)
 			continue
 		}
 
