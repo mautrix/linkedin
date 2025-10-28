@@ -28,6 +28,19 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
+func (l *LinkedInClient) deleteConversation(ctx context.Context, conv linkedingo.Conversation) {
+	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatDelete{
+		EventMeta: simplevent.EventMeta{
+			Type: bridgev2.RemoteEventChatDelete,
+			LogContext: func(c zerolog.Context) zerolog.Context {
+				return c.Stringer("entity_urn", conv.EntityURN)
+			},
+			PortalKey: l.makePortalKey(conv),
+		},
+		OnlyForMe: true,
+	})
+}
+
 func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation) {
 	log := zerolog.Ctx(ctx)
 
@@ -35,18 +48,8 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 	var updated, created int
 
 	for _, conv := range convs {
-		chatDeleteEvent := &simplevent.ChatDelete{
-			EventMeta: simplevent.EventMeta{
-				Type: bridgev2.RemoteEventChatDelete,
-				LogContext: func(c zerolog.Context) zerolog.Context {
-					return c.Stringer("entity_urn", conv.EntityURN)
-				},
-				PortalKey: l.makePortalKey(conv),
-			},
-			OnlyForMe: true,
-		}
 		if slices.Contains(conv.Categories, "SPAM") {
-			l.main.Bridge.QueueRemoteEvent(l.userLogin, chatDeleteEvent)
+			l.deleteConversation(ctx, conv)
 			continue
 		}
 		if !slices.Contains(conv.Categories, "INBOX") {
@@ -61,7 +64,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			}
 		}
 		if !isMember {
-			l.main.Bridge.QueueRemoteEvent(l.userLogin, chatDeleteEvent)
+			l.deleteConversation(ctx, conv)
 			continue
 		}
 
