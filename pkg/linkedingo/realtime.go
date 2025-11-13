@@ -91,8 +91,19 @@ func (c *Client) RealtimeConnect(ctx context.Context) error {
 		Str("page_instance", c.pageInstance).
 		Logger()
 	ctx, c.realtimeCancelFn = context.WithCancel(log.WithContext(ctx))
-	go c.runHeartbeatsLoop(ctx)
-	go c.realtimeConnectLoop(ctx)
+
+	c.realtimeWaitGroup.Add(1)
+	go func() {
+		defer c.realtimeWaitGroup.Done()
+		c.runHeartbeatsLoop(ctx)
+	}()
+
+	c.realtimeWaitGroup.Add(1)
+	go func() {
+		defer c.realtimeWaitGroup.Done()
+		c.realtimeConnectLoop(ctx)
+	}()
+
 	return nil
 }
 
@@ -265,4 +276,5 @@ func (c *Client) RealtimeDisconnect() {
 	if c.realtimeCancelFn != nil {
 		c.realtimeCancelFn()
 	}
+	c.realtimeWaitGroup.Wait()
 }

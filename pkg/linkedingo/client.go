@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -42,6 +43,7 @@ type Client struct {
 
 	realtimeSessionID uuid.UUID
 	realtimeCancelFn  context.CancelFunc
+	realtimeWaitGroup sync.WaitGroup
 
 	handlers Handlers
 
