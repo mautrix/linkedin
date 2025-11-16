@@ -1,4 +1,4 @@
-# v25.11 (unreleased)
+# v25.11
 
 * Renamed to mautrix-linkedin and migrated from github.com/beeper to
   github.com/mautrix. Docker images and CI can now be found on mau.dev as with
