@@ -77,12 +77,13 @@ type DecoratedEventPayload struct {
 }
 
 type DecoratedEventData struct {
-	Type                        string                       `json:"_type,omitempty"`
-	DecoratedConversationDelete *DecoratedConversationDelete `json:"doDecorateConversationDeleteMessengerRealtimeDecoration,omitempty"`
-	DecoratedMessage            *DecoratedMessage            `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
-	DecoratedTypingIndicator    *DecoratedTypingIndicator    `json:"doDecorateTypingIndicatorMessengerRealtimeDecoration,omitempty"`
-	DecoratedSeenReceipt        *DecoratedSeenReceipt        `json:"doDecorateSeenReceiptMessengerRealtimeDecoration,omitempty"`
-	DecoratedReactionSummary    *DecoratedReactionSummary    `json:"doDecorateRealtimeReactionSummaryMessengerRealtimeDecoration,omitempty"`
+	Type                        string                    `json:"_type,omitempty"`
+	DecoratedConversation       *DecoratedConversation    `json:"doDecorateConversationMessengerRealtimeDecoration,omitempty"`
+	DecoratedConversationDelete *DecoratedConversation    `json:"doDecorateConversationDeleteMessengerRealtimeDecoration,omitempty"`
+	DecoratedMessage            *DecoratedMessage         `json:"doDecorateMessageMessengerRealtimeDecoration,omitempty"`
+	DecoratedTypingIndicator    *DecoratedTypingIndicator `json:"doDecorateTypingIndicatorMessengerRealtimeDecoration,omitempty"`
+	DecoratedSeenReceipt        *DecoratedSeenReceipt     `json:"doDecorateSeenReceiptMessengerRealtimeDecoration,omitempty"`
+	DecoratedReactionSummary    *DecoratedReactionSummary `json:"doDecorateRealtimeReactionSummaryMessengerRealtimeDecoration,omitempty"`
 }
 
 func (c *Client) RealtimeConnect(ctx context.Context) error {
