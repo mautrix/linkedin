@@ -18,12 +18,14 @@ package linkedingo
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/random"
 )
 
 const BrowserName = "Chrome"
@@ -35,6 +37,7 @@ const SecCHPlatform = `"` + OSName + `"`
 const SecCHMobile = "?0"
 const SecCHPrefersColorScheme = "light"
 const ServiceVersion = "1.13.39523"
+const defaultXLiTrack = `{"clientVersion":"` + ServiceVersion + `","mpVersion":"` + ServiceVersion + `","osName":"web","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}`
 
 type Client struct {
 	http          *http.Client
@@ -58,7 +61,7 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 	log := zerolog.Ctx(ctx)
 	if xLiTrack == "" {
 		log.Warn().Msg("x-li-track is empty, using default")
-		xLiTrack = `{"clientVersion":"` + ServiceVersion + `","mpVersion":"` + ServiceVersion + `","osName":"web","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}`
+		xLiTrack = defaultXLiTrack
 	}
 	if pageInstance == "" {
 		log.Warn().Msg("pageInstance is empty, using default")
@@ -74,6 +77,15 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 		log.Warn().Msg("mpVersion is empty, using default")
 		serviceVersion = ServiceVersion
 	}
+
+	// Possible workaround for a/b testing where the frontend appears to be a completely different version
+	mpName, _ := trackingData["mpName"].(string)
+	if mpName != "voyager-web" {
+		log.Warn().Msg("mpName is not voyager-web, using default xLiTrack")
+		xLiTrack = defaultXLiTrack
+		pageInstance = "urn:li:page:d_flagship3_messaging_conversation_detail;" + base64.StdEncoding.EncodeToString(random.Bytes(16))
+	}
+
 	cli := &Client{
 		userEntityURN:     userEntityURN,
 		jar:               jar,
