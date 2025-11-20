@@ -36,7 +36,7 @@ const OSName = "Linux"
 const SecCHPlatform = `"` + OSName + `"`
 const SecCHMobile = "?0"
 const SecCHPrefersColorScheme = "light"
-const ServiceVersion = "1.13.39523"
+const ServiceVersion = "1.13.40953"
 const defaultXLiTrack = `{"clientVersion":"` + ServiceVersion + `","mpVersion":"` + ServiceVersion + `","osName":"web","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}`
 
 type Client struct {
