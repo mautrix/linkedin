@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/random"
@@ -41,7 +42,7 @@ type sendMessagePayload struct {
 type SendMessage struct {
 	Body                SendMessageBody     `json:"body,omitempty"`
 	RenderContentUnions []SendRenderContent `json:"renderContentUnions,omitempty"`
-	ConversationURN     URN                 `json:"conversationUrn,omitempty"`
+	ConversationURN     *URN                `json:"conversationUrn,omitempty"`
 	OriginToken         string              `json:"originToken,omitempty"`
 }
 
@@ -134,6 +135,7 @@ type Message struct {
 	MessageBodyRenderFormat MessageBodyRenderFormat `json:"messageBodyRenderFormat,omitempty"`
 	BackendConversationURN  URN                     `json:"backendConversationUrn,omitempty"`
 	Conversation            Conversation            `json:"conversation,omitempty"`
+	ConversationURN         URN                     `json:"conversationUrn,omitempty"`
 	RenderContent           []RenderContent         `json:"renderContent,omitempty"`
 	ReactionSummaries       []ReactionSummary       `json:"reactionSummaries,omitempty"`
 }
@@ -184,11 +186,45 @@ func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body Send
 		Message: SendMessage{
 			Body:                body,
 			RenderContentUnions: renderContent,
-			ConversationURN:     conversationURN,
+			ConversationURN:     &conversationURN,
 			OriginToken:         transactionID,
 		},
 		MailboxURN: c.userEntityURN.WithPrefix("urn", "li", "fsd_profile"),
 		TrackingID: random.String(16),
+	}
+
+	var messageSentResponse MessageSentResponse
+	_, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
+		WithJSONPayload(payload).
+		WithQueryParam("action", "createMessage").
+		WithCSRF().
+		WithContentType(contentTypePlaintextUTF8).
+		WithXLIHeaders().
+		Do(ctx, &messageSentResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return &messageSentResponse, nil
+}
+
+func (c *Client) NewGroupChat(ctx context.Context, title string, topic string, participants []URN) (*MessageSentResponse, error) {
+	body := SendMessageBody{
+		Text: topic,
+	}
+	if topic == "" {
+		body.Text = title
+	}
+	transactionID := uuid.NewString()
+	payload := sendMessagePayload{
+		Message: SendMessage{
+			Body:        body,
+			OriginToken: transactionID,
+		},
+		MailboxURN:        c.userEntityURN.AsFsdProfile(),
+		TrackingID:        random.String(16),
+		HostRecipientURNs: participants,
+		ConversationTitle: title,
 	}
 
 	var messageSentResponse MessageSentResponse

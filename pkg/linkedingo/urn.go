@@ -96,3 +96,7 @@ func (u URN) WithPrefix(prefix ...string) (n URN) {
 	n.id = u.id
 	return
 }
+
+func (u URN) AsFsdProfile() URN {
+	return u.WithPrefix("urn", "li", "fsd_profile")
+}
