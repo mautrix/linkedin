@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	"go.mau.fi/util/ptr"
@@ -19,8 +20,10 @@ var (
 	_ bridgev2.IdentifierValidatingNetwork = (*LinkedInConnector)(nil)
 )
 
-func (l *LinkedInConnector) ValidateUserID(id networkid.UserID) bool {
-	return len(string(id)) == 39
+func (l *LinkedInConnector) ValidateUserID(uid networkid.UserID) bool {
+	id := string(uid)
+	_, err := base64.StdEncoding.DecodeString(id)
+	return err == nil && len(id) >= 36
 }
 
 func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier string, createChat bool) (*bridgev2.ResolveIdentifierResponse, error) {
