@@ -208,17 +208,13 @@ func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body Send
 	return &messageSentResponse, nil
 }
 
-func (c *Client) NewGroupChat(ctx context.Context, title string, topic string, participants []URN) (*MessageSentResponse, error) {
-	body := SendMessageBody{
-		Text: topic,
-	}
-	if topic == "" {
-		body.Text = title
-	}
+func (c *Client) NewChat(ctx context.Context, title string, participants []URN) (*MessageSentResponse, error) {
 	transactionID := uuid.NewString()
 	payload := sendMessagePayload{
 		Message: SendMessage{
-			Body:        body,
+			Body: SendMessageBody{
+				Text: "New chat",
+			},
 			OriginToken: transactionID,
 		},
 		MailboxURN:        c.userEntityURN.AsFsdProfile(),

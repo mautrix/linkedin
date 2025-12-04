@@ -31,9 +31,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 	return &bridgev2.NetworkGeneralCapabilities{
 		Provisioning: bridgev2.ProvisioningCapabilities{
 			ResolveIdentifier: bridgev2.ResolveIdentifierCapabilities{
-				CreateDM:       true,
-				LookupUsername: true,
-				ContactList:    true,
+				CreateDM: true,
 			},
 			GroupCreation: map[string]bridgev2.GroupTypeCapabilities{
 				"group": {
