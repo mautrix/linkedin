@@ -3,7 +3,6 @@ package connector
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
@@ -21,7 +20,7 @@ var (
 )
 
 func (l *LinkedInConnector) ValidateUserID(id networkid.UserID) bool {
-	return strings.HasPrefix(string(id), "ACoAA")
+	return len(string(id)) == 39
 }
 
 func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier string, createChat bool) (*bridgev2.ResolveIdentifierResponse, error) {
