@@ -46,7 +46,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 8
+	return 1, 7
 }
 
 const MaxTextLength = 8000

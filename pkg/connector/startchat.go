@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
@@ -14,13 +15,24 @@ import (
 )
 
 var (
-	_ bridgev2.GhostDMCreatingNetworkAPI = (*LinkedInClient)(nil)
-	_ bridgev2.GroupCreatingNetworkAPI   = (*LinkedInClient)(nil)
+	_ bridgev2.GhostDMCreatingNetworkAPI   = (*LinkedInClient)(nil)
+	_ bridgev2.GroupCreatingNetworkAPI     = (*LinkedInClient)(nil)
+	_ bridgev2.IdentifierValidatingNetwork = (*LinkedInConnector)(nil)
 )
+
+func (l *LinkedInConnector) ValidateUserID(id networkid.UserID) bool {
+	return strings.HasPrefix(string(id), "ACoAA")
+}
 
 func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier string, createChat bool) (*bridgev2.ResolveIdentifierResponse, error) {
 	id := networkid.UserID(identifier)
-	ghost, _ := l.main.Bridge.GetGhostByID(ctx, id)
+	if !l.main.ValidateUserID(id) {
+		return nil, fmt.Errorf("invalid identifier: %s", identifier)
+	}
+	ghost, err := l.main.Bridge.GetGhostByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 	var chat *bridgev2.CreateChatResponse
 	if createChat {
 		portal, _ := ghost.Bridge.GetDMPortal(ctx, l.userLogin.ID, id)
@@ -64,7 +76,7 @@ func (l *LinkedInClient) CreateChatWithGhost(ctx context.Context, ghost *bridgev
 
 func (l *LinkedInClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreateParams) (*bridgev2.CreateChatResponse, error) {
 	chatInfo := &bridgev2.ChatInfo{
-		Type: ptr.Ptr(database.RoomTypeGroupDM),
+		Type: ptr.Ptr(database.RoomTypeDefault),
 		Name: ptr.Ptr(params.Name.Name),
 		Members: &bridgev2.ChatMemberList{
 			MemberMap: map[networkid.UserID]bridgev2.ChatMember{},
