@@ -23,8 +23,8 @@ import (
 
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
-	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
@@ -126,10 +126,19 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			LatestMessageTS: latestMessageTS,
 		})
 		if readStatusChanged {
-			err = l.main.Bridge.Bot.MarkUnread(ctx, id.RoomID(portal.MXID), !conv.Read)
-			if err != nil {
-				log.Debug().Err(err).Msg("MarkUnread failed")
+			sender := bridgev2.EventSender{
+				IsFromMe:    true,
+				Sender:      networkid.UserID(l.userLogin.ID),
+				SenderLogin: l.userLogin.ID,
 			}
+			l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MarkUnread{
+				EventMeta: simplevent.EventMeta{
+					Type:      bridgev2.RemoteEventMarkUnread,
+					PortalKey: portalKey,
+					Sender:    sender,
+				},
+				Unread: !conv.Read,
+			})
 		}
 
 		if l.main.Config.Sync.UpdateLimit > 0 && updated >= l.main.Config.Sync.UpdateLimit {
