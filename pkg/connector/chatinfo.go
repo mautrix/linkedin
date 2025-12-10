@@ -78,6 +78,11 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 		IsFull:           true,
 		TotalMemberCount: len(conv.ConversationParticipants),
 		MemberMap:        map[networkid.UserID]bridgev2.ChatMember{},
+		PowerLevels: &bridgev2.PowerLevelOverrides{
+			Events: map[event.Type]int{
+				event.StateRoomName: 0,
+			},
+		},
 	}
 	for _, participant := range conv.ConversationParticipants {
 		userInChat = userInChat || networkid.UserID(participant.EntityURN.ID()) == l.userID
