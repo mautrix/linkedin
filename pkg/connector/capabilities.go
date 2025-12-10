@@ -123,6 +123,10 @@ var fileCaps = event.FileFeatureMap{
 	},
 }
 
+var stateCaps = event.StateFeatureMap{
+	event.StateRoomName.Type: {Level: event.CapLevelFullySupported},
+}
+
 func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
 	return &event.RoomFeatures{
 		ID:                  capID(),
@@ -140,8 +144,6 @@ func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Por
 		ReadReceipts:        true,
 		TypingNotifications: true,
 		DeleteChat:          true,
-		State: event.StateFeatureMap{
-			event.StateRoomName.Type: {Level: event.CapLevelFullySupported},
-		},
+		State:               stateCaps,
 	}
 }
