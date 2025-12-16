@@ -113,6 +113,8 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 
 	log := zerolog.Ctx(ctx).With().Str("user_urn", userURN).Logger()
 	log.Info().Msg("Starting heartbeats loop")
+	defer log.Info().Msg("Exited heartbeats loop")
+
 	for {
 		log.Debug().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Sending heartbeat")
 
@@ -135,7 +137,10 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 				"contextUrns":       []string{userURN},
 			}).
 			DoRaw(ctx)
-		if err != nil {
+		if errors.Is(err, context.Canceled) {
+			log.Info().Msg("Heartbeats loop canceled")
+			return
+		} else if err != nil {
 			log.Err(err).Msg("Failed to send heartbeat")
 			return
 		}
@@ -153,18 +158,12 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 func (c *Client) realtimeConnectLoop(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("Starting realtime connection loop")
+	defer log.Info().Msg("Exited realtime connection loop")
+
 	connectAttempts := 0
 
-	// Continually reconnect to the realtime connection endpoint until the
-	// context is done.
+	// Continually reconnect to the realtime connection endpoint until the context is done
 	for {
-		select {
-		case <-ctx.Done():
-			log.Info().Msg("Realtime connection loop canceled")
-			return
-		default:
-		}
-
 		realtimeResp, err := c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL).
 			WithQueryParam("rc", "1").
 			WithCSRF().
@@ -196,6 +195,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			switch realtimeResp.StatusCode {
 			case http.StatusUnauthorized, http.StatusFound:
 				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", realtimeResp.StatusCode))
+				return
 			case http.StatusBadRequest:
 				log.Warn().Msg("Got 400 on connect, resetting realtime session ID")
 				c.realtimeSessionID = uuid.New()
@@ -213,13 +213,11 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				}
 				select {
 				case <-time.After(backoff):
-					continue
 				case <-ctx.Done():
 					log.Info().Msg("Realtime connection loop canceled")
 					return
 				}
 			}
-			return
 		}
 
 		// Reset connection attempts
@@ -231,6 +229,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			line, err := reader.ReadBytes('\n')
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
+					log.Info().Msg("Realtime connection loop canceled")
 					return
 				} else if errors.Is(err, io.EOF) {
 					log.Info().

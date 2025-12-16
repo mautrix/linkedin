@@ -216,7 +216,9 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 		start := time.Now()
 		resp, err := a.doRawRetry(ctx)
 		dur := time.Since(start)
-		if errors.Is(err, ErrTokenInvalidated) {
+		if errors.Is(err, context.Canceled) {
+			return nil, err
+		} else if errors.Is(err, ErrTokenInvalidated) {
 			logEvt := log.Error()
 			if resp != nil {
 				_ = resp.Body.Close()
