@@ -1,3 +1,7 @@
+# v25.12
+
+* Fixed logins failing if certain provided headers have unexpected values.
+
 # v25.11
 
 * Renamed to mautrix-linkedin and migrated from github.com/beeper to

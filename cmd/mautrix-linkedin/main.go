@@ -35,7 +35,7 @@ var m = mxmain.BridgeMain{
 	Name:        "mautrix-linkedin",
 	URL:         "https://github.com/mautrix/linkedin",
 	Description: "A Matrix-LinkedIn puppeting bridge.",
-	Version:     "25.11",
+	Version:     "25.12",
 	SemCalVer:   true,
 	Connector:   &connector.LinkedInConnector{},
 }
