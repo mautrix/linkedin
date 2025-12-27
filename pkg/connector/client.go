@@ -48,10 +48,8 @@ type LinkedInClient struct {
 
 var (
 	_ bridgev2.NetworkAPI = (*LinkedInClient)(nil)
-	// _ bridgev2.IdentifierResolvingNetworkAPI   = (*LinkedInClient)(nil)
 	// _ bridgev2.ContactListingNetworkAPI        = (*LinkedInClient)(nil)
 	// _ bridgev2.UserSearchingNetworkAPI         = (*LinkedInClient)(nil)
-	// _ bridgev2.GroupCreatingNetworkAPI         = (*LinkedInClient)(nil)
 	// _ bridgev2.MuteHandlingNetworkAPI          = (*LinkedInClient)(nil)
 	// _ bridgev2.TagHandlingNetworkAPI           = (*LinkedInClient)(nil)
 )

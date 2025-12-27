@@ -69,7 +69,7 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 
 	ci.Type = ptr.Ptr(database.RoomTypeDM)
 	if conv.GroupChat {
-		ci.Type = ptr.Ptr(database.RoomTypeGroupDM)
+		ci.Type = ptr.Ptr(database.RoomTypeDefault)
 	}
 
 	ci.CanBackfill = true
