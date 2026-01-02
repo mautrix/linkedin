@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -30,6 +31,13 @@ import (
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/linkedinfmt"
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
+)
+
+type contextKey int
+
+const (
+	contextKeyMsgID contextKey = iota
+	contextKeyPartID
 )
 
 func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg linkedingo.Message) (*bridgev2.ConvertedMessage, error) {
@@ -46,7 +54,10 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 		cm.Parts = []*bridgev2.ConvertedMessagePart{textPart}
 	}
 
-	for _, rc := range msg.RenderContent {
+	ctx = context.WithValue(ctx, contextKeyMsgID, msg.MessageID())
+	for i, rc := range msg.RenderContent {
+		partID := networkid.PartID(fmt.Sprintf("part_%d", i))
+		ctx := context.WithValue(ctx, contextKeyPartID, partID)
 		var err error
 		var part *bridgev2.ConvertedMessagePart
 		switch {
@@ -125,13 +136,42 @@ func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridge
 	return &convertedEdit, nil
 }
 
+func (l *LinkedInClient) convertToDirectMedia(ctx context.Context, portal *bridgev2.Portal, content *event.MessageEventContent, url string) (*bridgev2.ConvertedMessagePart, error) {
+	msgID := ctx.Value(contextKeyMsgID).(networkid.MessageID)
+	var partID networkid.PartID
+	if ctx.Value(contextKeyPartID) != nil {
+		partID = ctx.Value(contextKeyPartID).(networkid.PartID)
+	}
+	mediaID := MakeMediaID(portal.Receiver, msgID, partID)
+	var err error
+	content.URL, err = l.main.Bridge.Matrix.GenerateContentURI(ctx, mediaID)
+	if err != nil {
+		return nil, err
+	}
+	directMediaMeta, err := json.Marshal(DirectMediaMeta{
+		MimeType: content.Info.MimeType,
+		URL:      url,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &bridgev2.ConvertedMessagePart{
+		ID:      partID,
+		Type:    event.EventMessage,
+		Content: content,
+		DBMetadata: &MessageMetadata{
+			DirectMediaMeta: directMediaMeta,
+		},
+	}, nil
+}
+
 func (l *LinkedInClient) convertAudioToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, audio *linkedingo.AudioMetadata) (cmp *bridgev2.ConvertedMessagePart, err error) {
 	info, filename, err := l.client.GetAudioFileInfo(ctx, audio)
 	if err != nil {
 		return nil, err
 	}
 	info.Duration = int(audio.Duration.Milliseconds())
-	content := event.MessageEventContent{
+	content := &event.MessageEventContent{
 		Info:    &info,
 		MsgType: event.MsgAudio,
 		Body:    filename,
@@ -141,6 +181,10 @@ func (l *LinkedInClient) convertAudioToMatrix(ctx context.Context, portal *bridg
 		MSC3245Voice: &event.MSC3245Voice{},
 	}
 
+	if l.main.DirectMedia {
+		return l.convertToDirectMedia(ctx, portal, content, audio.URL)
+	}
+
 	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, 0, true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
 		err := l.client.Download(ctx, w, audio.URL)
 		return &bridgev2.FileStreamResult{MimeType: content.Info.MimeType}, err
@@ -148,15 +192,19 @@ func (l *LinkedInClient) convertAudioToMatrix(ctx context.Context, portal *bridg
 
 	return &bridgev2.ConvertedMessagePart{
 		Type:    event.EventMessage,
-		Content: &content,
+		Content: content,
 	}, err
 }
 
 func (l *LinkedInClient) convertExternalMediaToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, media *linkedingo.ExternalMedia) (cmp *bridgev2.ConvertedMessagePart, err error) {
-	content := event.MessageEventContent{
+	content := &event.MessageEventContent{
 		Info:    &event.FileInfo{MimeType: "image/gif"},
 		MsgType: event.MsgImage,
 		Body:    media.Title,
+	}
+
+	if l.main.DirectMedia {
+		return l.convertToDirectMedia(ctx, portal, content, media.Media.URL)
 	}
 
 	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, 0, true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
@@ -166,18 +214,22 @@ func (l *LinkedInClient) convertExternalMediaToMatrix(ctx context.Context, porta
 
 	return &bridgev2.ConvertedMessagePart{
 		Type:    event.EventMessage,
-		Content: &content,
+		Content: content,
 	}, err
 }
 
 func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, attachment *linkedingo.FileAttachment) (cmp *bridgev2.ConvertedMessagePart, err error) {
-	content := event.MessageEventContent{
+	content := &event.MessageEventContent{
 		Info: &event.FileInfo{
 			MimeType: attachment.MediaType,
 			Size:     attachment.ByteSize,
 		},
 		MsgType: event.MsgFile,
 		Body:    attachment.Name,
+	}
+
+	if l.main.DirectMedia {
+		return l.convertToDirectMedia(ctx, portal, content, attachment.URL)
 	}
 
 	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, int64(attachment.ByteSize), true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
@@ -190,7 +242,7 @@ func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridge
 
 	return &bridgev2.ConvertedMessagePart{
 		Type:    event.EventMessage,
-		Content: &content,
+		Content: content,
 	}, err
 }
 
@@ -282,10 +334,14 @@ func (l *LinkedInClient) convertVectorImageToMatrix(ctx context.Context, portal 
 	if err != nil {
 		return nil, err
 	}
-	content := event.MessageEventContent{
+	content := &event.MessageEventContent{
 		Info:    &info,
 		MsgType: event.MsgImage,
 		Body:    filename,
+	}
+
+	if l.main.DirectMedia {
+		return l.convertToDirectMedia(ctx, portal, content, img.GetLargestArtifactURL())
 	}
 
 	// TODO use smallest artifact version for thumbnail?
@@ -297,7 +353,7 @@ func (l *LinkedInClient) convertVectorImageToMatrix(ctx context.Context, portal 
 
 	return &bridgev2.ConvertedMessagePart{
 		Type:    event.EventMessage,
-		Content: &content,
+		Content: content,
 	}, err
 }
 
@@ -310,7 +366,7 @@ func (l *LinkedInClient) convertVideoToMatrix(ctx context.Context, portal *bridg
 		return nil, fmt.Errorf("VideoPlayMetadata had no StreamingLocations")
 	}
 
-	content := event.MessageEventContent{
+	content := &event.MessageEventContent{
 		Info: &event.FileInfo{
 			MimeType: stream.MediaType,
 			Width:    stream.Width,
@@ -332,6 +388,10 @@ func (l *LinkedInClient) convertVideoToMatrix(ctx context.Context, portal *bridg
 		content.Info.ThumbnailFile = part.Content.File
 	}
 
+	if l.main.DirectMedia {
+		return l.convertToDirectMedia(ctx, portal, content, stream.StreamingLocations[0].URL)
+	}
+
 	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, 0, true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
 		err := l.client.Download(ctx, w, stream.StreamingLocations[0].URL)
 		return &bridgev2.FileStreamResult{MimeType: content.Info.MimeType}, err
@@ -339,6 +399,6 @@ func (l *LinkedInClient) convertVideoToMatrix(ctx context.Context, portal *bridg
 
 	return &bridgev2.ConvertedMessagePart{
 		Type:    event.EventMessage,
-		Content: &content,
+		Content: content,
 	}, err
 }

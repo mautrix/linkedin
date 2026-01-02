@@ -17,6 +17,8 @@
 package connector
 
 import (
+	"encoding/json"
+
 	"maunium.net/go/mautrix/bridgev2/database"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
@@ -26,8 +28,10 @@ func (lc *LinkedInConnector) GetDBMetaTypes() database.MetaTypes {
 	return database.MetaTypes{
 		Reaction: nil,
 		Portal:   nil,
-		Message:  nil,
-		Ghost:    nil,
+		Message: func() any {
+			return &MessageMetadata{}
+		},
+		Ghost: nil,
 		UserLogin: func() any {
 			return &UserLoginMetadata{}
 		},
@@ -38,4 +42,13 @@ type UserLoginMetadata struct {
 	Cookies         *linkedingo.StringCookieJar `json:"cookies,omitempty"`
 	XLITrack        string                      `json:"x_li_track,omitempty"`
 	XLIPageInstance string                      `json:"x_li_page_instance,omitempty"`
+}
+
+type MessageMetadata struct {
+	DirectMediaMeta json.RawMessage `json:"direct_media_meta,omitempty"`
+}
+
+type DirectMediaMeta struct {
+	MimeType string `json:"mime_type"`
+	URL      string `json:"url"`
 }
