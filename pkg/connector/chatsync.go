@@ -23,6 +23,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
@@ -74,6 +75,15 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			Logger()
 
 		l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
+		readStatusChanged := false
+		lastReadState, ok := l.conversationReadState[conv.EntityURN]
+		if (ok && lastReadState.Read != conv.Read) || !ok {
+			readStatusChanged = true
+		}
+		l.conversationReadState[conv.EntityURN] = ConversationReadState{
+			LastReadAt: conv.LastReadAt,
+			Read:       conv.Read,
+		}
 
 		if conv.LastActivityAt.Before(updatedBefore) {
 			updatedBefore = conv.LastActivityAt.Time
@@ -115,6 +125,21 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
 			LatestMessageTS: latestMessageTS,
 		})
+		if readStatusChanged {
+			sender := bridgev2.EventSender{
+				IsFromMe:    true,
+				Sender:      networkid.UserID(l.userLogin.ID),
+				SenderLogin: l.userLogin.ID,
+			}
+			l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MarkUnread{
+				EventMeta: simplevent.EventMeta{
+					Type:      bridgev2.RemoteEventMarkUnread,
+					PortalKey: portalKey,
+					Sender:    sender,
+				},
+				Unread: !conv.Read,
+			})
+		}
 
 		if l.main.Config.Sync.UpdateLimit > 0 && updated >= l.main.Config.Sync.UpdateLimit {
 			log.Info().Msg("Update limit reached")

@@ -207,6 +207,6 @@ func (c *Client) DeleteConversation(ctx context.Context, conversationURN URN) er
 	return err
 }
 
-type DecoratedConversationDelete struct {
+type DecoratedConversation struct {
 	Result Conversation `json:"result,omitempty"`
 }
