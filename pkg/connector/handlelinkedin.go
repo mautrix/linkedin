@@ -101,6 +101,14 @@ func (l *LinkedInClient) onRealtimeConversationDelete(ctx context.Context, conv 
 
 func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.Message) {
 	log := zerolog.Ctx(ctx)
+	log.Trace().
+		Str("body_text", msg.Body.Text).
+		Int("render_content_count", len(msg.RenderContent)).
+		Str("render_format", string(msg.MessageBodyRenderFormat)).
+		Stringer("sender_urn", msg.Sender.EntityURN).
+		Stringer("message_urn", msg.EntityURN).
+		Stringer("conversation_urn", msg.Conversation.EntityURN).
+		Msg("Processing realtime message")
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.

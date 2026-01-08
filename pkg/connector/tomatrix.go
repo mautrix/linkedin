@@ -113,6 +113,14 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 
 	cm.MergeCaption()
 
+	if len(cm.Parts) == 0 {
+		zerolog.Ctx(ctx).Warn().
+			Str("body_text", msg.Body.Text).
+			Int("render_content_count", len(msg.RenderContent)).
+			Stringer("message_urn", msg.EntityURN).
+			Msg("Message conversion resulted in empty parts")
+	}
+
 	return &cm, nil
 }
 
