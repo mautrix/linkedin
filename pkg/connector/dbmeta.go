@@ -43,7 +43,7 @@ type UserLoginMetadata struct {
 }
 
 type MessageMetadata struct {
-	DirectMediaMeta *DirectMediaMeta
+	DirectMediaMeta *DirectMediaMeta `json:"direct_media_meta,omitempty"`
 }
 
 type DirectMediaMeta struct {
