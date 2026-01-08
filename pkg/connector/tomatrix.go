@@ -18,7 +18,6 @@ package connector
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -148,12 +147,9 @@ func (l *LinkedInClient) convertToDirectMedia(ctx context.Context, portal *bridg
 	if err != nil {
 		return nil, err
 	}
-	directMediaMeta, err := json.Marshal(DirectMediaMeta{
+	directMediaMeta := &DirectMediaMeta{
 		MimeType: content.Info.MimeType,
 		URL:      url,
-	})
-	if err != nil {
-		return nil, err
 	}
 	return &bridgev2.ConvertedMessagePart{
 		ID:      partID,

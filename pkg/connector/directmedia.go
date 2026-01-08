@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/rs/zerolog"
@@ -41,11 +40,6 @@ func (l *LinkedInConnector) Download(ctx context.Context, mediaID networkid.Medi
 	if dmm == nil {
 		return nil, fmt.Errorf("message does not have direct media metadata")
 	}
-	var info *DirectMediaMeta
-	err = json.Unmarshal(dmm, &info)
-	if err != nil {
-		return nil, err
-	}
 
 	ul := l.Bridge.GetCachedUserLoginByID(mediaInfo.UserID)
 	if ul == nil || !ul.Client.IsLoggedIn() {
@@ -53,7 +47,7 @@ func (l *LinkedInConnector) Download(ctx context.Context, mediaID networkid.Medi
 	}
 
 	client := ul.Client.(*LinkedInClient)
-	resp, err := client.client.DownloadHTTP(ctx, info.URL)
+	resp, err := client.client.DownloadHTTP(ctx, dmm.URL)
 	if err != nil {
 		return nil, err
 	}

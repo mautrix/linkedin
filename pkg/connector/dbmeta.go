@@ -17,8 +17,6 @@
 package connector
 
 import (
-	"encoding/json"
-
 	"maunium.net/go/mautrix/bridgev2/database"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
@@ -45,7 +43,7 @@ type UserLoginMetadata struct {
 }
 
 type MessageMetadata struct {
-	DirectMediaMeta json.RawMessage `json:"direct_media_meta,omitempty"`
+	DirectMediaMeta *DirectMediaMeta
 }
 
 type DirectMediaMeta struct {
