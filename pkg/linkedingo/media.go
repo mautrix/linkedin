@@ -113,8 +113,12 @@ type AudioMetadata struct {
 	URL      string                `json:"url,omitempty"`
 }
 
+func (c *Client) DownloadHTTP(ctx context.Context, url string) (*http.Response, error) {
+	return c.newAuthedRequest(http.MethodGet, url).DoRaw(ctx)
+}
+
 func (c *Client) Download(ctx context.Context, w io.Writer, url string) error {
-	resp, err := c.newAuthedRequest(http.MethodGet, url).DoRaw(ctx)
+	resp, err := c.DownloadHTTP(ctx, url)
 	if err != nil {
 		return err
 	}

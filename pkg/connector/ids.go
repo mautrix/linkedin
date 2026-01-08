@@ -17,6 +17,12 @@
 package connector
 
 import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
+	"io"
+	"strings"
+
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
@@ -37,4 +43,95 @@ func (l *LinkedInClient) makeSender(participant linkedingo.MessagingParticipant)
 	sender.Sender = networkid.UserID(id)
 	sender.SenderLogin = networkid.UserLoginID(id)
 	return
+}
+
+func MakeUserLoginID(userID string) networkid.UserLoginID {
+	return networkid.UserLoginID(userID)
+}
+
+func ParseUserLoginID(userID networkid.UserLoginID) string {
+	return string(userID)
+}
+
+type MediaInfo struct {
+	UserID    networkid.UserLoginID
+	MessageID networkid.MessageID
+	PartID    networkid.PartID
+}
+
+func appendBytes(ret []byte, data []byte) []byte {
+	ret = binary.AppendUvarint(ret, uint64(len(data)))
+	ret, err := binary.Append(ret, binary.BigEndian, data)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+func readBytes(buf *bytes.Reader) (string, error) {
+	size, err := binary.ReadUvarint(buf)
+	if err != nil {
+		return "", err
+	}
+	bs := make([]byte, size)
+	_, err = io.ReadFull(buf, bs)
+	if err != nil {
+		return "", err
+	}
+	return string(bs), nil
+}
+
+func parseMessageID(messageID networkid.MessageID) (string, string) {
+	urn := linkedingo.NewURN(messageID)
+	idLen := len(urn.ID())
+	parts := strings.Split(urn.ID()[1:idLen-1], ",")
+	profileID, msgID := parts[0], parts[1]
+	return linkedingo.NewURN(profileID).ID(), msgID
+}
+
+func makeMessageID(senderID string, msgID string) networkid.MessageID {
+	id := fmt.Sprintf("urn:li:msg_message:(urn:li:fsd_profile:%s,%s)", senderID, msgID)
+	return networkid.MessageID(id)
+}
+
+func MakeMediaID(userID networkid.UserLoginID, messageID networkid.MessageID, partID networkid.PartID) networkid.MediaID {
+	mediaID := []byte{1}
+	_, msgID := parseMessageID(messageID)
+	mediaID = appendBytes(mediaID, []byte(userID))
+	mediaID = appendBytes(mediaID, []byte(msgID))
+	mediaID = appendBytes(mediaID, []byte(partID))
+	return mediaID
+}
+
+func ParseMediaID(mediaID networkid.MediaID) (*MediaInfo, error) {
+	buf := bytes.NewReader(mediaID)
+	version := make([]byte, 1)
+	_, err := io.ReadFull(buf, version)
+	if err != nil {
+		return nil, err
+	}
+	if version[0] != byte(1) {
+		return nil, fmt.Errorf("unknown mediaID version: %v", version)
+	}
+
+	mediaInfo := &MediaInfo{}
+	userID, err := readBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	mediaInfo.UserID = MakeUserLoginID(userID)
+
+	msgID, err := readBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	mediaInfo.MessageID = makeMessageID(userID, msgID)
+
+	str, err := readBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	mediaInfo.PartID = networkid.PartID(str)
+
+	return mediaInfo, nil
 }
