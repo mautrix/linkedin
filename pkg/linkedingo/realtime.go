@@ -192,6 +192,8 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				return
 			}
 		} else if realtimeResp.StatusCode != http.StatusOK {
+			realtimeResp.Body.Close()
+
 			switch realtimeResp.StatusCode {
 			case http.StatusUnauthorized, http.StatusFound:
 				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", realtimeResp.StatusCode))
@@ -218,6 +220,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 					return
 				}
 			}
+			continue
 		}
 
 		// Reset connection attempts
@@ -229,6 +232,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			line, err := reader.ReadBytes('\n')
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
+					realtimeResp.Body.Close()
 					log.Info().Msg("Realtime connection loop canceled")
 					return
 				} else if errors.Is(err, io.EOF) {
@@ -268,6 +272,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				c.handlers.onDecoratedEvent(ctx, realtimeEvent.DecoratedEvent)
 			}
 		}
+		realtimeResp.Body.Close()
 	}
 }
 
