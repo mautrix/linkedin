@@ -28,7 +28,21 @@ import (
 )
 
 func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
-	return &bridgev2.NetworkGeneralCapabilities{}
+	return &bridgev2.NetworkGeneralCapabilities{
+		Provisioning: bridgev2.ProvisioningCapabilities{
+			ResolveIdentifier: bridgev2.ResolveIdentifierCapabilities{
+				CreateDM: true,
+			},
+			GroupCreation: map[string]bridgev2.GroupTypeCapabilities{
+				"group": {
+					TypeDescription: "a group chat",
+					Name:            bridgev2.GroupFieldCapability{Allowed: true, Required: true, MaxLength: 300},
+					Topic:           bridgev2.GroupFieldCapability{Allowed: true},
+					Participants:    bridgev2.GroupFieldCapability{Allowed: true, Required: true, MinLength: 2},
+				},
+			},
+		},
+	}
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
