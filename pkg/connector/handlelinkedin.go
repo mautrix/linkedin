@@ -61,7 +61,7 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 
 	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
 	switch decoratedEvent.Topic.NthPrefixPart(2) {
-	case linkedingo.RealtimeEventTopicConversations:
+	case linkedingo.RealtimeEventTopicConversations, linkedingo.RealtimeEventTopicTabBadgeUpdate:
 		l.onRealtimeConversations(ctx)
 	case linkedingo.RealtimeEventTopicConversationDelete:
 		l.onRealtimeConversationDelete(ctx, decoratedEvent.Payload.Data.DecoratedConversationDelete.Result)
