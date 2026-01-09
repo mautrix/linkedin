@@ -194,6 +194,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 		} else if realtimeResp.StatusCode != http.StatusOK {
 			switch realtimeResp.StatusCode {
 			case http.StatusUnauthorized, http.StatusFound:
+				realtimeResp.Body.Close()
 				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", realtimeResp.StatusCode))
 				return
 			case http.StatusBadRequest:
@@ -201,6 +202,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				c.realtimeSessionID = uuid.New()
 				fallthrough
 			default:
+				realtimeResp.Body.Close()
 				connectAttempts += 1
 				if connectAttempts > MaxConnectionAttempts {
 					c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect due to status code %d", realtimeResp.StatusCode))
@@ -218,6 +220,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 					return
 				}
 			}
+			continue
 		}
 
 		// Reset connection attempts
@@ -229,6 +232,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			line, err := reader.ReadBytes('\n')
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
+					realtimeResp.Body.Close()
 					log.Info().Msg("Realtime connection loop canceled")
 					return
 				} else if errors.Is(err, io.EOF) {
@@ -268,6 +272,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				c.handlers.onDecoratedEvent(ctx, realtimeEvent.DecoratedEvent)
 			}
 		}
+		realtimeResp.Body.Close()
 	}
 }
 

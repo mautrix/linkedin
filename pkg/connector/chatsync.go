@@ -130,6 +130,11 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 	lastUsedUpdatedBefore := time.Time{}
 	updatedBefore := time.Now()
 	for {
+		if ctx.Err() != nil {
+			log.Info().Msg("sync canceled")
+			return
+		}
+
 		log := log.With().
 			Time("updated_before", updatedBefore).
 			Time("last_used_updated_before", lastUsedUpdatedBefore).
