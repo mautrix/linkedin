@@ -210,3 +210,18 @@ func (c *Client) DeleteConversation(ctx context.Context, conversationURN URN) er
 type DecoratedConversationDelete struct {
 	Result Conversation `json:"result,omitempty"`
 }
+
+type RenameConversationBody struct {
+	Title string `json:"title"`
+}
+
+func (c *Client) RenameConversation(ctx context.Context, conversationURN URN, title string) error {
+	url := fmt.Sprintf("%s/%s", linkedInMessagingDashMessengerConversationsURL, url.QueryEscape(conversationURN.String()))
+	body := GraphQLPatchBody{Patch: Patch{Set: RenameConversationBody{Title: title}}}
+	req := c.newAuthedRequest(http.MethodPost, url).
+		WithCSRF().
+		WithXLIHeaders().
+		WithJSONPayload(body)
+	_, err := req.Do(ctx, nil)
+	return err
+}
