@@ -47,6 +47,7 @@ type IncludedData struct {
 	EntityURN  *URN         `json:"entityUrn,omitempty"`
 	Actor      *Actor       `json:"actor,omitempty"`
 	Commentary *Commentary  `json:"commentary,omitempty"`
+	Type       string       `json:"$type,omitempty"`
 }
 
 type Content struct {

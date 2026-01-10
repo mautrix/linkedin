@@ -114,21 +114,8 @@ func (a *authedRequest) WithGraphQLQuery(queryID string, variables map[string]st
 	var queryStr strings.Builder
 	queryStr.WriteString("queryId=")
 	queryStr.WriteString(queryID)
-	queryStr.WriteString("&variables=(")
-	first := true
-	for k, v := range variables {
-		if v == "" {
-			continue
-		}
-		if !first {
-			queryStr.WriteString(",")
-		}
-		first = false
-		queryStr.WriteString(k)
-		queryStr.WriteByte(':')
-		queryStr.WriteString(v)
-	}
-	queryStr.WriteString(")")
+	queryStr.WriteString("&variables=")
+	queryStr.WriteString(queriesToString(variables))
 	a.rawQuery = queryStr.String()
 	return a
 }
@@ -304,4 +291,24 @@ func (a *authedRequest) Do(ctx context.Context, out any) (*http.Response, error)
 		return resp, fmt.Errorf("failed to decode response body: %w", err)
 	}
 	return resp, nil
+}
+
+func queriesToString(queries map[string]string) string {
+	var queryStr strings.Builder
+	queryStr.WriteString("(")
+	first := true
+	for k, v := range queries {
+		if v == "" {
+			continue
+		}
+		if !first {
+			queryStr.WriteString(",")
+		}
+		first = false
+		queryStr.WriteString(k)
+		queryStr.WriteByte(':')
+		queryStr.WriteString(v)
+	}
+	queryStr.WriteString(")")
+	return queryStr.String()
 }

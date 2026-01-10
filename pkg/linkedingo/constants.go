@@ -66,4 +66,5 @@ const (
 	graphQLQueryIDMessengerMessagesByAnchorTimestamp  = "messengerMessages.4088d03bc70c91c3fa68965cb42336de"
 	graphQLQueryIDMessengerMessagesByPrevCursor       = "messengerMessages.34c9888be71c8010fecfb575cb38308f"
 	graphQLQueryIDVoyagerFeedDashUpdates              = "voyagerFeedDashUpdates.c2a318e55b634e20689c80e3dd11952e"
+	graphQLQueryIDVoyagerSearchDashClusters           = "voyagerSearchDashClusters.ef3d0937fb65bd7812e32e5a85028e79"
 )

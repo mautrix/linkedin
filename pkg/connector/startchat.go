@@ -2,8 +2,8 @@ package connector
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
@@ -18,12 +18,12 @@ var (
 	_ bridgev2.GhostDMCreatingNetworkAPI   = (*LinkedInClient)(nil)
 	_ bridgev2.GroupCreatingNetworkAPI     = (*LinkedInClient)(nil)
 	_ bridgev2.IdentifierValidatingNetwork = (*LinkedInConnector)(nil)
+	_ bridgev2.UserSearchingNetworkAPI     = (*LinkedInClient)(nil)
 )
 
 func (l *LinkedInConnector) ValidateUserID(uid networkid.UserID) bool {
 	id := string(uid)
-	_, err := base64.StdEncoding.DecodeString(id)
-	return err == nil && len(id) >= 36
+	return strings.HasPrefix(id, "ACoAA") && len(id) == 39
 }
 
 func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier string, createChat bool) (*bridgev2.ResolveIdentifierResponse, error) {
@@ -117,4 +117,21 @@ func (l *LinkedInClient) createChat(ctx context.Context, chatInfo *bridgev2.Chat
 		PortalKey:  portalKey,
 		PortalInfo: chatInfo,
 	}, nil
+}
+
+func (l *LinkedInClient) SearchUsers(ctx context.Context, query string) (resp []*bridgev2.ResolveIdentifierResponse, err error) {
+	entityURNs, err := l.client.Search(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entityURN := range entityURNs {
+		res, err := l.ResolveIdentifier(ctx, entityURN.ID(), false)
+		if err != nil {
+			return nil, err
+		}
+		resp = append(resp, res)
+	}
+
+	return resp, nil
 }
