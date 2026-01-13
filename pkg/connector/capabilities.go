@@ -47,7 +47,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 7
+	return 1, 8
 }
 
 const MaxTextLength = 8000
@@ -61,7 +61,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID() string {
-	base := "fi.mau.linkedin.capabilities.2025_10_08"
+	base := "fi.mau.linkedin.capabilities.2025_12_10"
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -138,6 +138,10 @@ var fileCaps = event.FileFeatureMap{
 	},
 }
 
+var stateCaps = event.StateFeatureMap{
+	event.StateRoomName.Type: {Level: event.CapLevelFullySupported},
+}
+
 func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
 	return &event.RoomFeatures{
 		ID:                  capID(),
@@ -155,5 +159,6 @@ func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Por
 		ReadReceipts:        true,
 		TypingNotifications: true,
 		DeleteChat:          true,
+		State:               stateCaps,
 	}
 }
