@@ -14,6 +14,8 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
+var moderatorPL = 50
+
 func (l *LinkedInClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfo, error) {
 	// This is not supported. All of the info should already be populated with
 	// the information we get on a per-message basis.
@@ -82,10 +84,15 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	for _, participant := range conv.ConversationParticipants {
 		userInChat = userInChat || networkid.UserID(participant.EntityURN.ID()) == l.userID
 		sender := l.makeSender(participant)
+		powerLevel := 0
+		if sender.IsFromMe {
+			powerLevel = moderatorPL
+		}
 		ci.Members.MemberMap[sender.Sender] = bridgev2.ChatMember{
 			EventSender: sender,
 			Membership:  event.MembershipJoin,
 			UserInfo:    ptr.Ptr(l.getMessagingParticipantUserInfo(participant)),
+			PowerLevel:  &powerLevel,
 		}
 	}
 

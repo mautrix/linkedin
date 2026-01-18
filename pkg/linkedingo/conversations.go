@@ -211,3 +211,39 @@ func (c *Client) DeleteConversation(ctx context.Context, conversationURN URN) er
 type DecoratedConversationDelete struct {
 	Result Conversation `json:"result,omitempty"`
 }
+
+func (c *Client) manageParticipants(ctx context.Context, conversationURN URN, participants []URN, action string) error {
+	payload := ParticipantsPayload{
+		ConversationURN: conversationURN,
+		Participants:    participants,
+	}
+	_, err := c.newAuthedRequest(http.MethodPost, linkedInMessagingDashMessengerConversationsURL).
+		WithJSONPayload(payload).
+		WithQueryParam("action", action).
+		WithCSRF().
+		WithContentType(contentTypePlaintextUTF8).
+		WithXLIHeaders().
+		Do(ctx, nil)
+	return err
+}
+
+type ParticipantsPayload struct {
+	ConversationURN URN   `json:"conversationUrn,omitempty"`
+	Participants    []URN `json:"participants,omitempty"`
+}
+
+func (c *Client) AddParticipants(ctx context.Context, conversationURN URN, participants []URN) error {
+	prefix := "urn:li:fsd_profile"
+	for i, p := range participants {
+		participants[i] = p.WithPrefix(prefix)
+	}
+	return c.manageParticipants(ctx, conversationURN, participants, "addParticipants")
+}
+
+func (c *Client) RemoveParticipants(ctx context.Context, conversationURN URN, participants []URN) error {
+	prefix := "urn:li:msg_messagingParticipant:urn:li:fsd_profile"
+	for i, p := range participants {
+		participants[i] = p.WithPrefix(prefix)
+	}
+	return c.manageParticipants(ctx, conversationURN, participants, "removeParticipants")
+}
