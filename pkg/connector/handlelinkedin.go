@@ -30,7 +30,6 @@ func (l *LinkedInClient) onBadCredentials(ctx context.Context, err error) {
 		Error:      "linkedin-bad-credentials",
 		Message:    err.Error(),
 	})
-	l.Disconnect()
 	if errors.Is(err, linkedingo.ErrTokenInvalidated) {
 		l.userLogin.Metadata.(*UserLoginMetadata).Cookies.Clear()
 		err = l.userLogin.Save(ctx)
@@ -38,6 +37,8 @@ func (l *LinkedInClient) onBadCredentials(ctx context.Context, err error) {
 			zerolog.Ctx(ctx).Err(err).Msg("failed to clear cookies after token invalidation")
 		}
 	}
+	// Disconnect in the background so we don't deadlock against the realtime loop which calls this
+	go l.Disconnect()
 }
 
 func (l *LinkedInClient) onUnknownError(ctx context.Context, err error) {
@@ -48,7 +49,8 @@ func (l *LinkedInClient) onUnknownError(ctx context.Context, err error) {
 		Message:    err.Error(),
 	})
 	// TODO probably don't do this unconditionally?
-	l.Disconnect()
+	// Disconnect in the background so we don't deadlock against the realtime loop which calls this
+	go l.Disconnect()
 }
 
 func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *linkedingo.DecoratedEvent) {
