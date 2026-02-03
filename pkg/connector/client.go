@@ -81,6 +81,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 		cookies,
 		meta.XLIPageInstance,
 		meta.XLITrack,
+		meta.ConversationsSyncToken,
 		linkedingo.Handlers{
 			Heartbeat: func(ctx context.Context) {
 				if login.BridgeState.GetPrevUnsent().StateEvent != status.StateConnected {
@@ -103,6 +104,13 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			BadCredentials:      client.onBadCredentials,
 			UnknownError:        client.onUnknownError,
 			DecoratedEvent:      client.onDecoratedEvent,
+			ConversationsSyncToken: func(ctx context.Context, syncToken string) {
+				meta.ConversationsSyncToken = syncToken
+				err := login.Save(ctx)
+				if err != nil {
+					zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to save sync token")
+				}
+			},
 		},
 	)
 
@@ -148,6 +156,8 @@ func (l *LinkedInClient) Connect(ctx context.Context) {
 	}
 
 	l.userLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnecting})
+
+	l.getConversationsBySyncToken(ctx)
 	if err := l.client.RealtimeConnect(ctx); err != nil {
 		l.userLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,

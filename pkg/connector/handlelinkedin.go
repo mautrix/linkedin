@@ -87,19 +87,13 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 }
 
 func (l *LinkedInClient) onRealtimeConversations(ctx context.Context, conv *linkedingo.Conversation) {
-	var convs []linkedingo.Conversation
 	if conv != nil {
-		convs = []linkedingo.Conversation{*conv}
+		convs := []linkedingo.Conversation{*conv}
+		l.handleConversations(ctx, convs)
 	} else {
-		convsRes, err := l.client.GetConversations(ctx)
-		if err != nil {
-			zerolog.Ctx(ctx).Err(err).Msg("failed to get conversations")
-			return
-		}
-		convs = convsRes.Elements
+		l.getConversationsBySyncToken(ctx)
 	}
 
-	l.handleConversations(ctx, convs)
 }
 
 func (l *LinkedInClient) onRealtimeConversationDelete(ctx context.Context, conv linkedingo.Conversation) {
