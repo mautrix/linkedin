@@ -54,10 +54,10 @@ type Client struct {
 	xLITrack       string
 	serviceVersion string
 
-	syncToken string
+	conversationsSyncToken string
 }
 
-func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pageInstance, xLiTrack string, handlers Handlers) *Client {
+func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pageInstance, xLiTrack, conversationsSyncToken string, handlers Handlers) *Client {
 	log := zerolog.Ctx(ctx)
 	if xLiTrack == "" {
 		log.Warn().Msg("x-li-track is empty, using default")
@@ -87,13 +87,14 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 	}
 
 	cli := &Client{
-		userEntityURN:     userEntityURN,
-		jar:               jar,
-		pageInstance:      pageInstance,
-		xLITrack:          xLiTrack,
-		serviceVersion:    serviceVersion,
-		realtimeSessionID: uuid.New(),
-		handlers:          handlers,
+		userEntityURN:          userEntityURN,
+		jar:                    jar,
+		pageInstance:           pageInstance,
+		xLITrack:               xLiTrack,
+		serviceVersion:         serviceVersion,
+		realtimeSessionID:      uuid.New(),
+		handlers:               handlers,
+		conversationsSyncToken: conversationsSyncToken,
 	}
 	cli.http = &http.Client{
 		Transport: &http.Transport{
@@ -106,12 +107,13 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 }
 
 type Handlers struct {
-	Heartbeat           func(context.Context)
-	ClientConnection    func(context.Context, *ClientConnection)
-	TransientDisconnect func(context.Context, error)
-	BadCredentials      func(context.Context, error)
-	UnknownError        func(context.Context, error)
-	DecoratedEvent      func(context.Context, *DecoratedEvent)
+	Heartbeat              func(context.Context)
+	ClientConnection       func(context.Context, *ClientConnection)
+	TransientDisconnect    func(context.Context, error)
+	BadCredentials         func(context.Context, error)
+	UnknownError           func(context.Context, error)
+	DecoratedEvent         func(context.Context, *DecoratedEvent)
+	ConversationsSyncToken func(context.Context, string)
 }
 
 func (h Handlers) onHeartbeat(ctx context.Context) {
@@ -147,5 +149,11 @@ func (h Handlers) onUnknownError(ctx context.Context, err error) {
 func (h Handlers) onDecoratedEvent(ctx context.Context, decoratedEvent *DecoratedEvent) {
 	if h.DecoratedEvent != nil {
 		h.DecoratedEvent(ctx, decoratedEvent)
+	}
+}
+
+func (h Handlers) onConversationsSyncToken(ctx context.Context, conversationsSyncToken string) {
+	if h.ConversationsSyncToken != nil {
+		h.ConversationsSyncToken(ctx, conversationsSyncToken)
 	}
 }

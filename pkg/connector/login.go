@@ -129,7 +129,7 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 	pageInstance := cookies[CookieLoginXLIPageInstanceField]
 	xLiTrack := cookies[CookieLoginXLITrackField]
 
-	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, pageInstance, xLiTrack, linkedingo.Handlers{})
+	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, pageInstance, xLiTrack, "", linkedingo.Handlers{})
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current user profile: %w", err)
