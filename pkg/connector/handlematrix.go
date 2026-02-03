@@ -43,6 +43,7 @@ var (
 	_ bridgev2.ReactionHandlingNetworkAPI    = (*LinkedInClient)(nil)
 	_ bridgev2.RedactionHandlingNetworkAPI   = (*LinkedInClient)(nil)
 	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*LinkedInClient)(nil)
+	_ bridgev2.RoomNameHandlingNetworkAPI    = (*LinkedInClient)(nil)
 	_ bridgev2.TypingHandlingNetworkAPI      = (*LinkedInClient)(nil)
 	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*LinkedInClient)(nil)
 )
@@ -281,4 +282,12 @@ func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.M
 
 func (l *LinkedInClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
 	return l.client.DeleteConversation(ctx, linkedingo.NewURN(chat.Portal.ID))
+}
+
+func (l *LinkedInClient) HandleMatrixRoomName(ctx context.Context, msg *bridgev2.MatrixRoomName) (bool, error) {
+	err := l.client.RenameConversation(ctx, linkedingo.NewURN(msg.Portal.ID), msg.Content.Name)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
