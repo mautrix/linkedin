@@ -99,9 +99,16 @@ type ConversationCursorMetadata struct {
 	NextCursor string `json:"nextCursor,omitempty"`
 }
 
-// ConversationSyncMetadata represents a com.linkedin.messenger.SyncMetadata object.
+type DeletedURN struct {
+	Message      any `json:"message"`
+	Conversation struct {
+		EntityURN URN `json:"entityUrn"`
+	} `json:"conversation"`
+}
+
 type ConversationSyncMetadata struct {
-	NewSyncToken string `json:"newSyncToken,omitempty"`
+	DeletedURNs  []DeletedURN `json:"deletedUrns,omitempty"`
+	NewSyncToken string       `json:"newSyncToken,omitempty"`
 }
 
 // MessageMetadata represents a com.linkedin.messenger.MessageMetadata object.
@@ -173,14 +180,14 @@ func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefor
 	return response.Data.MessengerConversationsByCategoryQuery, nil
 }
 
-func (c *Client) GetConversations(ctx context.Context) (*CollectionResponse[ConversationSyncMetadata, Conversation], error) {
+func (c *Client) GetConversationsBySyncToken(ctx context.Context) (*CollectionResponse[ConversationSyncMetadata, Conversation], error) {
 	zerolog.Ctx(ctx).Info().Msg("Getting conversations")
 	req := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL)
 	mailboxUrn := url.QueryEscape(c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String())
-	if c.syncToken != "" {
+	if c.conversationsSyncToken != "" {
 		req.WithGraphQLQuery(graphQLQueryIDMessengerConversationsWithSyncToken, map[string]string{
 			"mailboxUrn": mailboxUrn,
-			"syncToken":  c.syncToken,
+			"syncToken":  c.conversationsSyncToken,
 		})
 	} else {
 		req.WithGraphQLQuery(graphQLQueryIDMessengerConversations, map[string]string{
@@ -194,7 +201,9 @@ func (c *Client) GetConversations(ctx context.Context) (*CollectionResponse[Conv
 		return nil, err
 	}
 
-	c.syncToken = response.Data.MessengerConversationsBySyncToken.Metadata.NewSyncToken
+	newToken := response.Data.MessengerConversationsBySyncToken.Metadata.NewSyncToken
+	c.conversationsSyncToken = newToken
+	c.handlers.onConversationsSyncToken(ctx, newToken)
 	return response.Data.MessengerConversationsBySyncToken, nil
 }
 

@@ -23,22 +23,36 @@ import (
 
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
 func (l *LinkedInClient) deleteConversation(ctx context.Context, conv linkedingo.Conversation) {
+	l.deletePortal(ctx, l.makePortalKey(conv))
+}
+
+func (l *LinkedInClient) deletePortal(ctx context.Context, portalKey networkid.PortalKey) {
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatDelete{
 		EventMeta: simplevent.EventMeta{
-			Type: bridgev2.RemoteEventChatDelete,
-			LogContext: func(c zerolog.Context) zerolog.Context {
-				return c.Stringer("entity_urn", conv.EntityURN)
-			},
-			PortalKey: l.makePortalKey(conv),
+			Type:      bridgev2.RemoteEventChatDelete,
+			PortalKey: portalKey,
 		},
 		OnlyForMe: true,
 	})
+}
+
+func (l *LinkedInClient) deleteURN(ctx context.Context, urn linkedingo.URN) {
+	portalKey := networkid.PortalKey{
+		ID:       networkid.PortalID(urn.String()),
+		Receiver: l.userLogin.ID,
+	}
+	l.deletePortal(ctx, portalKey)
+	if !l.main.Bridge.Config.SplitPortals {
+		portalKey.Receiver = ""
+		l.deletePortal(ctx, portalKey)
+	}
 }
 
 func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation) {
@@ -158,5 +172,19 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 		}
 
 		l.handleConversations(ctx, conversations.Elements)
+	}
+}
+func (l *LinkedInClient) getConversationsBySyncToken(ctx context.Context) {
+	convs, err := l.client.GetConversationsBySyncToken(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("failed to get conversations by sync token")
+		return
+	}
+	if convs == nil {
+		return
+	}
+	l.handleConversations(ctx, convs.Elements)
+	for _, item := range convs.Metadata.DeletedURNs {
+		l.deleteURN(ctx, item.Conversation.EntityURN)
 	}
 }
