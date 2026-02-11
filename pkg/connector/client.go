@@ -163,6 +163,9 @@ func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID
 }
 
 func (l *LinkedInClient) LogoutRemote(ctx context.Context) {
+	if !l.IsLoggedIn() {
+		return
+	}
 	if err := l.client.Logout(ctx); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("error logging out of remote")
 	}
