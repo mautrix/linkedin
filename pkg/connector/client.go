@@ -149,7 +149,8 @@ func (l *LinkedInClient) Disconnect() {
 }
 
 func (l *LinkedInClient) IsLoggedIn() bool {
-	return l.userLogin.Metadata.(*UserLoginMetadata).Cookies.GetCookie(linkedingo.LinkedInCookieJSESSIONID) != ""
+	cookies := l.userLogin.Metadata.(*UserLoginMetadata).Cookies
+	return cookies != nil && cookies.GetCookie(linkedingo.LinkedInCookieJSESSIONID) != ""
 }
 
 func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID) bool {
