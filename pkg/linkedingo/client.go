@@ -105,6 +105,10 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 	return cli
 }
 
+func (c *Client) IsLoggedIn() bool {
+	return c.jar.GetCookie(LinkedInCookieJSESSIONID) != ""
+}
+
 type Handlers struct {
 	Heartbeat           func(context.Context)
 	ClientConnection    func(context.Context, *ClientConnection)
