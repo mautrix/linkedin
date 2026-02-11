@@ -62,12 +62,18 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 		userLogin:            login,
 		conversationLastRead: map[linkedingo.URN]jsontime.UnixMilli{},
 	}
+	meta := login.Metadata.(*UserLoginMetadata)
+	cookies := meta.Cookies
+	if cookies == nil {
+		zerolog.Ctx(ctx).Warn().Msg("No cookies found in login metadata, using empty cookie jar")
+		cookies = linkedingo.NewEmptyStringCookieJar()
+	}
 	client.client = linkedingo.NewClient(
 		ctx,
 		linkedingo.NewURN(login.ID),
-		login.Metadata.(*UserLoginMetadata).Cookies,
-		login.Metadata.(*UserLoginMetadata).XLIPageInstance,
-		login.Metadata.(*UserLoginMetadata).XLITrack,
+		cookies,
+		meta.XLIPageInstance,
+		meta.XLITrack,
 		linkedingo.Handlers{
 			Heartbeat: func(ctx context.Context) {
 				if login.BridgeState.GetPrevUnsent().StateEvent != status.StateConnected {
@@ -149,8 +155,7 @@ func (l *LinkedInClient) Disconnect() {
 }
 
 func (l *LinkedInClient) IsLoggedIn() bool {
-	cookies := l.userLogin.Metadata.(*UserLoginMetadata).Cookies
-	return cookies != nil && cookies.GetCookie(linkedingo.LinkedInCookieJSESSIONID) != ""
+	return l.client.IsLoggedIn()
 }
 
 func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID) bool {
@@ -158,6 +163,9 @@ func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID
 }
 
 func (l *LinkedInClient) LogoutRemote(ctx context.Context) {
+	if !l.IsLoggedIn() {
+		return
+	}
 	if err := l.client.Logout(ctx); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("error logging out of remote")
 	}
