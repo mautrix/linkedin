@@ -33,14 +33,20 @@ import (
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
+type ConversationReadState struct {
+	LastReadAt jsontime.UnixMilli
+	Read       bool
+}
+
 type LinkedInClient struct {
 	main      *LinkedInConnector
 	userID    networkid.UserID
 	userLogin *bridgev2.UserLogin
 	client    *linkedingo.Client
 
-	sessID               uuid.UUID
-	conversationLastRead map[linkedingo.URN]jsontime.UnixMilli
+	sessID                uuid.UUID
+	conversationLastRead  map[linkedingo.URN]jsontime.UnixMilli
+	conversationReadState map[linkedingo.URN]ConversationReadState
 
 	linkedinFmtParams linkedinfmt.FormatParams
 	matrixParser      *matrixfmt.HTMLParser
@@ -57,10 +63,11 @@ var (
 func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridgev2.UserLogin) *LinkedInClient {
 	userID := networkid.UserID(login.ID)
 	client := &LinkedInClient{
-		main:                 lc,
-		userID:               userID,
-		userLogin:            login,
-		conversationLastRead: map[linkedingo.URN]jsontime.UnixMilli{},
+		main:                  lc,
+		userID:                userID,
+		userLogin:             login,
+		conversationLastRead:  map[linkedingo.URN]jsontime.UnixMilli{},
+		conversationReadState: map[linkedingo.URN]ConversationReadState{},
 	}
 	meta := login.Metadata.(*UserLoginMetadata)
 	cookies := meta.Cookies

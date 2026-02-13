@@ -61,10 +61,16 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 		Logger()
 	log.Debug().Msg("Received decorated event")
 
+	data := decoratedEvent.Payload.Data
+
 	// The topics are always of the form "urn:li-realtime:TOPIC_NAME:<topic_dependent>"
 	switch decoratedEvent.Topic.NthPrefixPart(2) {
 	case linkedingo.RealtimeEventTopicConversations, linkedingo.RealtimeEventTopicTabBadgeUpdate:
-		l.onRealtimeConversations(ctx)
+		var conv *linkedingo.Conversation
+		if data.DecoratedConversation != nil {
+			conv = &data.DecoratedConversation.Result
+		}
+		l.onRealtimeConversations(ctx, conv)
 	case linkedingo.RealtimeEventTopicConversationDelete:
 		l.onRealtimeConversationDelete(ctx, decoratedEvent.Payload.Data.DecoratedConversationDelete.Result)
 	case linkedingo.RealtimeEventTopicMessages:
@@ -80,13 +86,20 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 	}
 }
 
-func (l *LinkedInClient) onRealtimeConversations(ctx context.Context) {
-	convs, err := l.client.GetConversations(ctx)
-	if err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("failed to get conversations")
+func (l *LinkedInClient) onRealtimeConversations(ctx context.Context, conv *linkedingo.Conversation) {
+	var convs []linkedingo.Conversation
+	if conv != nil {
+		convs = []linkedingo.Conversation{*conv}
+	} else {
+		convsRes, err := l.client.GetConversations(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("failed to get conversations")
+			return
+		}
+		convs = convsRes.Elements
 	}
 
-	l.handleConversations(ctx, convs.Elements)
+	l.handleConversations(ctx, convs)
 }
 
 func (l *LinkedInClient) onRealtimeConversationDelete(ctx context.Context, conv linkedingo.Conversation) {
