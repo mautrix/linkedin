@@ -1,5 +1,14 @@
+# v26.02
+
+* Bumped minimum Go version to 1.25.
+* Added support for direct media.
+* Added support for creating groups.
+* Added support for changing group names.
+* Fixed HTTP request bodies not being closed properly in some cases.
+
 # v25.12
 
+* Updated Docker image to Alpine 3.23.
 * Fixed logins failing if certain provided headers have unexpected values.
 
 # v25.11
