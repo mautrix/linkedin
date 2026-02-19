@@ -39,13 +39,14 @@ import (
 )
 
 var (
+	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*LinkedInClient)(nil)
 	_ bridgev2.EditHandlingNetworkAPI        = (*LinkedInClient)(nil)
+	_ bridgev2.MembershipHandlingNetworkAPI  = (*LinkedInClient)(nil)
 	_ bridgev2.ReactionHandlingNetworkAPI    = (*LinkedInClient)(nil)
 	_ bridgev2.RedactionHandlingNetworkAPI   = (*LinkedInClient)(nil)
 	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*LinkedInClient)(nil)
 	_ bridgev2.RoomNameHandlingNetworkAPI    = (*LinkedInClient)(nil)
 	_ bridgev2.TypingHandlingNetworkAPI      = (*LinkedInClient)(nil)
-	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*LinkedInClient)(nil)
 )
 
 func getMediaFilename(content *event.MessageEventContent) (filename string) {
@@ -290,4 +291,28 @@ func (l *LinkedInClient) HandleMatrixRoomName(ctx context.Context, msg *bridgev2
 		return false, err
 	}
 	return true, nil
+}
+
+func (l *LinkedInClient) HandleMatrixMembership(ctx context.Context, msg *bridgev2.MatrixMembershipChange) (*bridgev2.MatrixMembershipResult, error) {
+	if msg.Portal.RoomType == database.RoomTypeDM {
+		return nil, errors.New("cannot change members for DM")
+	}
+
+	var participants []linkedingo.URN
+	switch target := msg.Target.(type) {
+	case *bridgev2.Ghost:
+		participants = []linkedingo.URN{linkedingo.NewURN(target.ID)}
+	case *bridgev2.UserLogin:
+		participants = []linkedingo.URN{linkedingo.NewURN(target.ID)}
+	}
+
+	var err error
+	switch msg.Type {
+	case bridgev2.Invite:
+		err = l.client.AddParticipants(ctx, linkedingo.NewURN(msg.Portal.ID), participants)
+	case bridgev2.Kick:
+		err = l.client.RemoveParticipants(ctx, linkedingo.NewURN(msg.Portal.ID), participants)
+	}
+
+	return nil, err
 }
