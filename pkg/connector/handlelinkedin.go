@@ -124,10 +124,11 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 				Stringer("entity_urn", msg.EntityURN).
 				Stringer("sender", msg.Sender.EntityURN)
 		},
-		PortalKey:   l.makePortalKey(msg.Conversation),
-		Sender:      l.makeSender(msg.Sender),
-		Timestamp:   msg.DeliveredAt.Time,
-		StreamOrder: msg.DeliveredAt.UnixMilli(),
+		PortalKey:    l.makePortalKey(msg.Conversation),
+		Sender:       l.makeSender(msg.Sender),
+		Timestamp:    msg.DeliveredAt.Time,
+		StreamOrder:  msg.DeliveredAt.UnixMilli(),
+		CreatePortal: true,
 	}
 
 	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
