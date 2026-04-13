@@ -232,7 +232,7 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 					Dur("duration", dur).
 					Int("status", resp.StatusCode).
 					Msg("HTTP 50x while sending request, not retrying anymore")
-				return nil, err
+				return resp, nil
 			}
 			log.Warn().
 				Dur("duration", dur).
