@@ -1,3 +1,10 @@
+# v26.04
+
+* Added support for adding/removing group participants from Matrix.
+* Fixed handling conversation deletes that happened while the bridge was offline.
+* Fixed portals not being created for new messages in some cases.
+* Fixed HTTP 5xx errors panicking in some cases.
+
 # v26.02
 
 * Bumped minimum Go version to 1.25.
