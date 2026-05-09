@@ -180,6 +180,25 @@ func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefor
 	return response.Data.MessengerConversationsByCategoryQuery, nil
 }
 
+func (c *Client) GetConversationsWithCursor(ctx context.Context, nextCursor string) (*CollectionResponse[ConversationCursorMetadata, Conversation], error) {
+	zerolog.Ctx(ctx).Info().
+		Str("next_cursor", nextCursor).
+		Msg("Getting conversations with cursor")
+	var response GraphQlResponse
+	_, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
+		WithGraphQLQuery(graphQLQueryIDMessengerConversationsWithCursor, map[string]string{
+			"mailboxUrn": url.QueryEscape(c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String()),
+			"nextCursor": nextCursor,
+			"count":      "20",
+			"query":      "(predicateUnions:List((conversationCategoryPredicate:(category:PRIMARY_INBOX))))",
+		}).
+		Do(ctx, &response)
+	if err != nil {
+		return nil, err
+	}
+	return response.Data.MessengerConversationsByCategoryQuery, nil
+}
+
 func (c *Client) GetConversationsBySyncToken(ctx context.Context) (*CollectionResponse[ConversationSyncMetadata, Conversation], error) {
 	zerolog.Ctx(ctx).Info().Msg("Getting conversations")
 	req := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL)
