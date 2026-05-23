@@ -29,6 +29,13 @@ func (l *LinkedInConnector) Download(ctx context.Context, mediaID networkid.Medi
 		msg, err = l.Bridge.DB.Message.GetFirstPartByID(ctx, mediaInfo.UserID, mediaInfo.MessageID)
 	} else {
 		msg, err = l.Bridge.DB.Message.GetPartByID(ctx, mediaInfo.UserID, mediaInfo.MessageID, mediaInfo.PartID)
+		// The part ID embedded in a media URI is the pre-merge index (e.g. "part_0"),
+		// but a single media part with a text caption gets merged by ConvertedMessage.MergeCaption,
+		// which resets the stored part ID to the (empty) caption part's ID. Fall back to the first
+		// part so those messages remain downloadable.
+		if err == nil && msg == nil {
+			msg, err = l.Bridge.DB.Message.GetFirstPartByID(ctx, mediaInfo.UserID, mediaInfo.MessageID)
+		}
 	}
 	if err != nil {
 		return nil, nil
