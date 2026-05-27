@@ -74,6 +74,9 @@ func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 		CookiesParams: &bridgev2.LoginCookiesParams{
 			URL:       "https://linkedin.com/login",
 			UserAgent: linkedingo.UserAgent,
+			// Keep the webview open until the feed loads so it doesn't close
+			// before the user finishes 2FA.
+			WaitForURLPattern: `^https://www\.linkedin\.com/feed`,
 			Fields: []bridgev2.LoginCookieField{
 				{
 					ID:       CookieLoginCookieHeaderField,
