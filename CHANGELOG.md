@@ -1,3 +1,8 @@
+# unreleased
+
+* Removed legacy provisioning API and database legacy migration.
+  Upgrading directly from the Python version (pre-v25.11) is not supported.
+
 # v26.04
 
 * Added support for adding/removing group participants from Matrix.

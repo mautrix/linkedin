@@ -17,7 +17,6 @@
 package main
 
 import (
-	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
 	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector"
@@ -41,15 +40,6 @@ var m = mxmain.BridgeMain{
 }
 
 func main() {
-	bridgeconfig.HackyMigrateLegacyNetworkConfig = migrateLegacyConfig
-	m.PostStart = func() {
-		if m.Matrix.Provisioning != nil {
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/api/login", legacyProvLogin)
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/api/logout", legacyProvLogout)
-		}
-	}
-	m.PostInit = MigrateLegacyDB
-	m.PostMigratePortal = PostMigratePortal
 	m.InitVersion(Tag, Commit, BuildTime)
 	m.Run()
 }
