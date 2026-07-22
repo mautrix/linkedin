@@ -72,5 +72,12 @@ type DisplaynameParams struct {
 func (c *Config) FormatDisplayname(params DisplaynameParams) string {
 	var buffer strings.Builder
 	_ = c.displaynameTemplate.Execute(&buffer, params)
-	return buffer.String()
+	formatted := buffer.String()
+	if strings.TrimSpace(formatted) != "" {
+		return formatted
+	}
+	if organization := strings.TrimSpace(params.Organization); organization != "" {
+		return organization
+	}
+	return strings.TrimSpace(strings.Join([]string{params.FirstName, params.LastName}, " "))
 }
