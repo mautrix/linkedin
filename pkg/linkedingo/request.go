@@ -54,6 +54,16 @@ var (
 	ErrTokenInvalidated = errors.New("access token is no longer valid")
 )
 
+// ResponseError is returned when LinkedIn answers with a non-2xx status. It is a typed
+// error so callers can branch on the status code instead of parsing the message.
+type ResponseError struct {
+	StatusCode int
+}
+
+func (re *ResponseError) Error() string {
+	return fmt.Sprintf("unexpected status code %d", re.StatusCode)
+}
+
 func (c *Client) checkHTTPRedirect(req *http.Request, via []*http.Request) error {
 	if req.Response == nil {
 		return nil
@@ -279,7 +289,7 @@ func (a *authedRequest) Do(ctx context.Context, out any) (*http.Response, error)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
-		return resp, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+		return resp, &ResponseError{StatusCode: resp.StatusCode}
 	}
 
 	if out == nil {
