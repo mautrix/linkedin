@@ -60,7 +60,7 @@ func wrapLinkedInLoginError(err error) error {
 	if err == nil {
 		return nil
 	}
-	mapped := ErrLoginUnknown
+	mapped := ErrLoginUnknown.WithInternalError(err)
 	var respErr *linkedingo.ResponseError
 	switch {
 	case errors.Is(err, linkedingo.ErrTokenInvalidated):
