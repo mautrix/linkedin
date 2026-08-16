@@ -1,7 +1,8 @@
-# unreleased
+# v26.08
 
 * Removed legacy provisioning API and database legacy migration.
   Upgrading directly from the Python version (pre-v25.11) is not supported.
+* Updated Docker image to Alpine 3.24.
 
 # v26.04
 
