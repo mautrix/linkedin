@@ -17,9 +17,12 @@
 package linkedingo
 
 import (
+	"context"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBrowserIdentityFromUserAgent(t *testing.T) {
@@ -77,5 +80,47 @@ func TestBrowserIdentityFromUserAgent(t *testing.T) {
 			assert.Empty(t, identity.secCHUAPlatform)
 			assert.Empty(t, identity.secCHUAMobile)
 		}
+	})
+}
+
+// The identity only matters if it reaches the wire, so assert on the headers an
+// actual request carries rather than on the derived struct alone.
+func TestRequestHeadersMatchStoredUserAgent(t *testing.T) {
+	newClientWithUserAgent := func(userAgent string) *Client {
+		return NewClient(
+			context.Background(), NewURN(""), NewEmptyStringCookieJar(),
+			"", "", userAgent, "", Handlers{},
+		)
+	}
+
+	t.Run("chromium sends client hints matching its user agent", func(t *testing.T) {
+		const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+		req := newClientWithUserAgent(userAgent).newAuthedRequest(http.MethodGet, "https://www.linkedin.com/voyager/api/me")
+		require.NoError(t, req.parseErr)
+
+		assert.Equal(t, userAgent, req.header.Get("User-Agent"))
+		assert.Equal(t, `"Chromium";v="151", "Google Chrome";v="151", "Not-A.Brand";v="99"`, req.header.Get("sec-ch-ua"))
+		assert.Equal(t, `"macOS"`, req.header.Get("sec-ch-ua-platform"))
+		assert.Equal(t, "?0", req.header.Get("sec-ch-ua-mobile"))
+	})
+
+	t.Run("firefox sends no client hints at all", func(t *testing.T) {
+		const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:130.0) Gecko/20100101 Firefox/130.0"
+		req := newClientWithUserAgent(userAgent).newAuthedRequest(http.MethodGet, "https://www.linkedin.com/voyager/api/me")
+		require.NoError(t, req.parseErr)
+
+		assert.Equal(t, userAgent, req.header.Get("User-Agent"))
+		for _, header := range []string{"sec-ch-ua", "sec-ch-ua-platform", "sec-ch-ua-mobile", "sec-ch-prefers-color-scheme"} {
+			assert.Empty(t, req.header.Get(header), "%s must not be sent for a non-Chromium user agent", header)
+		}
+	})
+
+	t.Run("no stored user agent keeps the compile-time identity", func(t *testing.T) {
+		req := newClientWithUserAgent("").newAuthedRequest(http.MethodGet, "https://www.linkedin.com/voyager/api/me")
+		require.NoError(t, req.parseErr)
+
+		assert.Equal(t, UserAgent, req.header.Get("User-Agent"))
+		assert.Equal(t, SecCHUserAgent, req.header.Get("sec-ch-ua"))
+		assert.Equal(t, SecCHPlatform, req.header.Get("sec-ch-ua-platform"))
 	})
 }
