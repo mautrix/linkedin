@@ -22,56 +22,60 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBrowserHintsFromUserAgent(t *testing.T) {
-	tests := []struct {
-		name             string
-		userAgent        string
-		expectedOK       bool
-		expectedUA       string
-		expectedPlatform string
-	}{
-		{
-			name:             "chrome on macos",
-			userAgent:        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
-			expectedOK:       true,
-			expectedUA:       `"Chromium";v="151", "Google Chrome";v="151", "Not-A.Brand";v="99"`,
-			expectedPlatform: `"macOS"`,
-		},
-		{
-			name:             "chrome on linux",
-			userAgent:        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
-			expectedOK:       true,
-			expectedUA:       `"Chromium";v="141", "Google Chrome";v="141", "Not-A.Brand";v="99"`,
-			expectedPlatform: `"Linux"`,
-		},
-		{
-			name:             "chrome on windows",
-			userAgent:        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
-			expectedOK:       true,
-			expectedUA:       `"Chromium";v="150", "Google Chrome";v="150", "Not-A.Brand";v="99"`,
-			expectedPlatform: `"Windows"`,
-		},
-		{
-			name:       "non-chromium is rejected rather than half-populated",
-			userAgent:  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:130.0) Gecko/20100101 Firefox/130.0",
-			expectedOK: false,
-		},
-		{
-			name:       "empty",
-			userAgent:  "",
-			expectedOK: false,
-		},
-	}
+func TestBrowserIdentityFromUserAgent(t *testing.T) {
+	const (
+		chromeMacOS   = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+		chromeLinux   = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+		chromeWindows = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+		chromeAndroid = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
+		edgeWindows   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0"
+		firefoxMacOS  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:130.0) Gecko/20100101 Firefox/130.0"
+		safariMacOS   = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+	)
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			secCHUA, platform, ok := browserHintsFromUserAgent(test.userAgent)
-			assert.Equal(t, test.expectedOK, ok)
-			if !test.expectedOK {
-				return
-			}
-			assert.Equal(t, test.expectedUA, secCHUA)
-			assert.Equal(t, test.expectedPlatform, platform)
-		})
-	}
+	t.Run("empty falls back to the compile-time default", func(t *testing.T) {
+		identity := browserIdentityFromUserAgent("")
+		assert.Equal(t, defaultBrowserIdentity(), identity)
+		assert.True(t, identity.sendClientHints)
+	})
+
+	t.Run("chromium derives matching hints", func(t *testing.T) {
+		tests := []struct {
+			name             string
+			userAgent        string
+			expectedUA       string
+			expectedPlatform string
+			expectedMobile   string
+		}{
+			{"macos", chromeMacOS, `"Chromium";v="151", "Google Chrome";v="151", "Not-A.Brand";v="99"`, `"macOS"`, "?0"},
+			{"linux", chromeLinux, `"Chromium";v="141", "Google Chrome";v="141", "Not-A.Brand";v="99"`, `"Linux"`, "?0"},
+			{"windows", chromeWindows, `"Chromium";v="150", "Google Chrome";v="150", "Not-A.Brand";v="99"`, `"Windows"`, "?0"},
+			{"android is mobile", chromeAndroid, `"Chromium";v="150", "Google Chrome";v="150", "Not-A.Brand";v="99"`, `"Android"`, "?1"},
+			{"edge is chromium", edgeWindows, `"Chromium";v="150", "Google Chrome";v="150", "Not-A.Brand";v="99"`, `"Windows"`, "?0"},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				identity := browserIdentityFromUserAgent(test.userAgent)
+				assert.Equal(t, test.userAgent, identity.userAgent)
+				assert.True(t, identity.sendClientHints)
+				assert.Equal(t, test.expectedUA, identity.secCHUA)
+				assert.Equal(t, test.expectedPlatform, identity.secCHUAPlatform)
+				assert.Equal(t, test.expectedMobile, identity.secCHUAMobile)
+			})
+		}
+	})
+
+	// Firefox and Safari send no sec-ch-* headers at all, so the user agent is
+	// kept and the hints are suppressed rather than filled in with Chromium
+	// values, which would contradict the user agent.
+	t.Run("non-chromium keeps the user agent and omits client hints", func(t *testing.T) {
+		for _, userAgent := range []string{firefoxMacOS, safariMacOS} {
+			identity := browserIdentityFromUserAgent(userAgent)
+			assert.Equal(t, userAgent, identity.userAgent)
+			assert.False(t, identity.sendClientHints)
+			assert.Empty(t, identity.secCHUA)
+			assert.Empty(t, identity.secCHUAPlatform)
+			assert.Empty(t, identity.secCHUAMobile)
+		}
+	})
 }

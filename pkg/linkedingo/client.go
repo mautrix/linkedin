@@ -42,39 +42,72 @@ const SecCHPrefersColorScheme = "light"
 
 var chromeVersionRegex = regexp.MustCompile(`Chrome/(\d+)`)
 
-// browserHintsFromUserAgent derives the sec-ch-ua and sec-ch-ua-platform
-// values that a real browser would send alongside the given user agent.
-//
+// browserIdentity is the set of headers by which the client identifies itself.
 // LinkedIn cross-checks these against each other and against the session the
-// cookies were issued to. Sending a stored user agent while leaving the client
-// hints on their compile-time defaults produces a request that claims two
-// different browsers at once, which is worse than not overriding at all.
-//
-// Returns ok=false if the user agent isn't recognisably Chromium, in which case
-// callers should keep the defaults rather than emit a half-populated set.
-func browserHintsFromUserAgent(userAgent string) (secCHUA, secCHUAPlatform string, ok bool) {
+// cookies were issued to, so they always have to describe one browser.
+type browserIdentity struct {
+	userAgent string
+
+	// User-Agent Client Hints are a Chromium feature: Firefox and Safari send
+	// none of the sec-ch-* headers. When the identity is not Chromium these are
+	// unset and the headers are omitted entirely, because a Firefox user agent
+	// arriving with Chromium client hints is its own contradiction.
+	sendClientHints bool
+	secCHUA         string
+	secCHUAMobile   string
+	secCHUAPlatform string
+}
+
+func defaultBrowserIdentity() browserIdentity {
+	return browserIdentity{
+		userAgent:       UserAgent,
+		sendClientHints: true,
+		secCHUA:         SecCHUserAgent,
+		secCHUAMobile:   SecCHMobile,
+		secCHUAPlatform: SecCHPlatform,
+	}
+}
+
+// browserIdentityFromUserAgent builds a self-consistent identity from a stored
+// user agent. An empty user agent yields the compile-time default; a
+// non-Chromium one is used as-is with client hints suppressed.
+func browserIdentityFromUserAgent(userAgent string) browserIdentity {
+	if userAgent == "" {
+		return defaultBrowserIdentity()
+	}
+
+	identity := browserIdentity{userAgent: userAgent}
 	match := chromeVersionRegex.FindStringSubmatch(userAgent)
 	if match == nil {
-		return "", "", false
+		return identity
 	}
 	version := match[1]
 
-	platform := "Linux"
+	identity.sendClientHints = true
+	identity.secCHUA = fmt.Sprintf(`"Chromium";v="%s", "Google Chrome";v="%s", "Not-A.Brand";v="99"`, version, version)
+	identity.secCHUAMobile = SecCHMobile
+	if strings.Contains(userAgent, "Mobile") || strings.Contains(userAgent, "Android") {
+		identity.secCHUAMobile = "?1"
+	}
+	identity.secCHUAPlatform = fmt.Sprintf("%q", platformFromUserAgent(userAgent))
+	return identity
+}
+
+func platformFromUserAgent(userAgent string) string {
 	switch {
 	case strings.Contains(userAgent, "Macintosh"):
-		platform = "macOS"
+		return "macOS"
 	case strings.Contains(userAgent, "Windows"):
-		platform = "Windows"
+		return "Windows"
 	case strings.Contains(userAgent, "Android"):
-		platform = "Android"
+		return "Android"
 	case strings.Contains(userAgent, "CrOS"):
-		platform = "Chrome OS"
+		return "Chrome OS"
 	case strings.Contains(userAgent, "iPhone"), strings.Contains(userAgent, "iPad"):
-		platform = "iOS"
+		return "iOS"
+	default:
+		return "Linux"
 	}
-
-	secCHUA = fmt.Sprintf(`"Chromium";v="%s", "Google Chrome";v="%s", "Not-A.Brand";v="99"`, version, version)
-	return secCHUA, fmt.Sprintf("%q", platform), true
 }
 const ServiceVersion = "1.13.40953"
 const defaultXLiTrack = `{"clientVersion":"` + ServiceVersion + `","mpVersion":"` + ServiceVersion + `","osName":"web","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}`
@@ -94,9 +127,7 @@ type Client struct {
 	xLITrack       string
 	serviceVersion string
 
-	userAgent       string
-	secCHUA         string
-	secCHUAPlatform string
+	identity browserIdentity
 
 	conversationsSyncToken string
 }
@@ -130,16 +161,13 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 		pageInstance = "urn:li:page:d_flagship3_messaging_conversation_detail;" + base64.StdEncoding.EncodeToString(random.Bytes(16))
 	}
 
-	// The cookies were issued to a specific browser. Keep identifying ourselves
-	// as that browser rather than as the compile-time default, and only do so if
-	// we can derive a matching client-hint set — a stored user agent paired with
-	// mismatched hints is a stronger inconsistency signal than the defaults.
-	secCHUA, secCHUAPlatform, ok := browserHintsFromUserAgent(userAgent)
-	if userAgent != "" && !ok {
-		log.Warn().Msg("stored user agent is not recognisably Chromium, using default browser identity")
-	}
-	if !ok {
-		userAgent, secCHUA, secCHUAPlatform = UserAgent, SecCHUserAgent, SecCHPlatform
+	// The cookies were issued to a specific browser, so keep identifying
+	// ourselves as that browser rather than as the compile-time default.
+	identity := browserIdentityFromUserAgent(userAgent)
+	if userAgent == "" {
+		log.Warn().Msg("no user agent stored for this login, using default browser identity")
+	} else if !identity.sendClientHints {
+		log.Debug().Msg("stored user agent is not Chromium, omitting client hint headers")
 	}
 
 	cli := &Client{
@@ -148,9 +176,7 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 		pageInstance:           pageInstance,
 		xLITrack:               xLiTrack,
 		serviceVersion:         serviceVersion,
-		userAgent:              userAgent,
-		secCHUA:                secCHUA,
-		secCHUAPlatform:        secCHUAPlatform,
+		identity:               identity,
 		realtimeSessionID:      uuid.New(),
 		handlers:               handlers,
 		conversationsSyncToken: conversationsSyncToken,
