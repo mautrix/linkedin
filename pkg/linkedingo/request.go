@@ -78,13 +78,15 @@ func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {
 		ar.queryParams = url.Values{}
 	}
 
-	// Add default headers for every request
-	ar.header.Add("User-Agent", UserAgent)
+	// Add default headers for every request. The browser identity comes from the
+	// client so it matches the browser the cookies were issued to; NewClient
+	// falls back to the compile-time defaults when no user agent was stored.
+	ar.header.Add("User-Agent", c.userAgent)
 	ar.header.Add("Accept-Language", "en-US,en;q=0.9")
 	ar.header.Add("sec-ch-prefers-color-scheme", SecCHPrefersColorScheme)
-	ar.header.Add("sec-ch-ua", SecCHUserAgent)
+	ar.header.Add("sec-ch-ua", c.secCHUA)
 	ar.header.Add("sec-ch-ua-mobile", SecCHMobile)
-	ar.header.Add("sec-ch-ua-platform", SecCHPlatform)
+	ar.header.Add("sec-ch-ua-platform", c.secCHUAPlatform)
 
 	return &ar
 }
