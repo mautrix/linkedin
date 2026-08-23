@@ -327,6 +327,9 @@ func (parser *HTMLParser) linkToString(node *html.Node, ctx Context) *EntityStri
 			return NewEntityString("@" + username).Format(linkedinfmt.Mention{UserID: userID})
 		}
 	}
+	if string(str.String) == href {
+		return str
+	}
 	return ent.AppendString(fmt.Sprintf(" (%s)", href))
 }
 
