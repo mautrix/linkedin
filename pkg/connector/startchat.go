@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
@@ -120,15 +121,27 @@ func (l *LinkedInClient) createChat(ctx context.Context, chatInfo *bridgev2.Chat
 }
 
 func (l *LinkedInClient) SearchUsers(ctx context.Context, query string) (resp []*bridgev2.ResolveIdentifierResponse, err error) {
-	entityURNs, err := l.client.Search(ctx, query)
+	log := zerolog.Ctx(ctx).With().Str("action", "search_users").Str("query", query).Logger()
+
+	results, err := l.client.Search(ctx, query)
 	if err != nil {
 		return nil, err
 	}
+	log.Debug().Int("result_count", len(results)).Msg("Resolving search results")
 
-	for _, entityURN := range entityURNs {
-		res, err := l.ResolveIdentifier(ctx, entityURN.ID(), false)
+	for _, result := range results {
+		res, err := l.ResolveIdentifier(ctx, result.ProfileURN.ID(), false)
 		if err != nil {
+			log.Err(err).Str("profile_id", result.ProfileURN.ID()).Msg("Failed to resolve search result")
 			return nil, err
+		}
+		res.UserInfo = &bridgev2.UserInfo{
+			Name: ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
+				FirstName: result.FirstName,
+				LastName:  result.LastName,
+			})),
+			Avatar:      l.getAvatar(result.ProfilePicture),
+			Identifiers: []string{fmt.Sprintf("linkedin:%s", result.ProfileURN.ID())},
 		}
 		resp = append(resp, res)
 	}
