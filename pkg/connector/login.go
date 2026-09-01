@@ -60,6 +60,7 @@ var (
 	CookieLoginCookieHeaderField    = "fi.mau.linkedin.login.cookie_header"
 	CookieLoginXLITrackField        = "fi.mau.linkedin.login.x_li_track"
 	CookieLoginXLIPageInstanceField = "fi.mau.linkedin.login.x_li_page_instance"
+	CookieLoginUserAgentField       = "fi.mau.linkedin.login.user_agent"
 )
 
 var _ bridgev2.LoginProcessCookies = (*CookieLogin)(nil)
@@ -114,6 +115,20 @@ func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 					},
 					Pattern: "urn:li:page",
 				},
+				{
+					// Optional so existing login flows keep working: when it is
+					// absent the client falls back to the compile-time default
+					// browser identity, which is the pre-existing behaviour.
+					ID:       CookieLoginUserAgentField,
+					Required: false,
+					Sources: []bridgev2.LoginCookieFieldSource{
+						{
+							Type:            bridgev2.LoginCookieTypeRequestHeader,
+							Name:            "User-Agent",
+							RequestURLRegex: "https://www.linkedin.com",
+						},
+					},
+				},
 			},
 		},
 	}, nil
@@ -131,8 +146,9 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 
 	pageInstance := cookies[CookieLoginXLIPageInstanceField]
 	xLiTrack := cookies[CookieLoginXLITrackField]
+	userAgent := cookies[CookieLoginUserAgentField]
 
-	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, pageInstance, xLiTrack, "", linkedingo.Handlers{})
+	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, pageInstance, xLiTrack, userAgent, "", linkedingo.Handlers{})
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
 		return nil, wrapLinkedInLoginError(err)
@@ -147,6 +163,7 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 				Cookies:         jar,
 				XLIPageInstance: pageInstance,
 				XLITrack:        xLiTrack,
+				UserAgent:       userAgent,
 			},
 			RemoteName: remoteName,
 			RemoteProfile: status.RemoteProfile{
