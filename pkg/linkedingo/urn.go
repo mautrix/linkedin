@@ -87,7 +87,11 @@ func (u URN) MarshalJSON() ([]byte, error) {
 }
 
 func (u URN) NthPrefixPart(n int) string {
-	return strings.Split(u.prefix, ":")[n]
+	parts := strings.Split(u.prefix, ":")
+	if n >= len(parts) {
+		return ""
+	}
+	return parts[n]
 }
 
 // WithPrefix returns a URN with the given prefix but the same ID (last part)
