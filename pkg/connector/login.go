@@ -43,7 +43,7 @@ func (lc *LinkedInConnector) GetLoginFlows() []bridgev2.LoginFlow {
 
 func (l *LinkedInConnector) CreateLogin(ctx context.Context, user *bridgev2.User, flowID string) (bridgev2.LoginProcess, error) {
 	if flowID != FlowIDCookies {
-		return nil, fmt.Errorf("unknown login flow ID: %s", flowID)
+		return nil, bridgev2.ErrInvalidLoginFlowID
 	}
 	return &CookieLogin{user: user, main: l}, nil
 }
@@ -135,7 +135,7 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, pageInstance, xLiTrack, "", linkedingo.Handlers{})
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get current user profile: %w", err)
+		return nil, wrapLinkedInLoginError(err)
 	}
 
 	remoteName := fmt.Sprintf("%s %s", profile.MiniProfile.FirstName, profile.MiniProfile.LastName)
