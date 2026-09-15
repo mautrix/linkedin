@@ -217,6 +217,9 @@ func (l *LinkedInClient) onRealtimeReactionSummaries(ctx context.Context, summar
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("failed to get reacted to message")
 		return
+	} else if messageData == nil {
+		zerolog.Ctx(ctx).Warn().Msg("couldn't find reacted to message")
+		return
 	}
 
 	meta := simplevent.EventMeta{
