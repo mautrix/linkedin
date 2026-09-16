@@ -40,6 +40,7 @@ type UserLoginMetadata struct {
 	Cookies                *linkedingo.StringCookieJar `json:"cookies,omitempty"`
 	XLITrack               string                      `json:"x_li_track,omitempty"`
 	XLIPageInstance        string                      `json:"x_li_page_instance,omitempty"`
+	UserAgent              string                      `json:"user_agent,omitempty"`
 	ConversationsSyncToken string                      `json:"conversations_sync_token,omitempty"`
 }
 
