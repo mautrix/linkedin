@@ -1,3 +1,10 @@
+# v26.09
+
+* Bumped minimum Go version to 1.26.
+* Updated API used for searching users.
+* Fixed outgoing messages repeating links if they were linkified by the sender.
+* Fixed handling reactions to unknown messages.
+
 # v26.08
 
 * Removed legacy provisioning API and database legacy migration.
