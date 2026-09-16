@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/google/uuid"
@@ -257,23 +258,38 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 				break
 			}
 
-			switch {
-			case realtimeEvent.Heartbeat != nil:
-				log.Trace().Msg("Received heartbeat")
-				c.handlers.onHeartbeat(ctx)
-			case realtimeEvent.ClientConnection != nil:
-				log.Info().Msg("Client connected")
-				realtimeEvent.ClientConnection.SessID = c.realtimeSessionID
-				c.handlers.onClientConnection(ctx, realtimeEvent.ClientConnection)
-			case realtimeEvent.DecoratedEvent != nil:
-				log.Debug().
-					Stringer("topic", realtimeEvent.DecoratedEvent.Topic).
-					Str("payload_type", realtimeEvent.DecoratedEvent.Payload.Data.Type).
-					Msg("Received decorated event")
-				c.handlers.onDecoratedEvent(ctx, realtimeEvent.DecoratedEvent)
-			}
+			c.dispatchRealtimeEvent(ctx, realtimeEvent)
 		}
 		realtimeResp.Body.Close()
+	}
+}
+
+func (c *Client) dispatchRealtimeEvent(ctx context.Context, realtimeEvent RealtimeEvent) {
+	defer func() {
+		if err := recover(); err != nil {
+			zerolog.Ctx(ctx).
+				Err(fmt.Errorf("%v", err)).
+				Bytes(zerolog.ErrorStackFieldName, debug.Stack()).
+				Type("event_type", realtimeEvent).
+				Msg("Panic in event handler")
+		}
+	}()
+
+	log := zerolog.Ctx(ctx)
+	switch {
+	case realtimeEvent.Heartbeat != nil:
+		log.Trace().Msg("Received heartbeat")
+		c.handlers.onHeartbeat(ctx)
+	case realtimeEvent.ClientConnection != nil:
+		log.Info().Msg("Client connected")
+		realtimeEvent.ClientConnection.SessID = c.realtimeSessionID
+		c.handlers.onClientConnection(ctx, realtimeEvent.ClientConnection)
+	case realtimeEvent.DecoratedEvent != nil:
+		log.Debug().
+			Stringer("topic", realtimeEvent.DecoratedEvent.Topic).
+			Str("payload_type", realtimeEvent.DecoratedEvent.Payload.Data.Type).
+			Msg("Received decorated event")
+		c.handlers.onDecoratedEvent(ctx, realtimeEvent.DecoratedEvent)
 	}
 }
 
