@@ -107,13 +107,14 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 				if err != nil {
 					return err
 				}
-				fileInfo, err := os.Stat(f.Name())
-				if err != nil {
-					return err
-				}
-				msg.Content.Info.Size = int(fileInfo.Size())
 				defer f.Close()
 			}
+
+			fileInfo, err := f.Stat()
+			if err != nil {
+				return err
+			}
+			msg.Content.Info.Size = int(fileInfo.Size())
 
 			urn, err := l.client.UploadMedia(ctx, attachmentType, filename, msg.Content.Info.MimeType, msg.Content.Info.Size, f)
 			if err != nil {
