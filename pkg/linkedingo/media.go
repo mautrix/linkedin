@@ -44,14 +44,18 @@ type VectorImage struct {
 	Artifacts []VectorArtifact `json:"artifacts,omitempty"`
 }
 
-func (vi VectorImage) GetLargestArtifactURL() string {
+func (vi VectorImage) GetLargestArtifact() VectorArtifact {
 	var largestVersion VectorArtifact
 	for _, a := range vi.Artifacts {
 		if a.Height > largestVersion.Height {
 			largestVersion = a
 		}
 	}
-	return vi.RootURL + largestVersion.FileIdentifyingURLPathSegment
+	return largestVersion
+}
+
+func (vi VectorImage) GetLargestArtifactURL() string {
+	return vi.RootURL + vi.GetLargestArtifact().FileIdentifyingURLPathSegment
 }
 
 // FileAttachment represents a com.linkedin.messenger.FileAttachment object.
@@ -114,7 +118,14 @@ type AudioMetadata struct {
 }
 
 func (c *Client) DownloadHTTP(ctx context.Context, url string) (*http.Response, error) {
-	return c.newAuthedRequest(http.MethodGet, url).DoRaw(ctx)
+	resp, err := c.newAuthedRequest(http.MethodGet, url).DoRaw(ctx)
+	if err != nil {
+		return nil, err
+	} else if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		_ = resp.Body.Close()
+		return nil, &ResponseError{StatusCode: resp.StatusCode}
+	}
+	return resp, nil
 }
 
 func (c *Client) Download(ctx context.Context, w io.Writer, url string) error {

@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -143,7 +144,7 @@ func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridge
 	return &convertedEdit, nil
 }
 
-func (l *LinkedInClient) convertToDirectMedia(ctx context.Context, portal *bridgev2.Portal, content *event.MessageEventContent, url string) (*bridgev2.ConvertedMessagePart, error) {
+func (l *LinkedInClient) convertToDirectMedia(ctx context.Context, portal *bridgev2.Portal, content *event.MessageEventContent, url string, expiresAt jsontime.UnixMilli) (*bridgev2.ConvertedMessagePart, error) {
 	msgID := ctx.Value(contextKeyMsgID).(networkid.MessageID)
 	var partID networkid.PartID
 	if ctx.Value(contextKeyPartID) != nil {
@@ -156,8 +157,9 @@ func (l *LinkedInClient) convertToDirectMedia(ctx context.Context, portal *bridg
 		return nil, err
 	}
 	directMediaMeta := &DirectMediaMeta{
-		MimeType: content.Info.MimeType,
-		URL:      url,
+		MimeType:  content.Info.MimeType,
+		URL:       url,
+		ExpiresAt: expiresAt,
 	}
 	return &bridgev2.ConvertedMessagePart{
 		ID:      partID,
@@ -186,7 +188,7 @@ func (l *LinkedInClient) convertAudioToMatrix(ctx context.Context, portal *bridg
 	}
 
 	if l.main.DirectMedia {
-		return l.convertToDirectMedia(ctx, portal, content, audio.URL)
+		return l.convertToDirectMedia(ctx, portal, content, audio.URL, jsontime.UnixMilli{})
 	}
 
 	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, 0, true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
@@ -208,7 +210,7 @@ func (l *LinkedInClient) convertExternalMediaToMatrix(ctx context.Context, porta
 	}
 
 	if l.main.DirectMedia {
-		return l.convertToDirectMedia(ctx, portal, content, media.Media.URL)
+		return l.convertToDirectMedia(ctx, portal, content, media.Media.URL, jsontime.UnixMilli{})
 	}
 
 	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, 0, true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
@@ -233,7 +235,7 @@ func (l *LinkedInClient) convertFileToMatrix(ctx context.Context, portal *bridge
 	}
 
 	if l.main.DirectMedia {
-		return l.convertToDirectMedia(ctx, portal, content, attachment.URL)
+		return l.convertToDirectMedia(ctx, portal, content, attachment.URL, jsontime.UnixMilli{})
 	}
 
 	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, int64(attachment.ByteSize), true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
@@ -345,7 +347,7 @@ func (l *LinkedInClient) convertVectorImageToMatrix(ctx context.Context, portal 
 	}
 
 	if l.main.DirectMedia {
-		return l.convertToDirectMedia(ctx, portal, content, img.GetLargestArtifactURL())
+		return l.convertToDirectMedia(ctx, portal, content, img.GetLargestArtifactURL(), img.GetLargestArtifact().ExpiresAt)
 	}
 
 	// TODO use smallest artifact version for thumbnail?
@@ -393,7 +395,7 @@ func (l *LinkedInClient) convertVideoToMatrix(ctx context.Context, portal *bridg
 	}
 
 	if l.main.DirectMedia {
-		return l.convertToDirectMedia(ctx, portal, content, stream.StreamingLocations[0].URL)
+		return l.convertToDirectMedia(ctx, portal, content, stream.StreamingLocations[0].URL, jsontime.UnixMilli{})
 	}
 
 	content.URL, content.File, err = intent.UploadMediaStream(ctx, portal.MXID, 0, true, func(w io.Writer) (*bridgev2.FileStreamResult, error) {
