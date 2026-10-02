@@ -17,6 +17,7 @@
 package connector
 
 import (
+	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix/bridgev2/database"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
@@ -48,6 +49,7 @@ type MessageMetadata struct {
 }
 
 type DirectMediaMeta struct {
-	MimeType string `json:"mime_type"`
-	URL      string `json:"url"`
+	MimeType  string             `json:"mime_type"`
+	URL       string             `json:"url"`
+	ExpiresAt jsontime.UnixMilli `json:"expires_at,omitempty"`
 }
