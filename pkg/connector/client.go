@@ -81,6 +81,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 		cookies,
 		meta.XLIPageInstance,
 		meta.XLITrack,
+		meta.UserAgent,
 		meta.ConversationsSyncToken,
 		linkedingo.Handlers{
 			Heartbeat: func(ctx context.Context) {
