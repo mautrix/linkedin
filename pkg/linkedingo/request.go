@@ -79,7 +79,7 @@ func (c *Client) checkHTTPRedirect(req *http.Request, via []*http.Request) error
 }
 
 func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {
-	ar := authedRequest{header: http.Header{}, method: method, client: c}
+	ar := authedRequest{header: c.browserHeaders.Clone(), method: method, client: c}
 	ar.url, ar.parseErr = url.Parse(urlStr)
 
 	if ar.parseErr == nil {
@@ -89,12 +89,7 @@ func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {
 	}
 
 	// Add default headers for every request
-	ar.header.Add("User-Agent", UserAgent)
 	ar.header.Add("Accept-Language", "en-US,en;q=0.9")
-	ar.header.Add("sec-ch-prefers-color-scheme", SecCHPrefersColorScheme)
-	ar.header.Add("sec-ch-ua", SecCHUserAgent)
-	ar.header.Add("sec-ch-ua-mobile", SecCHMobile)
-	ar.header.Add("sec-ch-ua-platform", SecCHPlatform)
 
 	return &ar
 }

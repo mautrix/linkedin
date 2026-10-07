@@ -39,10 +39,19 @@ const SecCHPrefersColorScheme = "light"
 const ServiceVersion = "1.13.40953"
 const defaultXLiTrack = `{"clientVersion":"` + ServiceVersion + `","mpVersion":"` + ServiceVersion + `","osName":"web","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}`
 
+var defaultBrowserHeaders = http.Header{
+	"User-Agent":                  {UserAgent},
+	"Sec-Ch-Ua":                   {SecCHUserAgent},
+	"Sec-Ch-Ua-Platform":          {SecCHPlatform},
+	"Sec-Ch-Ua-Mobile":            {SecCHMobile},
+	"Sec-Ch-Prefers-Color-Scheme": {SecCHPrefersColorScheme},
+}
+
 type Client struct {
-	http          *http.Client
-	jar           *StringCookieJar
-	userEntityURN URN
+	http           *http.Client
+	browserHeaders http.Header
+	jar            *StringCookieJar
+	userEntityURN  URN
 
 	realtimeSessionID uuid.UUID
 	realtimeCancelFn  context.CancelFunc
@@ -87,6 +96,7 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 	}
 
 	cli := &Client{
+		browserHeaders:         defaultBrowserHeaders.Clone(),
 		userEntityURN:          userEntityURN,
 		jar:                    jar,
 		pageInstance:           pageInstance,
@@ -108,6 +118,12 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 
 func (c *Client) IsLoggedIn() bool {
 	return c.jar.GetCookie(LinkedInCookieJSESSIONID) != ""
+}
+
+func (c *Client) SetBrowserHeaders(headers http.Header) {
+	if headers.Get("User-Agent") != "" {
+		c.browserHeaders = headers.Clone()
+	}
 }
 
 type Handlers struct {

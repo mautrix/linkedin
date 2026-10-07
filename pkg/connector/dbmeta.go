@@ -17,6 +17,8 @@
 package connector
 
 import (
+	"net/http"
+
 	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix/bridgev2/database"
 
@@ -41,6 +43,7 @@ type UserLoginMetadata struct {
 	Cookies                *linkedingo.StringCookieJar `json:"cookies,omitempty"`
 	XLITrack               string                      `json:"x_li_track,omitempty"`
 	XLIPageInstance        string                      `json:"x_li_page_instance,omitempty"`
+	BrowserHeaders         http.Header                 `json:"browser_headers,omitempty"`
 	ConversationsSyncToken string                      `json:"conversations_sync_token,omitempty"`
 }
 

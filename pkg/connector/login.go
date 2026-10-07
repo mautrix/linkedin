@@ -19,7 +19,9 @@ package connector
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"regexp"
+	"strings"
 
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
@@ -64,16 +66,26 @@ var (
 
 var _ bridgev2.LoginProcessCookies = (*CookieLogin)(nil)
 
+const cookieLoginBrowserHeaderPrefix = "fi.mau.linkedin.login.header."
+
+var browserHeaderNames = []string{
+	"User-Agent",
+	"Sec-Ch-Ua",
+	"Sec-Ch-Ua-Platform",
+	"Sec-Ch-Ua-Mobile",
+	"Sec-Ch-Prefers-Color-Scheme",
+}
+
 func (c *CookieLogin) Cancel() {}
 
 func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
-	return &bridgev2.LoginStep{
+	step := &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeCookies,
 		StepID:       CookieLoginStepIDCookies,
 		Instructions: "Enter a JSON object with your cookies, or a cURL command copied from browser devtools. It is recommended that you use a tab opened in Incognito/Private browsing mode and close the browser **before** pasting the cookies.",
 		CookiesParams: &bridgev2.LoginCookiesParams{
 			URL:       "https://linkedin.com/login",
-			UserAgent: linkedingo.UserAgent,
+			ExtractJS: fmt.Sprintf(`Promise.resolve({%q: navigator.userAgent})`, cookieLoginBrowserHeaderPrefix+"user-agent"),
 			// Keep the webview open until the feed loads so it doesn't close
 			// before the user finishes 2FA.
 			WaitForURLPattern: `^https://www\.linkedin\.com/feed.*$`,
@@ -116,7 +128,25 @@ func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 				},
 			},
 		},
-	}, nil
+	}
+	for _, name := range browserHeaderNames {
+		field := bridgev2.LoginCookieField{
+			ID: cookieLoginBrowserHeaderPrefix + strings.ToLower(name),
+			Sources: []bridgev2.LoginCookieFieldSource{{
+				Type:            bridgev2.LoginCookieTypeRequestHeader,
+				Name:            name,
+				RequestURLRegex: `^https://www\.linkedin\.com/`,
+			}},
+		}
+		if name == "User-Agent" {
+			field.Sources = append(field.Sources, bridgev2.LoginCookieFieldSource{
+				Type: bridgev2.LoginCookieTypeSpecial,
+				Name: field.ID,
+			})
+		}
+		step.CookiesParams.Fields = append(step.CookiesParams.Fields, field)
+	}
+	return step, nil
 }
 
 var gStateRegex = regexp.MustCompile(`g_state={.*?};`)
@@ -131,8 +161,15 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 
 	pageInstance := cookies[CookieLoginXLIPageInstanceField]
 	xLiTrack := cookies[CookieLoginXLITrackField]
+	headers := make(http.Header)
+	for _, name := range browserHeaderNames {
+		if value := cookies[cookieLoginBrowserHeaderPrefix+strings.ToLower(name)]; value != "" {
+			headers.Set(name, value)
+		}
+	}
 
 	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, pageInstance, xLiTrack, "", linkedingo.Handlers{})
+	loginClient.SetBrowserHeaders(headers)
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
 		return nil, wrapLinkedInLoginError(err)
@@ -147,6 +184,7 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 				Cookies:         jar,
 				XLIPageInstance: pageInstance,
 				XLITrack:        xLiTrack,
+				BrowserHeaders:  headers,
 			},
 			RemoteName: remoteName,
 			RemoteProfile: status.RemoteProfile{
