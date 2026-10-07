@@ -113,6 +113,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			},
 		},
 	)
+	client.client.SetBrowserHeaders(meta.BrowserHeaders)
 
 	client.linkedinFmtParams = linkedinfmt.FormatParams{
 		GetMXIDByURN: func(ctx context.Context, entityURN linkedingo.URN) (id.UserID, error) {
