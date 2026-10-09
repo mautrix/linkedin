@@ -219,7 +219,7 @@ func completeLinkedInLogin(ctx context.Context, user *bridgev2.User, jar *linked
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to save new login: %w", err)
+		return nil, fmt.Errorf("%w: %w", errSaveNewLogin, err)
 	}
 	ul.Client.Connect(ul.Log.WithContext(context.Background()))
 

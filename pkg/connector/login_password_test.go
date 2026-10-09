@@ -82,6 +82,7 @@ func TestPasswordLoginRejectedCredentialsRemainRetryable(t *testing.T) {
 type fakeEmailCheckpoint struct {
 	calls int
 	code  string
+	err   error
 }
 
 func (f *fakeEmailCheckpoint) IsEmailCode() bool { return true }
@@ -89,13 +90,13 @@ func (f *fakeEmailCheckpoint) IsEmailCode() bool { return true }
 func (f *fakeEmailCheckpoint) SubmitEmailCode(_ context.Context, code string) (*linkedingo.PasswordLoginSession, error) {
 	f.calls++
 	f.code = code
-	return nil, &linkedingo.PasswordLoginError{Kind: linkedingo.PasswordLoginRejected, Stage: "email_code"}
+	return nil, f.err
 }
 
 func TestPasswordLoginNativeEmailCodeRetryAndCancellation(t *testing.T) {
 	p := newPasswordLogin(nil, nil)
 	defer p.Cancel()
-	fake := &fakeEmailCheckpoint{}
+	fake := &fakeEmailCheckpoint{err: &linkedingo.PasswordLoginError{Kind: linkedingo.PasswordLoginRejected, Stage: "email_code"}}
 	p.checkpoint = fake
 	p.login = func(context.Context, string, string) (*linkedingo.PasswordLoginSession, error) {
 		t.Fatal("email verification must not resubmit the password")
@@ -115,4 +116,38 @@ func TestPasswordLoginNativeEmailCodeRetryAndCancellation(t *testing.T) {
 	_, err = p.SubmitUserInput(context.Background(), map[string]string{"code": "012345"})
 	assert.ErrorIs(t, err, context.Canceled)
 	assert.Equal(t, 1, fake.calls)
+}
+
+func TestPasswordLoginRejectedCheckpointFallsBackToBrowser(t *testing.T) {
+	p := newPasswordLogin(nil, nil)
+	defer p.Cancel()
+	p.checkpoint = &fakeEmailCheckpoint{err: &linkedingo.PasswordLoginError{Kind: linkedingo.PasswordLoginRejected, Stage: "checkpoint", Status: http.StatusBadRequest}}
+	var logins int
+	p.login = func(context.Context, string, string) (*linkedingo.PasswordLoginSession, error) {
+		logins++
+		return nil, &linkedingo.PasswordLoginError{Kind: linkedingo.PasswordLoginRejected, Stage: "authenticate"}
+	}
+	step, err := p.SubmitUserInput(context.Background(), map[string]string{"code": "012345"})
+	require.NoError(t, err)
+	assert.Equal(t, PasswordLoginFallbackStepID, step.StepID)
+	step, err = p.SubmitUserInput(context.Background(), map[string]string{"action": "Try email and password again"})
+	require.NoError(t, err)
+	assert.Equal(t, PasswordLoginStepID, step.StepID)
+	step, err = p.SubmitUserInput(context.Background(), map[string]string{"identifier": "alice@example.invalid", "password": "sentinel"})
+	require.NoError(t, err)
+	assert.Equal(t, PasswordLoginStepID, step.StepID)
+	assert.Equal(t, 1, logins)
+	assert.Nil(t, p.checkpoint)
+}
+
+func TestPasswordLoginCompletionReturnsCancellation(t *testing.T) {
+	p := newPasswordLogin(nil, nil)
+	defer p.Cancel()
+	p.login = func(context.Context, string, string) (*linkedingo.PasswordLoginSession, error) {
+		return &linkedingo.PasswordLoginSession{Cookies: linkedingo.NewEmptyStringCookieJar()}, nil
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := p.SubmitUserInput(ctx, map[string]string{"identifier": "alice@example.invalid", "password": "sentinel"})
+	assert.Equal(t, context.Canceled, err)
 }

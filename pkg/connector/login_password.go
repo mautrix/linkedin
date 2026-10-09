@@ -167,10 +167,15 @@ func (p *PasswordLogin) handleLoginError(ctx context.Context, err error) (*bridg
 	case linkedingo.PasswordLoginUnavailable:
 		return nil, ErrLoginUnavailable
 	case linkedingo.PasswordLoginRejected:
-		if loginErr.Stage == "checkpoint_complete" {
+		switch loginErr.Stage {
+		case "authenticate", "input":
+			p.checkpoint = nil
+			return passwordLoginStep("LinkedIn rejected the sign-in. Check your details and try again, or choose the Cookies login method to sign in through a browser."), nil
+		case "checkpoint_complete":
 			return p.fallbackStep("LinkedIn verified your code but could not finish signing in. Continue through the browser."), nil
+		default:
+			return p.fallbackStep("LinkedIn could not complete this sign-in directly. You can finish signing in through the browser."), nil
 		}
-		return passwordLoginStep("LinkedIn rejected the sign-in. Check your details and try again, or choose the Cookies login method to sign in through a browser."), nil
 	case linkedingo.PasswordLoginChallenge:
 		// Avoid assigning a typed nil to the checkpoint interface.
 		p.checkpoint = nil
@@ -193,7 +198,11 @@ func (p *PasswordLogin) complete(ctx context.Context, session *linkedingo.Passwo
 	// Authentication uses the new web app, but messaging still uses Voyager.
 	// Reuse linkedingo's Voyager defaults, not the login app's tracking profile.
 	step, err := completeLinkedInLogin(ctx, p.user, session.Cookies, "", "", session.BrowserHeaders)
-	if err != nil {
+	if err != nil && ctx.Err() != nil {
+		return nil, ctx.Err()
+	} else if errors.Is(err, errSaveNewLogin) {
+		return nil, err
+	} else if err != nil {
 		// The shared cookie validator can retain provider errors in its chain.
 		// Do not propagate them into a password flow's provisioning logs.
 		zerolog.Ctx(ctx).Warn().Msg("LinkedIn native session validation or persistence failed")
