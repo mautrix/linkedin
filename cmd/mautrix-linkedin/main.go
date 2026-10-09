@@ -17,6 +17,7 @@
 package main
 
 import (
+	"go.mau.fi/util/dbutil"
 	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector"
@@ -40,6 +41,9 @@ var m = mxmain.BridgeMain{
 }
 
 func main() {
+	// Cookie-bearing login metadata must not appear in SQL argument logs,
+	// including when an operator enables trace logging.
+	dbutil.GlobalSafeQueryLog = true
 	m.InitVersion(Tag, Commit, BuildTime)
 	m.Run()
 }

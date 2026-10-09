@@ -4,6 +4,12 @@
 # .Organization is replaced with the organization name
 displayname_template: "{{ with .Organization }}{{ . }}{{ else }}{{ .FirstName }} {{ .LastName }}{{ end }} (LinkedIn)"
 
+# Log redacted native login and verification responses at debug level.
+# Preserves HTML/SDUI structure, but hashes private values and omits unrecognized
+# script contents. Bodies are gzip-compressed and base64-encoded in
+# response_redacted_gz. Does not log requests, cookies, or authenticated feed pages.
+log_redacted_login_responses: false
+
 sync:
     # Number of most recently active dialogs to check when syncing chats.
     # Set to 0 to remove limit.
