@@ -40,23 +40,14 @@ func (lc *LinkedInConnector) GetLoginFlows() []bridgev2.LoginFlow {
 			Description: "Log in with your LinkedIn account using your cookies",
 			ID:          FlowIDCookies,
 		},
-		{
-			Name:        "Email and password",
-			Description: "Sign in with your LinkedIn email or phone number and password",
-			ID:          FlowIDPassword,
-		},
 	}
 }
 
 func (l *LinkedInConnector) CreateLogin(ctx context.Context, user *bridgev2.User, flowID string) (bridgev2.LoginProcess, error) {
-	switch flowID {
-	case FlowIDPassword:
-		return newPasswordLogin(user, l), nil
-	case FlowIDCookies:
-		return &CookieLogin{user: user, main: l}, nil
-	default:
+	if flowID != FlowIDCookies {
 		return nil, bridgev2.ErrInvalidLoginFlowID
 	}
+	return &CookieLogin{user: user, main: l}, nil
 }
 
 type CookieLogin struct {
@@ -177,28 +168,15 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 		}
 	}
 
-	return completeLinkedInLogin(ctx, c.user, jar, pageInstance, xLiTrack, headers)
-}
-
-func completeLinkedInLogin(ctx context.Context, user *bridgev2.User, jar *linkedingo.StringCookieJar, pageInstance, xLiTrack string, headers http.Header) (*bridgev2.LoginStep, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
 	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, pageInstance, xLiTrack, "", linkedingo.Handlers{})
 	loginClient.SetBrowserHeaders(headers)
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
 		return nil, wrapLinkedInLoginError(err)
 	}
-	if profile.MiniProfile.EntityURN.ID() == "" {
-		return nil, ErrLoginBadCookies
-	}
-	if err = ctx.Err(); err != nil {
-		return nil, err
-	}
 
 	remoteName := fmt.Sprintf("%s %s", profile.MiniProfile.FirstName, profile.MiniProfile.LastName)
-	ul, err := user.NewLogin(
+	ul, err := c.user.NewLogin(
 		ctx,
 		&database.UserLogin{
 			ID: networkid.UserLoginID(profile.MiniProfile.EntityURN.ID()),
@@ -219,7 +197,7 @@ func completeLinkedInLogin(ctx context.Context, user *bridgev2.User, jar *linked
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", errSaveNewLogin, err)
+		return nil, fmt.Errorf("failed to save new login: %w", err)
 	}
 	ul.Client.Connect(ul.Log.WithContext(context.Background()))
 

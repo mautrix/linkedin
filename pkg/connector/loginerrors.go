@@ -52,7 +52,6 @@ var (
 		Err:        "Internal error logging in to LinkedIn",
 		StatusCode: http.StatusInternalServerError,
 	}
-	errSaveNewLogin = errors.New("failed to save new login")
 )
 
 // wrapLinkedInLoginError translates a linkedingo error into one the client can act on,

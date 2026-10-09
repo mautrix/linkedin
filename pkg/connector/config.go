@@ -29,9 +29,8 @@ import (
 var ExampleConfig string
 
 type Config struct {
-	DisplaynameTemplate       string             `yaml:"displayname_template"`
-	displaynameTemplate       *template.Template `yaml:"-"`
-	LogRedactedLoginResponses bool               `yaml:"log_redacted_login_responses"`
+	DisplaynameTemplate string             `yaml:"displayname_template"`
+	displaynameTemplate *template.Template `yaml:"-"`
 
 	Sync struct {
 		UpdateLimit int `yaml:"update_limit"`
@@ -56,7 +55,6 @@ func (c *Config) PostProcess() (err error) {
 
 func upgradeConfig(helper up.Helper) {
 	helper.Copy(up.Str, "displayname_template")
-	helper.Copy(up.Bool, "log_redacted_login_responses")
 	helper.Copy(up.Int, "sync", "update_limit")
 	helper.Copy(up.Int, "sync", "create_limit")
 }

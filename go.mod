@@ -10,7 +10,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.0
-	go.mau.fi/util v0.10.2-0.20260918225449-a4c0d5b86aa8
+	go.mau.fi/util v0.10.1
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba
 	golang.org/x/net v0.59.0
 	gopkg.in/yaml.v3 v3.0.1
