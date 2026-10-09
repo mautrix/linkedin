@@ -5,6 +5,7 @@ package connector
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,6 +28,25 @@ func TestPasswordLoginValidationAndCancellation(t *testing.T) {
 	p.Cancel()
 	_, err = p.SubmitUserInput(context.Background(), map[string]string{"identifier": "alice@example.invalid", "password": "sentinel"})
 	assert.ErrorIs(t, err, context.Canceled)
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+func TestPasswordLoginUsesClientHTTPTransport(t *testing.T) {
+	p := newPasswordLogin(nil, &LinkedInConnector{})
+	defer p.Cancel()
+	var requests []string
+	step, err := p.StartWithParams(context.Background(), bridgev2.LoginStartParams{HTTP: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		requests = append(requests, req.Method+" "+req.URL.String())
+		return &http.Response{StatusCode: http.StatusServiceUnavailable, Header: http.Header{}, Body: http.NoBody, Request: req}, nil
+	})})
+	require.NoError(t, err)
+	assert.Equal(t, PasswordLoginStepID, step.StepID)
+	_, err = p.SubmitUserInput(context.Background(), map[string]string{"identifier": "alice@example.invalid", "password": "sentinel"})
+	assert.ErrorIs(t, err, ErrLoginUnavailable)
+	assert.Equal(t, []string{"GET https://www.linkedin.com/login"}, requests)
 }
 
 func TestPasswordLoginChallengeOffersBrowserFallback(t *testing.T) {

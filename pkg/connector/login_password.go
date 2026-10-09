@@ -31,6 +31,8 @@ type PasswordLogin struct {
 	main   *LinkedInConnector
 	ctx    context.Context
 	cancel context.CancelFunc
+	// Set when the client can make LinkedIn requests from its own network.
+	clientHTTP http.RoundTripper
 	// The existing cookie flow provides a working fallback until the actual
 	// CAPTCHA/MFA continuation contracts are captured and implemented.
 	browser    *CookieLogin
@@ -38,6 +40,7 @@ type PasswordLogin struct {
 	login      func(context.Context, string, string) (*linkedingo.PasswordLoginSession, error)
 }
 
+var _ bridgev2.LoginProcessWithParams = (*PasswordLogin)(nil)
 var _ bridgev2.LoginProcessUserInput = (*PasswordLogin)(nil)
 var _ bridgev2.LoginProcessCookies = (*PasswordLogin)(nil)
 
@@ -59,6 +62,12 @@ func passwordLoginStep(instructions string) *bridgev2.LoginStep {
 
 func (p *PasswordLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 	return passwordLoginStep("Enter your LinkedIn email or phone number and password."), nil
+}
+
+func (p *PasswordLogin) StartWithParams(ctx context.Context, params bridgev2.LoginStartParams) (*bridgev2.LoginStep, error) {
+	p.clientHTTP = params.HTTP
+	zerolog.Ctx(ctx).Debug().Bool("client_http", params.HTTP != nil).Msg("Starting LinkedIn native login")
+	return p.Start(ctx)
 }
 
 func (p *PasswordLogin) Cancel() {
@@ -123,15 +132,23 @@ func (p *PasswordLogin) SubmitUserInput(ctx context.Context, input map[string]st
 	}
 	login := p.login
 	if login == nil {
-		client := linkedingo.NewPasswordLoginClient(p.main.Bridge.GetHTTPClientSettings().Compile())
-		client.LogRedactedLoginResponses = p.main.Config.LogRedactedLoginResponses
-		login = client.Login
+		login = p.newLoginClient().Login
 	}
 	session, err := login(ctx, identifier, password)
 	if err != nil {
 		return p.handleLoginError(ctx, err)
 	}
 	return p.complete(ctx, session)
+}
+
+func (p *PasswordLogin) newLoginClient() *linkedingo.PasswordLoginClient {
+	httpClient := &http.Client{Transport: p.clientHTTP}
+	if p.clientHTTP == nil {
+		httpClient = p.main.Bridge.GetHTTPClientSettings().Compile()
+	}
+	client := linkedingo.NewPasswordLoginClient(httpClient)
+	client.LogRedactedLoginResponses = p.main.Config.LogRedactedLoginResponses
+	return client
 }
 
 func (p *PasswordLogin) handleLoginError(ctx context.Context, err error) (*bridgev2.LoginStep, error) {
