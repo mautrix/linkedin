@@ -389,8 +389,9 @@ func emailCheckpointFixture(csrf string) string {
 
 func TestEmailCheckpointOnlyAcceptsObservedForm(t *testing.T) {
 	valid := emailCheckpointFixture("csrf-sentinel")
-	fields := parseEmailCheckpoint([]byte(valid))
-	require.NotNil(t, fields)
+	form := parsePasswordCheckpoint([]byte(valid))
+	require.NotNil(t, form)
+	fields := form.fields
 	assert.Equal(t, "opaque&value=preserved", fields.Get("challengeData"))
 	assert.Empty(t, fields.Get("unrelated"))
 	for _, replacement := range [][2]string{
@@ -401,7 +402,7 @@ func TestEmailCheckpointOnlyAcceptsObservedForm(t *testing.T) {
 		{"csrf-sentinel", ""},
 		{"challenge-sentinel", ""},
 	} {
-		assert.Nil(t, parseEmailCheckpoint([]byte(strings.ReplaceAll(valid, replacement[0], replacement[1]))))
+		assert.Nil(t, parsePasswordCheckpoint([]byte(strings.ReplaceAll(valid, replacement[0], replacement[1]))))
 	}
 }
 
@@ -457,16 +458,16 @@ func TestEmailCheckpointSubmissionAndRetry(t *testing.T) {
 			require.ErrorAs(t, err, &nativeErr)
 			checkpoint := nativeErr.Checkpoint()
 			require.NotNil(t, checkpoint)
-			require.True(t, checkpoint.IsEmailCode())
-			_, err = checkpoint.SubmitEmailCode(ctx, "invalid")
+			require.Equal(t, PasswordCheckpointEmail, checkpoint.Kind())
+			_, err = checkpoint.SubmitCode(ctx, "invalid")
 			require.Error(t, err)
 			assert.Zero(t, verifies)
 			if retry {
-				_, err = checkpoint.SubmitEmailCode(ctx, "012345")
+				_, err = checkpoint.SubmitCode(ctx, "012345")
 				require.True(t, IsPasswordLoginError(err, PasswordLoginRejected))
-				require.True(t, checkpoint.IsEmailCode())
+				require.Equal(t, PasswordCheckpointEmail, checkpoint.Kind())
 			}
-			session, err := checkpoint.SubmitEmailCode(ctx, "012345")
+			session, err := checkpoint.SubmitCode(ctx, "012345")
 			require.NoError(t, err)
 			require.NotNil(t, session)
 			assert.Equal(t, "auth-session-sentinel", session.Cookies.GetCookie("li_at"))
@@ -490,8 +491,8 @@ func TestEmailCheckpointNeverReplaysCodeOrFollowsExternalRedirect(t *testing.T) 
 				calls++
 				return loginHTTPResponse(req, status, "", http.Header{"Location": {"https://attacker.invalid/?secret"}}), nil
 			})})
-			checkpoint := &PasswordCheckpoint{client: client, path: "/checkpoint/challenge/private", emailForm: parseEmailCheckpoint([]byte(emailCheckpointFixture("csrf")))}
-			_, err := checkpoint.SubmitEmailCode(context.Background(), "012345")
+			checkpoint := &PasswordCheckpoint{client: client, path: "/checkpoint/challenge/private", form: parsePasswordCheckpoint([]byte(emailCheckpointFixture("csrf")))}
+			_, err := checkpoint.SubmitCode(context.Background(), "012345")
 			require.Error(t, err)
 			assert.Equal(t, 1, calls)
 			assert.NotContains(t, err.Error(), "attacker.invalid")
@@ -506,19 +507,26 @@ func TestCapturedEmailCheckpoint(t *testing.T) {
 	}
 	body, err := os.ReadFile(path)
 	require.NoError(t, err)
-	fields := parseEmailCheckpoint(body)
-	require.NotNil(t, fields)
+	form := parsePasswordCheckpoint(body)
+	require.NotNil(t, form)
+	fields := form.fields
 	assert.NotEmpty(t, fields.Get("challengeData"))
 	assert.NotEmpty(t, fields.Get("requestSubmissionId"))
 }
 
-func checkpointCompletionFixture(t *testing.T) string {
+func checkpointCompletionFixture(t *testing.T, app ...bool) string {
 	t.Helper()
+	payload := map[string]any{"authenticationType": "AuthenticationType_UNKNOWN", "chpToken": "checkpoint-proof-sentinel", "vcd": "verification-proof-sentinel", "bcookie": "fresh-action-cookie"}
+	if len(app) > 0 && app[0] {
+		delete(payload, "vcd")
+		payload["challengeId"] = "challenge-sentinel"
+		payload["encryptedRecognizedDeviceFlag"] = "recognized-proof-sentinel"
+	}
 	action := map[string]any{
 		"requestId": passwordAuthenticationRequest,
 		"requestedArguments": map[string]any{
 			"requestedStateKeys": []any{},
-			"payload":            map[string]any{"authenticationType": "AuthenticationType_UNKNOWN", "chpToken": "checkpoint-proof-sentinel", "vcd": "verification-proof-sentinel", "bcookie": "fresh-action-cookie"},
+			"payload":            payload,
 		},
 	}
 	root := map[string]any{
@@ -606,7 +614,7 @@ func TestEmailCheckpointExchangesCompletionProof(t *testing.T) {
 			require.ErrorAs(t, err, &loginErr)
 			checkpoint := loginErr.Checkpoint()
 			require.NotNil(t, checkpoint)
-			session, err := checkpoint.SubmitEmailCode(ctx, "012345")
+			session, err := checkpoint.SubmitCode(ctx, "012345")
 			if failExchange {
 				require.True(t, IsPasswordLoginError(err, PasswordLoginUnavailable))
 				assert.Nil(t, session)
