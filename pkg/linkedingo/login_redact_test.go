@@ -54,12 +54,15 @@ func TestLoginRedactionPreservesStructureWithoutSecrets(t *testing.T) {
 			}
 		})
 	}
-	data, err := loginRedactPolicy.JSON([]byte(`{"chpToken":"div","vcd":"div","csrfToken":"div"}`))
+	data, err := loginRedactPolicy.JSON([]byte(`{"chpToken":"div","vcd":"div","csrfToken":"div","encryptedRecognizedDeviceFlag":"SOLVED","encryptedChallengeViewData":"SOLVED","pollingResponseChallengeStateV2":"SOLVED"}`))
 	require.NoError(t, err)
 	var parsed map[string]string
 	require.NoError(t, json.Unmarshal(data, &parsed))
 	assert.NotEqual(t, "div", parsed["chpToken"])
 	assert.Equal(t, parsed["chpToken"], parsed["vcd"], "same-process markers should correlate")
+	assert.NotEqual(t, "SOLVED", parsed["encryptedRecognizedDeviceFlag"])
+	assert.NotEqual(t, "SOLVED", parsed["encryptedChallengeViewData"])
+	assert.Equal(t, "SOLVED", parsed["pollingResponseChallengeStateV2"])
 }
 
 func TestLoginRedactionHTML(t *testing.T) {

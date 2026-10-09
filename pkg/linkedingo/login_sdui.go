@@ -132,7 +132,7 @@ func object(value any) map[string]any {
 	return obj
 }
 
-// After email verification, LinkedIn redirects to a login screen with an
+// After verification, LinkedIn redirects to a login screen with an
 // automatic onAppear ServerRequest that exchanges the checkpoint proof.
 func parseCheckpointCompletion(body []byte) *passwordLoginPage {
 	var page *passwordLoginPage
@@ -159,11 +159,13 @@ func findCheckpointCompletion(value any, depth int) *passwordLoginPage {
 				args := object(action["requestedArguments"])
 				payload := object(args["payload"])
 				states, hasStates := args["requestedStateKeys"].([]any)
-				chp, _ := payload["chpToken"].(string)
-				vcd, _ := payload["vcd"].(string)
+				validProof := func(key string) bool {
+					value, _ := payload[key].(string)
+					return value != "" && len(value) <= 8192 && !strings.HasPrefix(value, "$")
+				}
 				if wrapper["$type"] == "proto.sdui.actions.core.ServerRequest" && action["requestId"] == passwordAuthenticationRequest &&
 					payload["authenticationType"] == "AuthenticationType_UNKNOWN" && hasStates && len(states) == 0 &&
-					chp != "" && vcd != "" && len(chp) <= 8192 && len(vcd) <= 8192 && !strings.HasPrefix(chp, "$") && !strings.HasPrefix(vcd, "$") {
+					validProof("chpToken") && (validProof("vcd") || (validProof("challengeId") && validProof("encryptedRecognizedDeviceFlag"))) {
 					return &passwordLoginPage{Action: action, Arguments: args, Payload: payload, ScreenID: screen}
 				}
 			}

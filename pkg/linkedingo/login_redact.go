@@ -40,7 +40,8 @@ func makeLoginRedactPolicy() redact.Policy {
 	p.KeepPatterns = []*regexp.Regexp{
 		regexp.MustCompile(`^(?:proto\.sdui|com\.linkedin\.sdui)\.[A-Za-z0-9_.]+$`),
 		regexp.MustCompile(`^AuthenticationType_[A-Z_]+$`),
-		regexp.MustCompile(`^/(?:login|authwall|feed/?|checkpoint/challenge(?:/(?:verify|resend))?)$`),
+		regexp.MustCompile(`^/(?:login|flagship-web/login|authwall|feed/?|checkpoint/challenge(?:/(?:verify|verifyV2|resend))?)$`),
+		regexp.MustCompile(`^(?:CREATED|SHOWN|SOLVED|LINKEDIN_APP_CHALLENGE)$`),
 		regexp.MustCompile(`^\$(?:[0-9a-f]+|L[0-9a-f]+|undefined)?$`),
 		regexp.MustCompile(`^(?:MemoryNamespace|Checked|Unchecked|stringValue|id|div|span|input|form|button|script|html|head|body)$`),
 	}
@@ -48,6 +49,7 @@ func makeLoginRedactPolicy() redact.Policy {
 		"identifier", "bcookie", "bscookie", "li_at", "jsessionid", "csrftoken",
 		"chptoken", "vcd", "challengeid", "challengedata", "challengedetails",
 		"requestsubmissionid", "flowtreeid", "pageinstance", "encryptionsalt", "apfc", "_s",
+		"encryptedchallengeviewdata", "encryptedrecognizeddeviceflag",
 	} {
 		p.SensitiveKeys[key] = true
 	}
@@ -113,7 +115,7 @@ func loginResponseRoute(rawURL string) string {
 		return "other"
 	}
 	switch parsed.Path {
-	case "/login", "/uas/login", "/checkpoint/lg/login-submit":
+	case "/login", "/flagship-web/login", "/uas/login", "/checkpoint/lg/login-submit":
 		return "login"
 	case "/authwall":
 		return "authwall"
