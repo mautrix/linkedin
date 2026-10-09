@@ -4,6 +4,9 @@
 # .Organization is replaced with the organization name
 displayname_template: "{{ with .Organization }}{{ . }}{{ else }}{{ .FirstName }} {{ .LastName }}{{ end }} (LinkedIn)"
 
+# Log login response payloads at debug level. Any sensitive information will be redacted first.
+log_redacted_login_responses: false
+
 sync:
     # Number of most recently active dialogs to check when syncing chats.
     # Set to 0 to remove limit.

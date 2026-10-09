@@ -40,12 +40,12 @@ var (
 	ErrLoginRateLimited = bridgev2.RespError{
 		ErrCode:    "FI.MAU.LINKEDIN.RATE_LIMITED",
 		Err:        "LinkedIn is rate limiting the sign-in. Please wait a few minutes and try again.",
-		StatusCode: http.StatusTooManyRequests,
+		StatusCode: http.StatusBadRequest,
 	}
 	ErrLoginUnavailable = bridgev2.RespError{
 		ErrCode:    "FI.MAU.LINKEDIN.LOGIN_UNAVAILABLE",
 		Err:        "LinkedIn couldn't be reached to finish signing in. Please try again.",
-		StatusCode: http.StatusBadGateway,
+		StatusCode: http.StatusBadRequest,
 	}
 	ErrLoginUnknown = bridgev2.RespError{
 		ErrCode:    "M_UNKNOWN",

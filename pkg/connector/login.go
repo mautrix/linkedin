@@ -37,17 +37,26 @@ func (lc *LinkedInConnector) GetLoginFlows() []bridgev2.LoginFlow {
 	return []bridgev2.LoginFlow{
 		{
 			Name:        "Cookies",
-			Description: "Log in with your LinkedIn account using your cookies",
+			Description: "Log in using cookies from linkedin.com",
 			ID:          FlowIDCookies,
+		},
+		{
+			Name:        "Email and password",
+			Description: "Log in using your email/phone and password",
+			ID:          FlowIDPassword,
 		},
 	}
 }
 
 func (l *LinkedInConnector) CreateLogin(ctx context.Context, user *bridgev2.User, flowID string) (bridgev2.LoginProcess, error) {
-	if flowID != FlowIDCookies {
+	switch flowID {
+	case FlowIDPassword:
+		return newPasswordLogin(user, l), nil
+	case FlowIDCookies:
+		return &CookieLogin{user: user, main: l}, nil
+	default:
 		return nil, bridgev2.ErrInvalidLoginFlowID
 	}
-	return &CookieLogin{user: user, main: l}, nil
 }
 
 type CookieLogin struct {
@@ -168,15 +177,22 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 		}
 	}
 
+	return c.main.completeLinkedInLogin(ctx, c.user, jar, pageInstance, xLiTrack, headers)
+}
+
+func (lc *LinkedInConnector) completeLinkedInLogin(ctx context.Context, user *bridgev2.User, jar *linkedingo.StringCookieJar, pageInstance, xLiTrack string, headers http.Header) (*bridgev2.LoginStep, error) {
 	loginClient := linkedingo.NewClient(ctx, linkedingo.NewURN(""), jar, pageInstance, xLiTrack, "", linkedingo.Handlers{})
 	loginClient.SetBrowserHeaders(headers)
 	profile, err := loginClient.GetCurrentUserProfile(ctx)
 	if err != nil {
 		return nil, wrapLinkedInLoginError(err)
 	}
+	if profile.MiniProfile.EntityURN.ID() == "" {
+		return nil, ErrLoginBadCookies
+	}
 
 	remoteName := fmt.Sprintf("%s %s", profile.MiniProfile.FirstName, profile.MiniProfile.LastName)
-	ul, err := c.user.NewLogin(
+	ul, err := user.NewLogin(
 		ctx,
 		&database.UserLogin{
 			ID: networkid.UserLoginID(profile.MiniProfile.EntityURN.ID()),
@@ -199,7 +215,7 @@ func (c *CookieLogin) SubmitCookies(ctx context.Context, cookies map[string]stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to save new login: %w", err)
 	}
-	ul.Client.Connect(ul.Log.WithContext(context.Background()))
+	ul.Client.Connect(ul.Log.WithContext(lc.Bridge.BackgroundCtx))
 
 	return &bridgev2.LoginStep{
 		Type:           bridgev2.LoginStepTypeComplete,
