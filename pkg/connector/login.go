@@ -36,14 +36,14 @@ const FlowIDCookies = "cookies"
 func (lc *LinkedInConnector) GetLoginFlows() []bridgev2.LoginFlow {
 	return []bridgev2.LoginFlow{
 		{
-			Name:        "Email and password",
-			Description: "Sign in with your LinkedIn email or phone number and password",
-			ID:          FlowIDPassword,
-		},
-		{
 			Name:        "Cookies",
 			Description: "Log in with your LinkedIn account using your cookies",
 			ID:          FlowIDCookies,
+		},
+		{
+			Name:        "Email and password",
+			Description: "Sign in with your LinkedIn email or phone number and password",
+			ID:          FlowIDPassword,
 		},
 	}
 }
