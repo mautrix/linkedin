@@ -6,3 +6,4 @@ logs/
 !example-config.yaml
 !.pre-commit-config.yaml
 .idea
+*.har
