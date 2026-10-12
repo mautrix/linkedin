@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -50,6 +51,8 @@ type LinkedInClient struct {
 
 	linkedinFmtParams linkedinfmt.FormatParams
 	matrixParser      *matrixfmt.HTMLParser
+
+	remoteProfileLock sync.Mutex
 }
 
 var (
