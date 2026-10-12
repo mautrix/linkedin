@@ -9,6 +9,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+	"maunium.net/go/mautrix/bridgev2/status"
 	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
@@ -52,6 +53,9 @@ func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.
 		}))
 		ui.Avatar = l.getAvatar(participant.ParticipantType.Member.ProfilePicture)
 		ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
+		if networkid.UserID(participant.EntityURN.ID()) == l.userID {
+			ui.ExtraUpdates = l.makeRemoteProfileUpdater(participant.ParticipantType.Member)
+		}
 	case participant.ParticipantType.Organization != nil:
 		ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
 			Organization: participant.ParticipantType.Organization.Name.Text,
@@ -60,6 +64,32 @@ func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.
 		ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
 	}
 	return
+}
+
+func (l *LinkedInClient) makeRemoteProfileUpdater(member *linkedingo.MemberParticipantInfo) func(context.Context, *bridgev2.Ghost) bool {
+	return func(ctx context.Context, ghost *bridgev2.Ghost) bool {
+		l.remoteProfileLock.Lock()
+		defer l.remoteProfileLock.Unlock()
+		name := l.userLogin.RemoteProfile.Name
+		if member.FirstName.Text != "" || member.LastName.Text != "" {
+			name = fmt.Sprintf("%s %s", member.FirstName.Text, member.LastName.Text)
+		}
+		if l.userLogin.RemoteProfile.Name == name && l.userLogin.RemoteProfile.Avatar == ghost.AvatarMXC {
+			return false
+		}
+		l.userLogin.RemoteName = name
+		l.userLogin.RemoteProfile.Name = name
+		l.userLogin.RemoteProfile.Avatar = ghost.AvatarMXC
+		err := l.userLogin.Save(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("Failed to save remote profile")
+		}
+		if l.userLogin.BridgeState.GetPrevUnsent().StateEvent == status.StateConnected {
+			l.userLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+		}
+		zerolog.Ctx(ctx).Info().Msg("Remote profile updated")
+		return false
+	}
 }
 
 func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (ci bridgev2.ChatInfo, userInChat bool) {
