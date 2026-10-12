@@ -236,10 +236,14 @@ func (c *PasswordCheckpoint) WaitForApp(ctx context.Context) (*PasswordLoginSess
 		_ = writer.Close()
 		data, resp, err := c.client.request(ctx, "app_poll", http.MethodPost,
 			"/checkpoint/challengesV2/poll/"+url.PathEscape(fields.Get("challengeId")), body.Bytes(), http.Header{
-				"Accept": {"*/*"}, "Content-Type": {writer.FormDataContentType()},
-				"Origin": {c.client.baseURL}, "Referer": {c.client.baseURL + c.path},
+				"Accept":           {"*/*"},
+				"Content-Type":     {writer.FormDataContentType()},
+				"Origin":           {c.client.baseURL},
+				"Referer":          {c.client.baseURL + c.path},
 				"X-Requested-With": {"XMLHttpRequest"},
-				"Sec-Fetch-Dest":   {"empty"}, "Sec-Fetch-Mode": {"cors"}, "Sec-Fetch-Site": {"same-origin"},
+				"Sec-Fetch-Dest":   {"empty"},
+				"Sec-Fetch-Mode":   {"cors"},
+				"Sec-Fetch-Site":   {"same-origin"},
 			})
 		clear(body.Bytes())
 		if ctx.Err() != nil {

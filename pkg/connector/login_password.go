@@ -169,19 +169,27 @@ func (p *PasswordLogin) appMethodStep() *bridgev2.LoginStep {
 		options = append(options, "Try another way")
 	}
 	return &bridgev2.LoginStep{
-		Type: bridgev2.LoginStepTypeUserInput, StepID: PasswordLoginAppMethodStepID,
+		Type:         bridgev2.LoginStepTypeUserInput,
+		StepID:       PasswordLoginAppMethodStepID,
 		Instructions: "LinkedIn sent a sign-in request to your LinkedIn app. Approve it there, or choose another verification method.",
 		UserInputParams: &bridgev2.LoginUserInputParams{Fields: []bridgev2.LoginInputDataField{{
-			Type: bridgev2.LoginInputFieldTypeSelect, ID: "action", Name: "Verification method", Options: options,
+			Type:    bridgev2.LoginInputFieldTypeSelect,
+			ID:      "action",
+			Name:    "Verification method",
+			Options: options,
 		}}},
 	}
 }
 
 func (p *PasswordLogin) appApprovalStep() *bridgev2.LoginStep {
 	return &bridgev2.LoginStep{
-		Type: bridgev2.LoginStepTypeDisplayAndWait, StepID: PasswordLoginAppApprovalStepID,
-		Instructions:         "Open the LinkedIn app on your phone and approve this sign-in. To use another verification method, go back.",
-		DisplayAndWaitParams: &bridgev2.LoginDisplayAndWaitParams{Type: bridgev2.LoginDisplayTypeNothing, CanCancel: true},
+		Type:         bridgev2.LoginStepTypeDisplayAndWait,
+		StepID:       PasswordLoginAppApprovalStepID,
+		Instructions: "Open the LinkedIn app on your phone and approve this sign-in. To use another verification method, go back.",
+		DisplayAndWaitParams: &bridgev2.LoginDisplayAndWaitParams{
+			Type:      bridgev2.LoginDisplayTypeNothing,
+			CanCancel: true,
+		},
 	}
 }
 

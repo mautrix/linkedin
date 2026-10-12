@@ -113,7 +113,7 @@ func (c *PasswordLoginClient) request(ctx context.Context, stage, method, path s
 		if ctx.Err() != nil {
 			return nil, nil, ctx.Err()
 		}
-		zerolog.Ctx(ctx).Warn().Msg("Failed to send login request")
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send login request")
 		return nil, nil, &PasswordLoginError{Kind: PasswordLoginUnavailable, Stage: stage}
 	}
 	defer resp.Body.Close()
