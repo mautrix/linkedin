@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/rs/zerolog"
 )
@@ -52,7 +54,7 @@ func (c *Client) Search(ctx context.Context, keywords string) ([]SearchResult, e
 		WithXLIHeaders().
 		WithRawQuery(fmt.Sprintf(
 			"includeWebMetadata=true&variables=(keyword:%s,types:List(CONNECTIONS,GROUP_THREADS,PEOPLE,COWORKERS))&queryId=%s",
-			keywords, graphQLQueryIDVoyagerMessagingTypeahead,
+			strings.ReplaceAll(url.QueryEscape(keywords), "+", "%20"), graphQLQueryIDVoyagerMessagingTypeahead,
 		)).
 		WithHeader("accept", contentTypeJSONLinkedInNormalized).
 		Do(ctx, &raw)

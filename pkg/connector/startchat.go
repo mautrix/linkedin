@@ -2,7 +2,9 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -21,6 +23,12 @@ var (
 	_ bridgev2.IdentifierValidatingNetwork = (*LinkedInConnector)(nil)
 	_ bridgev2.UserSearchingNetworkAPI     = (*LinkedInClient)(nil)
 )
+
+var ErrSearchRejected = bridgev2.RespError{
+	ErrCode:    "FI.MAU.LINKEDIN.SEARCH_REJECTED",
+	Err:        "LinkedIn rejected the search request",
+	StatusCode: http.StatusBadRequest,
+}
 
 func (l *LinkedInConnector) ValidateUserID(uid networkid.UserID) bool {
 	id := string(uid)
@@ -124,7 +132,10 @@ func (l *LinkedInClient) SearchUsers(ctx context.Context, query string) (resp []
 	log := zerolog.Ctx(ctx).With().Str("action", "search_users").Str("query", query).Logger()
 
 	results, err := l.client.Search(ctx, query)
-	if err != nil {
+	var respErr *linkedingo.ResponseError
+	if errors.As(err, &respErr) && respErr.StatusCode >= 400 && respErr.StatusCode < 500 {
+		return nil, fmt.Errorf("%w: %w", ErrSearchRejected, err)
+	} else if err != nil {
 		return nil, err
 	}
 	log.Debug().Int("result_count", len(results)).Msg("Resolving search results")
