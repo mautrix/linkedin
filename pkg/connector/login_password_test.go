@@ -78,14 +78,17 @@ func TestPasswordLoginRejectedCredentialsRemainRetryable(t *testing.T) {
 }
 
 type fakeEmailCheckpoint struct {
+	passwordCheckpoint
 	calls int
 	code  string
 	err   error
 }
 
-func (f *fakeEmailCheckpoint) IsEmailCode() bool { return true }
+func (f *fakeEmailCheckpoint) Kind() linkedingo.PasswordCheckpointKind {
+	return linkedingo.PasswordCheckpointEmail
+}
 
-func (f *fakeEmailCheckpoint) SubmitEmailCode(_ context.Context, code string) (*linkedingo.PasswordLoginSession, error) {
+func (f *fakeEmailCheckpoint) SubmitCode(_ context.Context, code string) (*linkedingo.PasswordLoginSession, error) {
 	f.calls++
 	f.code = code
 	return nil, f.err
