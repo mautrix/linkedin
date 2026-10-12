@@ -133,7 +133,7 @@ func (l *LinkedInClient) SearchUsers(ctx context.Context, query string) (resp []
 
 	results, err := l.client.Search(ctx, query)
 	var respErr *linkedingo.ResponseError
-	if errors.As(err, &respErr) && respErr.StatusCode >= 400 && respErr.StatusCode < 500 {
+	if errors.As(err, &respErr) && respErr.StatusCode == http.StatusBadRequest {
 		return nil, fmt.Errorf("%w: %w", ErrSearchRejected, err)
 	} else if err != nil {
 		return nil, err
