@@ -150,7 +150,7 @@ func (l *LinkedInClient) convertToDirectMedia(ctx context.Context, portal *bridg
 	if ctx.Value(contextKeyPartID) != nil {
 		partID = ctx.Value(contextKeyPartID).(networkid.PartID)
 	}
-	mediaID := MakeMediaID(portal.Receiver, msgID, partID)
+	mediaID := MakeMediaID(l.userLogin.ID, msgID, partID)
 	var err error
 	content.URL, err = l.main.Bridge.Matrix.GenerateContentURI(ctx, mediaID)
 	if err != nil {
