@@ -30,14 +30,6 @@ func (l *LinkedInConnector) Download(ctx context.Context, mediaID networkid.Medi
 	if err != nil {
 		return nil, err
 	}
-	// Media in unsplit group portals used to be keyed by the empty portal receiver
-	if mediaInfo.UserID == "" {
-		if logins := l.Bridge.GetAllCachedUserLogins(); len(logins) == 1 {
-			_, msgID := parseMessageID(mediaInfo.MessageID)
-			mediaInfo.UserID = logins[0].ID
-			mediaInfo.MessageID = makeMessageID(string(logins[0].ID), msgID)
-		}
-	}
 	zerolog.Ctx(ctx).Trace().Any("mediaInfo", mediaInfo).Any("err", err).Msg("download direct media")
 
 	var msg *database.Message
