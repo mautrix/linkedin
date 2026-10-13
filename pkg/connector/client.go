@@ -101,6 +101,8 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 						Msg("Session ID changed, resyncing conversations")
 					go client.syncConversations(ctx)
 					client.sessID = conn.SessID
+				} else {
+					client.getConversationsBySyncToken(ctx)
 				}
 			},
 			TransientDisconnect: client.onTransientDisconnect,
