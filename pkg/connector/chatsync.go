@@ -88,11 +88,8 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			Logger()
 
 		l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
-		readStatusChanged := false
 		lastReadState, ok := l.conversationReadState[conv.EntityURN]
-		if (ok && lastReadState.Read != conv.Read) || !ok {
-			readStatusChanged = true
-		}
+		readStatusChanged := ok && lastReadState.Read != conv.Read
 		l.conversationReadState[conv.EntityURN] = ConversationReadState{
 			LastReadAt: conv.LastReadAt,
 			Read:       conv.Read,
