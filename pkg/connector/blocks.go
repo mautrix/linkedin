@@ -5,11 +5,12 @@ import (
 	"errors"
 	"time"
 
-	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
+
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
 var _ bridgev2.ChatViewingNetworkAPI = (*LinkedInClient)(nil)
