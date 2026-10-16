@@ -95,10 +95,12 @@ func (c *Client) BlockUser(ctx context.Context, target URN, displayName string) 
 	}
 	const requestID = "com.linkedin.sdui.requests.trustReporting.block"
 	args := map[string]any{
-		"$type": "proto.sdui.actions.requests.RequestedArguments", "requestedStateKeys": []any{},
+		"$type":              "proto.sdui.actions.requests.RequestedArguments",
+		"requestedStateKeys": []any{},
 		"payload": map[string]any{
-			"blockeeMemberUrn": map[string]string{"memberId": targetID},
-			"blockerMemberUrn": map[string]string{"memberId": selfID}, "blockeeName": displayName,
+			"blockeeMemberUrn":      map[string]string{"memberId": targetID},
+			"blockerMemberUrn":      map[string]string{"memberId": selfID},
+			"blockeeName":           displayName,
 			"buttonDisabledBinding": map[string]string{"key": "blockButton", "namespace": "MemoryNamespace"},
 			"loadingBinding":        map[string]string{"key": "reportPageLoadingSpinner", "namespace": "MemoryNamespace"},
 			"blockScreenId":         "com.linkedin.sdui.flagshipnav.trustreporting.BlockLanding",
@@ -113,10 +115,15 @@ func (c *Client) BlockUser(ctx context.Context, target URN, displayName string) 
 	request := c.newAuthedRequest(http.MethodPost, "https://www.linkedin.com/flagship-web/rsc-action/actions/server-request?sduiid="+requestID).
 		WithContentType("application/json").WithHeader("X-Li-Rsc-Stream", "true").WithCSRF().
 		WithJSONPayload(map[string]any{
-			"requestId": requestID, "states": []any{}, "requestedArguments": outerArgs,
+			"requestId":          requestID,
+			"states":             []any{},
+			"requestedArguments": outerArgs,
 			"serverRequest": map[string]any{
-				"requestId": requestID, "requestedArguments": args,
-				"isApfcEnabled": false, "isStreaming": false, "rumPageKey": "",
+				"requestId":          requestID,
+				"requestedArguments": args,
+				"isApfcEnabled":      false,
+				"isStreaming":        false,
+				"rumPageKey":         "",
 			},
 		})
 	// Replaying an uncertain block could repeat a non-idempotent account mutation.

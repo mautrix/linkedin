@@ -9,6 +9,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
+	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
@@ -20,9 +21,11 @@ func (l *LinkedInClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev
 	if msg == nil || msg.Content == nil || msg.Portal == nil || msg.Portal.RoomType != database.RoomTypeDM || msg.Portal.Receiver == "" || msg.Portal.Receiver != l.userLogin.ID || msg.Portal.OtherUserID == "" || msg.Portal.OtherUserID == l.userID {
 		return errors.New("DM recipient is unknown")
 	} else if msg.Content.ReportSpam {
-		return errors.New("spam reporting is not supported")
+		return bridgev2.WrapErrorInStatus(errors.New("spam reporting is not supported")).
+			WithIsCertain(true).WithErrorAsMessage().WithErrorReason(event.MessageStatusUnsupported)
 	} else if !msg.Content.Block {
-		return errors.New("unblock this member in LinkedIn settings: https://www.linkedin.com/mypreferences/d/manage-by-blocked-list")
+		return bridgev2.WrapErrorInStatus(errors.New("unblock this member in LinkedIn settings: https://www.linkedin.com/mypreferences/d/manage-by-blocked-list")).
+			WithIsCertain(true).WithErrorAsMessage().WithErrorReason(event.MessageStatusUnsupported)
 	} else if !l.IsLoggedIn() {
 		return errors.New("not logged in")
 	}
@@ -49,7 +52,7 @@ func (l *LinkedInClient) resyncUserBlock(ctx context.Context, portal *bridgev2.P
 
 func (l *LinkedInClient) syncUserBlock(ctx context.Context, portal *bridgev2.Portal) {
 	l.blockSyncLock.Lock()
-	if time.Since(l.blockSyncTime) >= 10*time.Minute {
+	if time.Since(l.blockSyncTime) >= time.Hour {
 		l.blockSyncTime = time.Now()
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
