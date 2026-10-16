@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -53,6 +54,9 @@ type LinkedInClient struct {
 	matrixParser      *matrixfmt.HTMLParser
 
 	remoteProfileLock sync.Mutex
+	blockSyncLock     sync.Mutex
+	blockSyncTime     time.Time
+	blockedUsers      map[networkid.UserID]bool
 }
 
 var (

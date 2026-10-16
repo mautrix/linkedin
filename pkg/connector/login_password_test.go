@@ -32,6 +32,8 @@ type roundTripperFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
 
+func (f roundTripperFunc) SetFingerprint(string) {}
+
 func TestPasswordLoginUsesClientHTTPTransport(t *testing.T) {
 	p := newPasswordLogin(nil, &LinkedInConnector{})
 	defer p.Cancel()
