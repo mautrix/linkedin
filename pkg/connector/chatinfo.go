@@ -52,7 +52,7 @@ func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.
 			LastName:  participant.ParticipantType.Member.LastName.Text,
 		}))
 		ui.Avatar = l.getAvatar(participant.ParticipantType.Member.ProfilePicture)
-		ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
+		ui.Identifiers = []string{fmt.Sprintf("linkedin-internal:%s", participant.EntityURN.ID())}
 		if networkid.UserID(participant.EntityURN.ID()) == l.userID {
 			ui.ExtraUpdates = l.makeRemoteProfileUpdater(participant.ParticipantType.Member)
 		}
@@ -61,7 +61,7 @@ func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.
 			Organization: participant.ParticipantType.Organization.Name.Text,
 		}))
 		ui.Avatar = l.getAvatar(participant.ParticipantType.Organization.Logo)
-		ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
+		ui.Identifiers = []string{fmt.Sprintf("linkedin-internal:%s", participant.EntityURN.ID())}
 	}
 	return
 }
