@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exsync"
 	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -53,6 +54,8 @@ type LinkedInClient struct {
 	matrixParser      *matrixfmt.HTMLParser
 
 	remoteProfileLock sync.Mutex
+
+	publicIdentifierAttempts *exsync.Set[string]
 }
 
 var (
@@ -71,6 +74,8 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 		userLogin:             login,
 		conversationLastRead:  map[linkedingo.URN]jsontime.UnixMilli{},
 		conversationReadState: map[linkedingo.URN]ConversationReadState{},
+
+		publicIdentifierAttempts: exsync.NewSet[string](),
 	}
 	meta := login.Metadata.(*UserLoginMetadata)
 	cookies := meta.Cookies

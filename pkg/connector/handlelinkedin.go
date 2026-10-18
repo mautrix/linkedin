@@ -132,6 +132,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 	}
 
 	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
+	go l.fetchPublicIdentifiers(ctx, msg.Conversation.ConversationParticipants)
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 		EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
 		ChatInfo:        &chatInfo,

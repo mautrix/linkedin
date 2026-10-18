@@ -28,6 +28,7 @@ const (
 	linkedInVoyagerMediaUploadMetadataURL            = "https://www.linkedin.com/voyager/api/voyagerVideoDashMediaUploadMetadata"
 	linkedInVoyagerMessagingDashMessengerMessagesURL = "https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages"
 	linkedInVoyagerNotificationsDashPushRegistration = "https://www.linkedin.com/voyager/api/voyagerNotificationsDashPushRegistration"
+	linkedInVoyagerIdentityDashProfilesURL           = "https://www.linkedin.com/voyager/api/identity/dash/profiles"
 )
 
 const LinkedInCookieJSESSIONID = "JSESSIONID"

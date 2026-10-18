@@ -151,8 +151,8 @@ func (l *LinkedInClient) SearchUsers(ctx context.Context, query string) (resp []
 				FirstName: result.FirstName,
 				LastName:  result.LastName,
 			})),
-			Avatar:      l.getAvatar(result.ProfilePicture),
-			Identifiers: []string{fmt.Sprintf("linkedin-internal:%s", result.ProfileURN.ID())},
+			Avatar:       l.getAvatar(result.ProfilePicture),
+			ExtraUpdates: makeIdentifierUpdater(result.ProfileURN.ID()),
 		}
 		resp = append(resp, res)
 	}

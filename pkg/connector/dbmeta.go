@@ -32,7 +32,9 @@ func (lc *LinkedInConnector) GetDBMetaTypes() database.MetaTypes {
 		Message: func() any {
 			return &MessageMetadata{}
 		},
-		Ghost: nil,
+		Ghost: func() any {
+			return &GhostMetadata{}
+		},
 		UserLogin: func() any {
 			return &UserLoginMetadata{}
 		},
@@ -45,6 +47,10 @@ type UserLoginMetadata struct {
 	XLIPageInstance        string                      `json:"x_li_page_instance,omitempty"`
 	BrowserHeaders         http.Header                 `json:"browser_headers,omitempty"`
 	ConversationsSyncToken string                      `json:"conversations_sync_token,omitempty"`
+}
+
+type GhostMetadata struct {
+	PublicIdentifier string `json:"public_identifier,omitempty"`
 }
 
 type MessageMetadata struct {

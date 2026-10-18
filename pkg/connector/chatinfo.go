@@ -52,16 +52,16 @@ func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.
 			LastName:  participant.ParticipantType.Member.LastName.Text,
 		}))
 		ui.Avatar = l.getAvatar(participant.ParticipantType.Member.ProfilePicture)
-		ui.Identifiers = []string{fmt.Sprintf("linkedin-internal:%s", participant.EntityURN.ID())}
+		ui.ExtraUpdates = makeIdentifierUpdater(participant.EntityURN.ID())
 		if networkid.UserID(participant.EntityURN.ID()) == l.userID {
-			ui.ExtraUpdates = l.makeRemoteProfileUpdater(participant.ParticipantType.Member)
+			ui.ExtraUpdates = bridgev2.MergeExtraUpdaters(ui.ExtraUpdates, l.makeRemoteProfileUpdater(participant.ParticipantType.Member))
 		}
 	case participant.ParticipantType.Organization != nil:
 		ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
 			Organization: participant.ParticipantType.Organization.Name.Text,
 		}))
 		ui.Avatar = l.getAvatar(participant.ParticipantType.Organization.Logo)
-		ui.Identifiers = []string{fmt.Sprintf("linkedin-internal:%s", participant.EntityURN.ID())}
+		ui.Identifiers = []string{}
 	}
 	return
 }
@@ -132,4 +132,61 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	}
 
 	return
+}
+
+func makeIdentifiers(profileID, publicIdentifier string) []string {
+	identifiers := []string{fmt.Sprintf("linkedin-internal:%s", profileID)}
+	if publicIdentifier != "" {
+		identifiers = append(identifiers, fmt.Sprintf("linkedin:%s", publicIdentifier))
+	}
+	return identifiers
+}
+
+func makeIdentifierUpdater(profileID string) bridgev2.ExtraUpdater[*bridgev2.Ghost] {
+	return func(ctx context.Context, ghost *bridgev2.Ghost) bool {
+		meta := ghost.Metadata.(*GhostMetadata)
+		return ghost.UpdateContactInfo(ctx, makeIdentifiers(profileID, meta.PublicIdentifier), nil, nil)
+	}
+}
+
+func (l *LinkedInClient) fetchPublicIdentifiers(ctx context.Context, participants []linkedingo.MessagingParticipant) {
+	log := zerolog.Ctx(ctx).With().Str("action", "fetch public identifiers").Logger()
+	var urns []linkedingo.URN
+	ghosts := make(map[string]*bridgev2.Ghost)
+	for _, participant := range participants {
+		profileID := participant.EntityURN.ID()
+		if participant.ParticipantType.Member == nil || !l.publicIdentifierAttempts.Add(profileID) {
+			continue
+		}
+		ghost, err := l.main.Bridge.GetGhostByID(ctx, networkid.UserID(profileID))
+		if err != nil {
+			log.Err(err).Str("profile_id", profileID).Msg("Failed to get ghost")
+			continue
+		} else if ghost.Metadata.(*GhostMetadata).PublicIdentifier != "" {
+			continue
+		}
+		urns = append(urns, participant.EntityURN)
+		ghosts[profileID] = ghost
+	}
+	if len(urns) == 0 {
+		return
+	}
+	publicIdentifiers, err := l.client.GetPublicIdentifiers(ctx, urns)
+	if err != nil {
+		log.Err(err).Int("profile_count", len(urns)).Msg("Failed to fetch public identifiers")
+		return
+	}
+	for profileID, ghost := range ghosts {
+		publicIdentifier := publicIdentifiers[profileID]
+		if publicIdentifier == "" {
+			continue
+		}
+		ghost.UpdateInfo(ctx, &bridgev2.UserInfo{
+			ExtraUpdates: func(ctx context.Context, ghost *bridgev2.Ghost) bool {
+				ghost.Metadata.(*GhostMetadata).PublicIdentifier = publicIdentifier
+				ghost.UpdateContactInfo(ctx, makeIdentifiers(profileID, publicIdentifier), nil, nil)
+				return true
+			},
+		})
+	}
 }
