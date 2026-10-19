@@ -101,7 +101,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 				}
 				outPath, err := ffmpeg.ConvertPath(ctx, f.Name(), ".m4a", []string{}, []string{"-c:a", "aac", "-b:a", "32k"}, false)
 				if err != nil {
-					return err
+					return fmt.Errorf("%w: %w", bridgev2.ErrMediaConvertFailed, err)
 				}
 				f, err = os.Open(outPath)
 				if err != nil {
