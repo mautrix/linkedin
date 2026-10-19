@@ -162,6 +162,9 @@ type OrganizationParticipantInfo struct {
 }
 
 func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefore time.Time) (*CollectionResponse[ConversationCursorMetadata, Conversation], error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	zerolog.Ctx(ctx).Info().
 		Time("updated_before", updatedBefore).
 		Msg("Getting conversations updated before")
@@ -181,6 +184,9 @@ func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefor
 }
 
 func (c *Client) GetConversationsBySyncToken(ctx context.Context) (*CollectionResponse[ConversationSyncMetadata, Conversation], error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	zerolog.Ctx(ctx).Info().Msg("Getting conversations")
 	req := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL)
 	mailboxUrn := url.QueryEscape(c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String())
