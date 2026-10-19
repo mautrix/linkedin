@@ -144,7 +144,7 @@ var stateCaps = event.StateFeatureMap{
 }
 
 func (l *LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
-	return &event.RoomFeatures{
+	caps := &event.RoomFeatures{
 		ID:                  capID(),
 		Formatting:          formattingCaps,
 		File:                fileCaps,
@@ -160,11 +160,15 @@ func (l *LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.P
 		ReadReceipts:        true,
 		TypingNotifications: true,
 		DeleteChat:          true,
-		BlockUser:           portal != nil && portal.RoomType == database.RoomTypeDM && portal.Receiver != "" && portal.Receiver == l.userLogin.ID && portal.OtherUserID != "" && portal.OtherUserID != l.userID,
+		BlockUser:           portal.RoomType == database.RoomTypeDM,
 		State:               stateCaps,
 		MemberActions: map[event.MemberAction]event.CapabilitySupportLevel{
 			event.MemberActionInvite: event.CapLevelFullySupported,
 			event.MemberActionKick:   event.CapLevelFullySupported,
 		},
 	}
+	if portal.RoomType == database.RoomTypeDM {
+		caps.ID += "+dm"
+	}
+	return caps
 }

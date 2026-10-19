@@ -18,8 +18,10 @@ var _ bridgev2.ChatViewingNetworkAPI = (*LinkedInClient)(nil)
 var _ bridgev2.UserBlockingNetworkAPI = (*LinkedInClient)(nil)
 
 func (l *LinkedInClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev2.MatrixBlockUser) error {
-	if msg == nil || msg.Content == nil || msg.Portal == nil || msg.Portal.RoomType != database.RoomTypeDM || msg.Portal.Receiver == "" || msg.Portal.Receiver != l.userLogin.ID || msg.Portal.OtherUserID == "" || msg.Portal.OtherUserID == l.userID {
-		return errors.New("DM recipient is unknown")
+	if msg.Portal.RoomType != database.RoomTypeDM {
+		return errors.New("blocking is only supported in DMs")
+	} else if msg.Portal.OtherUserID == l.userID {
+		return errors.New("cannot block yourself")
 	} else if msg.Content.ReportSpam {
 		return bridgev2.WrapErrorInStatus(errors.New("spam reporting is not supported")).
 			WithIsCertain(true).WithErrorAsMessage().WithErrorReason(event.MessageStatusUnsupported)
