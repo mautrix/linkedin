@@ -97,7 +97,12 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 			mime := msg.Content.GetInfo().MimeType
 			if msg.Content.MSC3245Voice != nil && mime != "audio/mp4" {
 				if !ffmpeg.Supported() {
-					return errors.New("ffmpeg is required to send voice message")
+					return bridgev2.WrapErrorInStatus(errors.New("ffmpeg is required to send voice message")).
+						WithMessage("voice messages aren't supported right now").
+						WithIsCertain(true).
+						WithSendNotice(true).
+						WithErrorReason(event.MessageStatusUnsupported).
+						WithStatus(event.MessageStatusFail)
 				}
 				outPath, err := ffmpeg.ConvertPath(ctx, f.Name(), ".m4a", []string{}, []string{"-c:a", "aac", "-b:a", "32k"}, false)
 				if err != nil {
