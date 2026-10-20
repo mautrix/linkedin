@@ -123,7 +123,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 
 			urn, err := l.client.UploadMedia(ctx, attachmentType, filename, msg.Content.Info.MimeType, msg.Content.Info.Size, f)
 			if err != nil {
-				return err
+				return wrapLinkedInError(err)
 			}
 
 			switch msg.Content.MsgType {
