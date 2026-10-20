@@ -19,9 +19,11 @@ package connector
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
+	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/event"
 
@@ -111,4 +113,28 @@ func wrapLinkedInError(err error) error {
 			WithMessage("unexpected error from LinkedIn").
 			WithSendNotice(true)
 	}
+}
+
+// wrapLinkedInRespError turns an error from a LinkedIn request made during provisioning into an HTTP
+// error, keeping the original error in the chain. Clients retry 429 and 502-504 automatically, which
+// isn't wanted for provisioning requests, so those statuses aren't used.
+func wrapLinkedInRespError(err error) error {
+	var mapped bridgev2.RespError
+	statusCode := responseStatusCode(err)
+	switch {
+	case errors.Is(err, linkedingo.ErrClientIsNil), errors.Is(err, linkedingo.ErrTokenInvalidated),
+		statusCode == http.StatusUnauthorized:
+		mapped = bridgev2.RespError(mautrix.MForbidden.WithMessage("Not logged in to LinkedIn"))
+	case statusCode == http.StatusTooManyRequests:
+		mapped = bridgev2.RespError(mautrix.MLimitExceeded.WithMessage("Rate limited by LinkedIn. Try again later.").WithStatus(http.StatusBadRequest))
+	case statusCode == http.StatusForbidden, statusCode == statusLinkedInBlocked:
+		mapped = bridgev2.RespError(mautrix.MForbidden.WithMessage("LinkedIn denied the request"))
+	case statusCode >= 400 && statusCode < 500:
+		mapped = bridgev2.RespError(mautrix.MUnknown.WithMessage("LinkedIn rejected the request").WithStatus(http.StatusBadRequest))
+	case errors.Is(err, context.DeadlineExceeded):
+		mapped = bridgev2.RespError(mautrix.MUnknown.WithMessage("LinkedIn didn't respond in time"))
+	default:
+		mapped = bridgev2.RespError(mautrix.MUnknown.WithMessage("Request to LinkedIn failed"))
+	}
+	return fmt.Errorf("%w: %w", mapped, err)
 }
