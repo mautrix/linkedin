@@ -186,6 +186,7 @@ func (l *LinkedInClient) IsThisUser(ctx context.Context, userID networkid.UserID
 }
 
 func (l *LinkedInClient) LogoutRemote(ctx context.Context) {
+	l.Disconnect()
 	if !l.IsLoggedIn() {
 		return
 	}
