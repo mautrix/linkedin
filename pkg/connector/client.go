@@ -18,7 +18,6 @@ package connector
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -168,7 +167,8 @@ func (l *LinkedInClient) Connect(ctx context.Context) {
 		l.userLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      "linkedin-logged-out",
-			Message:    fmt.Sprintf("Failed to connect to the realtime stream: %v", err),
+			Message:    "Failed to connect to the realtime stream",
+			Info:       map[string]any{"go_error": err.Error()},
 		})
 	}
 }
