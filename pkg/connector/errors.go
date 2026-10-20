@@ -99,13 +99,11 @@ func wrapLinkedInError(err error) error {
 	case errors.Is(err, context.DeadlineExceeded):
 		return bridgev2.WrapErrorInStatus(err).
 			WithMessage("LinkedIn didn't respond in time").
-			WithErrorReason(event.MessageStatusNetworkError).
 			WithIsCertain(false).
 			WithSendNotice(true)
 	case errors.As(err, &urlErr):
 		return bridgev2.WrapErrorInStatus(err).
 			WithMessage("failed to reach LinkedIn").
-			WithErrorReason(event.MessageStatusNetworkError).
 			WithIsCertain(false).
 			WithSendNotice(true)
 	default:
