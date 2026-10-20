@@ -198,7 +198,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 
 			switch realtimeResp.StatusCode {
 			case http.StatusUnauthorized, http.StatusFound:
-				c.handlers.onBadCredentials(ctx, fmt.Errorf("got %d on connect", realtimeResp.StatusCode))
+				c.handlers.onBadCredentials(ctx, fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode}))
 				return
 			case http.StatusBadRequest:
 				log.Warn().Msg("Got 400 on connect, resetting realtime session ID")
@@ -207,10 +207,10 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			default:
 				connectAttempts += 1
 				if connectAttempts > MaxConnectionAttempts {
-					c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect due to status code %d", realtimeResp.StatusCode))
+					c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode}))
 					return
 				}
-				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect due to status code: %d", realtimeResp.StatusCode))
+				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode}))
 				backoff := time.Duration(connectAttempts*2) * time.Second
 				if backoff > time.Minute {
 					backoff = time.Minute
