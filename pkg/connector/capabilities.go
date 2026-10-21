@@ -24,6 +24,7 @@ import (
 	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/event"
 )
 
@@ -47,7 +48,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 9
+	return 1, 10
 }
 
 const MaxTextLength = 8000
@@ -61,7 +62,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID() string {
-	base := "fi.mau.linkedin.capabilities.2026_01_18"
+	base := "fi.mau.linkedin.capabilities.2026_10_15"
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -142,8 +143,8 @@ var stateCaps = event.StateFeatureMap{
 	event.StateRoomName.Type: {Level: event.CapLevelFullySupported},
 }
 
-func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
-	return &event.RoomFeatures{
+func (l *LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
+	caps := &event.RoomFeatures{
 		ID:                  capID(),
 		Formatting:          formattingCaps,
 		File:                fileCaps,
@@ -159,10 +160,15 @@ func (*LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.Por
 		ReadReceipts:        true,
 		TypingNotifications: true,
 		DeleteChat:          true,
+		BlockUser:           portal.RoomType == database.RoomTypeDM,
 		State:               stateCaps,
 		MemberActions: map[event.MemberAction]event.CapabilitySupportLevel{
 			event.MemberActionInvite: event.CapLevelFullySupported,
 			event.MemberActionKick:   event.CapLevelFullySupported,
 		},
 	}
+	if portal.RoomType == database.RoomTypeDM {
+		caps.ID += "+dm"
+	}
+	return caps
 }

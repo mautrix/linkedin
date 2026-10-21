@@ -65,6 +65,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if !l.IsLoggedIn() {
 		return nil, ErrNotLoggedIn
 	}
+	l.resyncUserBlock(ctx, msg.Portal)
 	conversationURN := linkedingo.NewURN(msg.Portal.ID)
 
 	// Handle emotes by adding a "*" and the user's name to the message
