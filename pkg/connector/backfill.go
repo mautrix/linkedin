@@ -57,7 +57,11 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		messages = msgs.Elements
 		resp.Cursor = networkid.PaginationCursor(msgs.Metadata.PrevCursor)
 	} else {
-		msgs, err := l.client.GetMessagesBefore(ctx, linkedingo.NewURN(fetchParams.Portal.ID), time.Now(), fetchParams.Count)
+		before := time.Now()
+		if !fetchParams.Forward && fetchParams.AnchorMessage != nil {
+			before = fetchParams.AnchorMessage.Timestamp
+		}
+		msgs, err := l.client.GetMessagesBefore(ctx, convURN, before, fetchParams.Count)
 		if err != nil {
 			return nil, err
 		} else if len(msgs.Elements) == 0 {
