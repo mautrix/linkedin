@@ -64,7 +64,7 @@ func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier strin
 			var err error
 			chat, err = l.createChat(ctx, chatInfo, participants)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create dm chat: %w", err)
+				return nil, wrapLinkedInRespError(fmt.Errorf("failed to create dm chat: %w", err))
 			}
 		}
 	}
@@ -95,7 +95,7 @@ func (l *LinkedInClient) CreateGroup(ctx context.Context, params *bridgev2.Group
 	}
 	chat, err := l.createChat(ctx, chatInfo, params.Participants)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create group chat: %w", err)
+		return nil, wrapLinkedInRespError(fmt.Errorf("failed to create group chat: %w", err))
 	}
 	return chat, nil
 }
@@ -136,7 +136,7 @@ func (l *LinkedInClient) SearchUsers(ctx context.Context, query string) (resp []
 	if errors.As(err, &respErr) && respErr.StatusCode == http.StatusBadRequest {
 		return nil, fmt.Errorf("%w: %w", ErrSearchRejected, err)
 	} else if err != nil {
-		return nil, err
+		return nil, wrapLinkedInRespError(err)
 	}
 	log.Debug().Int("result_count", len(results)).Msg("Resolving search results")
 

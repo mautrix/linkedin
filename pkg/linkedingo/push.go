@@ -10,6 +10,9 @@ import (
 )
 
 func (c *Client) RegisterAndroidPush(ctx context.Context, token string) error {
+	if c == nil {
+		return ErrClientIsNil
+	}
 	payload := c.createPushRegistrationPayload(token)
 	r := bytes.NewReader(payload)
 

@@ -182,6 +182,9 @@ type RepliedMessage struct {
 }
 
 func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body SendMessageBody, renderContent []SendRenderContent, transactionID string) (*MessageSentResponse, error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	payload := sendMessagePayload{
 		Message: SendMessage{
 			Body:                body,
@@ -209,6 +212,9 @@ func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body Send
 }
 
 func (c *Client) NewChat(ctx context.Context, title string, participants []URN) (*MessageSentResponse, error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	transactionID := uuid.NewString()
 	payload := sendMessagePayload{
 		Message: SendMessage{

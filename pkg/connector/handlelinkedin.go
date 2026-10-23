@@ -19,7 +19,8 @@ func (l *LinkedInClient) onTransientDisconnect(ctx context.Context, err error) {
 	l.userLogin.BridgeState.Send(status.BridgeState{
 		StateEvent: status.StateTransientDisconnect,
 		Error:      "linkedin-transient-disconnect",
-		Message:    err.Error(),
+		Message:    "Lost connection to LinkedIn, reconnecting",
+		Info:       map[string]any{"go_error": err.Error()},
 	})
 }
 
@@ -28,7 +29,8 @@ func (l *LinkedInClient) onBadCredentials(ctx context.Context, err error) {
 	l.userLogin.BridgeState.Send(status.BridgeState{
 		StateEvent: status.StateBadCredentials,
 		Error:      "linkedin-bad-credentials",
-		Message:    err.Error(),
+		Message:    "Logged out of LinkedIn, please log in again",
+		Info:       map[string]any{"go_error": err.Error()},
 	})
 	if errors.Is(err, linkedingo.ErrTokenInvalidated) {
 		l.userLogin.Metadata.(*UserLoginMetadata).Cookies.Clear()
@@ -46,7 +48,8 @@ func (l *LinkedInClient) onUnknownError(ctx context.Context, err error) {
 	l.userLogin.BridgeState.Send(status.BridgeState{
 		StateEvent: status.StateUnknownError,
 		Error:      "linkedin-unknown-error",
-		Message:    err.Error(),
+		Message:    "Failed to connect to LinkedIn",
+		Info:       map[string]any{"go_error": err.Error()},
 	})
 	// TODO probably don't do this unconditionally?
 	// Disconnect in the background so we don't deadlock against the realtime loop which calls this

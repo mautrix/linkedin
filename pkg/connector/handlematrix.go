@@ -65,6 +65,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if !l.IsLoggedIn() {
 		return nil, ErrNotLoggedIn
 	}
+	l.resyncUserBlock(ctx, msg.Portal)
 	conversationURN := linkedingo.NewURN(msg.Portal.ID)
 
 	// Handle emotes by adding a "*" and the user's name to the message
@@ -97,11 +98,16 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 			mime := msg.Content.GetInfo().MimeType
 			if msg.Content.MSC3245Voice != nil && mime != "audio/mp4" {
 				if !ffmpeg.Supported() {
-					return errors.New("ffmpeg is required to send voice message")
+					return bridgev2.WrapErrorInStatus(errors.New("ffmpeg is required to send voice message")).
+						WithMessage("voice messages aren't supported right now").
+						WithIsCertain(true).
+						WithSendNotice(true).
+						WithErrorReason(event.MessageStatusUnsupported).
+						WithStatus(event.MessageStatusFail)
 				}
 				outPath, err := ffmpeg.ConvertPath(ctx, f.Name(), ".m4a", []string{}, []string{"-c:a", "aac", "-b:a", "32k"}, false)
 				if err != nil {
-					return err
+					return fmt.Errorf("%w: %w", bridgev2.ErrMediaConvertFailed, err)
 				}
 				f, err = os.Open(outPath)
 				if err != nil {
@@ -118,7 +124,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 
 			urn, err := l.client.UploadMedia(ctx, attachmentType, filename, msg.Content.Info.MimeType, msg.Content.Info.Size, f)
 			if err != nil {
-				return err
+				return wrapLinkedInError(err)
 			}
 
 			switch msg.Content.MsgType {
@@ -178,7 +184,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 			return nil
 		})
 		if err != nil {
-			return nil, err
+			return nil, wrapConversionError(err)
 		}
 	}
 
@@ -208,7 +214,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	}
 	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent, transactionID)
 	if err != nil {
-		return nil, err
+		return nil, wrapLinkedInError(err)
 	}
 	return &bridgev2.MatrixMessageResponse{
 		DB: &database.Message{
@@ -226,14 +232,14 @@ func (l *LinkedInClient) HandleMatrixEdit(ctx context.Context, msg *bridgev2.Mat
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
 	}
-	return l.client.EditMessage(ctx, linkedingo.NewURN(msg.EditTarget.ID), matrixfmt.Parse(ctx, l.matrixParser, msg.Content))
+	return wrapLinkedInError(l.client.EditMessage(ctx, linkedingo.NewURN(msg.EditTarget.ID), matrixfmt.Parse(ctx, l.matrixParser, msg.Content)))
 }
 
 func (l *LinkedInClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2.MatrixMessageRemove) error {
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
 	}
-	return l.client.RecallMessage(ctx, linkedingo.NewURN(msg.TargetMessage.ID))
+	return wrapLinkedInError(l.client.RecallMessage(ctx, linkedingo.NewURN(msg.TargetMessage.ID)))
 }
 
 func (l *LinkedInClient) PreHandleMatrixReaction(ctx context.Context, msg *bridgev2.MatrixReaction) (bridgev2.MatrixReactionPreResponse, error) {
@@ -257,11 +263,11 @@ func (l *LinkedInClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2
 	if !l.IsLoggedIn() {
 		return nil, ErrNotLoggedIn
 	}
-	return &database.Reaction{}, l.client.SendReaction(ctx, linkedingo.NewURN(msg.TargetMessage.ID), msg.PreHandleResp.Emoji)
+	return &database.Reaction{}, wrapLinkedInError(l.client.SendReaction(ctx, linkedingo.NewURN(msg.TargetMessage.ID), msg.PreHandleResp.Emoji))
 }
 
 func (l *LinkedInClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev2.MatrixReactionRemove) error {
-	return l.client.RemoveReaction(ctx, linkedingo.NewURN(msg.TargetReaction.MessageID), msg.TargetReaction.Emoji)
+	return wrapLinkedInError(l.client.RemoveReaction(ctx, linkedingo.NewURN(msg.TargetReaction.MessageID), msg.TargetReaction.Emoji))
 }
 
 func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
@@ -269,7 +275,7 @@ func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridg
 		return ErrNotLoggedIn
 	}
 	_, err := l.client.MarkConversationRead(ctx, linkedingo.NewURN(msg.Portal.ID))
-	return err
+	return wrapLinkedInError(err)
 }
 
 func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
@@ -277,19 +283,19 @@ func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.M
 		return ErrNotLoggedIn
 	}
 	if msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
-		return l.client.StartTyping(ctx, linkedingo.NewURN(msg.Portal.ID))
+		return wrapLinkedInError(l.client.StartTyping(ctx, linkedingo.NewURN(msg.Portal.ID)))
 	}
 	return nil
 }
 
 func (l *LinkedInClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
-	return l.client.DeleteConversation(ctx, linkedingo.NewURN(chat.Portal.ID))
+	return wrapLinkedInError(l.client.DeleteConversation(ctx, linkedingo.NewURN(chat.Portal.ID)))
 }
 
 func (l *LinkedInClient) HandleMatrixRoomName(ctx context.Context, msg *bridgev2.MatrixRoomName) (bool, error) {
 	err := l.client.RenameConversation(ctx, linkedingo.NewURN(msg.Portal.ID), msg.Content.Name)
 	if err != nil {
-		return false, err
+		return false, wrapLinkedInError(err)
 	}
 	return true, nil
 }
@@ -315,5 +321,5 @@ func (l *LinkedInClient) HandleMatrixMembership(ctx context.Context, msg *bridge
 		err = l.client.RemoveParticipants(ctx, linkedingo.NewURN(msg.Portal.ID), participants)
 	}
 
-	return nil, err
+	return nil, wrapLinkedInError(err)
 }

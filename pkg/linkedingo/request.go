@@ -79,6 +79,9 @@ func (c *Client) checkHTTPRedirect(req *http.Request, via []*http.Request) error
 }
 
 func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {
+	if c == nil {
+		return nil
+	}
 	ar := authedRequest{header: c.browserHeaders.Clone(), method: method, client: c}
 	ar.url, ar.parseErr = url.Parse(urlStr)
 
@@ -95,6 +98,9 @@ func (c *Client) newAuthedRequest(method, urlStr string) *authedRequest {
 }
 
 func (a *authedRequest) WithHeader(key, value string) *authedRequest {
+	if a == nil {
+		return nil
+	}
 	a.header.Set(key, value)
 	return a
 }
@@ -102,16 +108,25 @@ func (a *authedRequest) WithHeader(key, value string) *authedRequest {
 // WithQueryParam adds a query parameter to the request. If a raw query is set
 // with [authedRequest.WithRawQuery], this will be ignored.
 func (a *authedRequest) WithQueryParam(key, value string) *authedRequest {
+	if a == nil {
+		return nil
+	}
 	a.queryParams.Add(key, value)
 	return a
 }
 
 func (a *authedRequest) WithRawQuery(raw string) *authedRequest {
+	if a == nil {
+		return nil
+	}
 	a.rawQuery = raw
 	return a
 }
 
 func (a *authedRequest) WithGraphQLQuery(queryID string, variables map[string]string) *authedRequest {
+	if a == nil {
+		return nil
+	}
 	a.WithHeader("accept", contentTypeGraphQL)
 	a.WithCSRF()
 	a.WithXLIHeaders()
@@ -126,15 +141,24 @@ func (a *authedRequest) WithGraphQLQuery(queryID string, variables map[string]st
 }
 
 func (a *authedRequest) WithCSRF() *authedRequest {
+	if a == nil {
+		return nil
+	}
 	return a.WithHeader("csrf-token", a.client.getCSRFToken())
 }
 
 func (a *authedRequest) WithJSONPayload(payload any) *authedRequest {
+	if a == nil {
+		return nil
+	}
 	a.body = bytes.NewReader(exerrors.Must(json.Marshal(payload)))
 	return a
 }
 
 func (a *authedRequest) WithBody(r io.Reader) *authedRequest {
+	if a == nil {
+		return nil
+	}
 	a.body = r
 	return a
 }
@@ -144,6 +168,9 @@ func (a *authedRequest) WithContentType(contentType string) *authedRequest {
 }
 
 func (a *authedRequest) WithXLIHeaders() *authedRequest {
+	if a == nil {
+		return nil
+	}
 	return a.
 		WithHeader("Referer", linkedInMessagingBaseURL+"/").
 		WithHeader("X-LI-Page-Instance", a.client.pageInstance).
@@ -152,6 +179,9 @@ func (a *authedRequest) WithXLIHeaders() *authedRequest {
 }
 
 func (a *authedRequest) WithRealtimeConnectHeaders() *authedRequest {
+	if a == nil {
+		return nil
+	}
 	return a.
 		WithHeader("Priority", "u=1, i").
 		WithHeader("Sec-Fetch-Dest", "empty").
@@ -167,6 +197,9 @@ func (a *authedRequest) WithRealtimeConnectHeaders() *authedRequest {
 }
 
 func (a *authedRequest) WithWebpageHeaders() *authedRequest {
+	if a == nil {
+		return nil
+	}
 	return a.
 		WithHeader("Priority", "u=0, i").
 		WithHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7").
@@ -179,8 +212,12 @@ func (a *authedRequest) WithWebpageHeaders() *authedRequest {
 }
 
 var reqIDCounter atomic.Int64
+var ErrClientIsNil = errors.New("client is nil")
 
 func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
+	if a == nil {
+		return nil, ErrClientIsNil
+	}
 	if a.parseErr != nil {
 		return nil, a.parseErr
 	}
