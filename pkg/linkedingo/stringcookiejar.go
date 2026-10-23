@@ -18,6 +18,7 @@ package linkedingo
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -38,6 +39,8 @@ type StringCookieJar struct {
 }
 
 var CookieBaseURL = exerrors.Must(url.Parse("https://www.linkedin.com"))
+
+var ErrNoValidCookies = errors.New("no valid cookies in cookie header")
 
 var (
 	_ http.CookieJar   = (*StringCookieJar)(nil)
@@ -96,9 +99,9 @@ func (s *StringCookieJar) Clear() {
 }
 
 func (s *StringCookieJar) parseCookieHeaderString(cookieString string) error {
-	cookies, err := http.ParseCookie(cookieString)
-	if err != nil {
-		return err
+	cookies := (&http.Request{Header: http.Header{"Cookie": {cookieString}}}).Cookies()
+	if len(cookies) == 0 {
+		return ErrNoValidCookies
 	}
 	s.SetCookies(CookieBaseURL, cookies)
 	return nil
