@@ -62,7 +62,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID() string {
-	base := "fi.mau.linkedin.capabilities.2026_10_15"
+	base := "fi.mau.linkedin.capabilities.2026_10_26"
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -161,6 +161,7 @@ func (l *LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.P
 		TypingNotifications: true,
 		DeleteChat:          true,
 		BlockUser:           portal.RoomType == database.RoomTypeDM,
+		NoUnblock:           portal.RoomType == database.RoomTypeDM,
 		State:               stateCaps,
 		MemberActions: map[event.MemberAction]event.CapabilitySupportLevel{
 			event.MemberActionInvite: event.CapLevelFullySupported,
