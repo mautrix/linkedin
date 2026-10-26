@@ -41,7 +41,7 @@ func (l *LinkedInConnector) Init(bridge *bridgev2.Bridge) {
 }
 
 func (l *LinkedInConnector) Start(ctx context.Context) error {
-	return nil
+	return l.fixLegacyMigratedTimestamps(ctx)
 }
 
 func (l *LinkedInConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLogin) error {
