@@ -23,6 +23,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
@@ -120,9 +121,11 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		updated++
 
 		var latestMessageTS time.Time
+		var latestMessageID networkid.MessageID
 		for _, msg := range conv.Messages.Elements {
 			if msg.DeliveredAt.After(latestMessageTS) {
 				latestMessageTS = msg.DeliveredAt.Time
+				latestMessageID = msg.MessageID()
 			}
 		}
 		chatInfo, userInChat := l.conversationToChatInfo(conv)
@@ -134,6 +137,12 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			ChatInfo:        &chatInfo,
 			EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
 			LatestMessageTS: latestMessageTS,
+			CheckNeedsBackfillFunc: func(_ context.Context, latestMessage *database.Message) (bool, error) {
+				if latestMessage == nil {
+					return !latestMessageTS.IsZero(), nil
+				}
+				return latestMessage.ID != latestMessageID && latestMessageTS.After(latestMessage.Timestamp), nil
+			},
 		})
 		if readStatusChanged {
 			sender := bridgev2.EventSender{
