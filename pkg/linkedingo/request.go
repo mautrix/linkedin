@@ -306,7 +306,12 @@ func (a *authedRequest) doRawRetry(ctx context.Context) (*http.Response, error) 
 			return nil, fmt.Errorf("failed to rewind request body: %w", err)
 		}
 	}
-	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), a.body)
+	body := a.body
+	if _, ok := body.(io.Closer); ok {
+		// The transport closes request bodies, which would break the rewind above on the next attempt.
+		body = io.NopCloser(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
