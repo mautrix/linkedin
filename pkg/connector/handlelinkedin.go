@@ -43,19 +43,6 @@ func (l *LinkedInClient) onBadCredentials(ctx context.Context, err error) {
 	go l.Disconnect()
 }
 
-func (l *LinkedInClient) onUnknownError(ctx context.Context, err error) {
-	zerolog.Ctx(ctx).Err(err).Msg("unknown error")
-	l.userLogin.BridgeState.Send(status.BridgeState{
-		StateEvent: status.StateUnknownError,
-		Error:      "linkedin-unknown-error",
-		Message:    "Failed to connect to LinkedIn",
-		Info:       map[string]any{"go_error": err.Error()},
-	})
-	// TODO probably don't do this unconditionally?
-	// Disconnect in the background so we don't deadlock against the realtime loop which calls this
-	go l.Disconnect()
-}
-
 func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *linkedingo.DecoratedEvent) {
 	log := zerolog.Ctx(ctx).With().
 		Str("decorated_event_id", decoratedEvent.ID).

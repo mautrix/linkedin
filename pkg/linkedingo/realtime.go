@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net/http"
 	"runtime/debug"
 	"time"
@@ -35,7 +36,11 @@ import (
 	"go.mau.fi/util/jsontime"
 )
 
-var MaxConnectionAttempts = 50
+const (
+	realtimeMinBackoff   = 2 * time.Second
+	realtimeMaxBackoff   = 5 * time.Minute
+	realtimeStableUptime = time.Minute
+)
 
 //go:embed x-li-recipe-map.json
 var realtimeRecipeMapJSON []byte
@@ -97,19 +102,13 @@ func (c *Client) RealtimeConnect(ctx context.Context) error {
 	c.realtimeWaitGroup.Add(1)
 	go func() {
 		defer c.realtimeWaitGroup.Done()
-		c.runHeartbeatsLoop(ctx)
-	}()
-
-	c.realtimeWaitGroup.Add(1)
-	go func() {
-		defer c.realtimeWaitGroup.Done()
 		c.realtimeConnectLoop(ctx)
 	}()
 
 	return nil
 }
 
-func (c *Client) runHeartbeatsLoop(ctx context.Context) {
+func (c *Client) runHeartbeatsLoop(ctx context.Context, stopStream context.CancelCauseFunc) {
 	isFirst := true
 	userURN := c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String()
 
@@ -144,6 +143,7 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context) {
 			return
 		} else if err != nil {
 			log.Err(err).Msg("Failed to send heartbeat")
+			stopStream(fmt.Errorf("failed to send heartbeat: %w", err))
 			return
 		}
 
@@ -162,105 +162,94 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 	log.Info().Msg("Starting realtime connection loop")
 	defer log.Info().Msg("Exited realtime connection loop")
 
-	connectAttempts := 0
+	backoff := realtimeMinBackoff
 
 	// Continually reconnect to the realtime connection endpoint until the context is done
 	for {
-		realtimeResp, err := c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL).
-			WithQueryParam("rc", "1").
-			WithCSRF().
-			WithRealtimeConnectHeaders().
-			WithHeader("Accept", contentTypeTextEventStream).
-			DoRaw(ctx)
-		if errors.Is(err, ErrTokenInvalidated) {
-			c.onAuthRejected(ctx, err)
+		uptime, err := c.readRealtimeStream(ctx)
+		if ctx.Err() != nil || !c.IsLoggedIn() {
 			return
-		} else if err != nil {
-			connectAttempts += 1
-			if connectAttempts > MaxConnectionAttempts {
-				c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect: %w", err))
-				return
-			}
-			c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect: %w", err))
-			backoff := time.Duration(connectAttempts*2) * time.Second
-			if backoff > time.Minute {
-				backoff = time.Minute
-			}
-			select {
-			case <-time.After(backoff):
-				continue
-			case <-ctx.Done():
-				log.Info().Msg("Realtime connection loop canceled")
-				return
-			}
-		} else if realtimeResp.StatusCode != http.StatusOK {
-			realtimeResp.Body.Close()
+		}
+		stable := uptime >= realtimeStableUptime
+		if stable {
+			backoff = realtimeMinBackoff
+		}
+		if stable && errors.Is(err, io.EOF) {
+			log.Info().
+				Stringer("realtime_session_id", c.realtimeSessionID).
+				Msg("Realtime stream closed")
+		} else {
+			c.handlers.onTransientDisconnect(ctx, err)
+		}
 
-			switch realtimeResp.StatusCode {
-			case http.StatusUnauthorized, http.StatusFound:
-				c.onAuthRejected(ctx, fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode}))
-				return
-			case http.StatusBadRequest:
-				log.Warn().Msg("Got 400 on connect, resetting realtime session ID")
-				c.realtimeSessionID = uuid.New()
-				fallthrough
-			default:
-				connectAttempts += 1
-				if connectAttempts > MaxConnectionAttempts {
-					c.handlers.onUnknownError(ctx, fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode}))
-					return
-				}
-				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode}))
-				backoff := time.Duration(connectAttempts*2) * time.Second
-				if backoff > time.Minute {
-					backoff = time.Minute
-				}
-				select {
-				case <-time.After(backoff):
-				case <-ctx.Done():
-					log.Info().Msg("Realtime connection loop canceled")
-					return
-				}
-			}
+		select {
+		case <-time.After(backoff/2 + rand.N(backoff/2)):
+		case <-ctx.Done():
+			return
+		}
+		backoff = min(backoff*2, realtimeMaxBackoff)
+	}
+}
+
+// readRealtimeStream connects to the realtime stream and dispatches its events until it ends, returning how long
+// the stream was open and why it ended.
+func (c *Client) readRealtimeStream(ctx context.Context) (time.Duration, error) {
+	log := zerolog.Ctx(ctx)
+	streamCtx, stopStream := context.WithCancelCause(ctx)
+	defer stopStream(nil)
+
+	realtimeResp, err := c.newAuthedRequest(http.MethodGet, linkedInRealtimeConnectURL).
+		WithQueryParam("rc", "1").
+		WithCSRF().
+		WithRealtimeConnectHeaders().
+		WithHeader("Accept", contentTypeTextEventStream).
+		DoRaw(streamCtx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to connect: %w", err)
+	}
+	defer realtimeResp.Body.Close()
+
+	switch realtimeResp.StatusCode {
+	case http.StatusOK:
+	case http.StatusUnauthorized, http.StatusFound:
+		err = fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode})
+		c.onAuthRejected(ctx, err)
+		return 0, err
+	case http.StatusBadRequest:
+		log.Warn().Msg("Got 400 on connect, resetting realtime session ID")
+		c.realtimeSessionID = uuid.New()
+		fallthrough
+	default:
+		return 0, fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode})
+	}
+
+	connectedAt := time.Now()
+	c.realtimeWaitGroup.Add(1)
+	go func() {
+		defer c.realtimeWaitGroup.Done()
+		c.runHeartbeatsLoop(streamCtx, stopStream)
+	}()
+
+	log.Info().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Reading realtime stream")
+	reader := bufio.NewReader(realtimeResp.Body)
+	for {
+		line, err := reader.ReadBytes('\n')
+		if streamCtx.Err() != nil {
+			return time.Since(connectedAt), context.Cause(streamCtx)
+		} else if err != nil {
+			return time.Since(connectedAt), fmt.Errorf("failed to read realtime stream: %w", err)
+		}
+
+		if !bytes.HasPrefix(line, []byte("data:")) {
 			continue
 		}
 
-		// Reset connection attempts
-		connectAttempts = 0
-
-		log.Info().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Reading realtime stream")
-		reader := bufio.NewReader(realtimeResp.Body)
-		for {
-			line, err := reader.ReadBytes('\n')
-			if err != nil {
-				if errors.Is(err, context.Canceled) {
-					realtimeResp.Body.Close()
-					log.Info().Msg("Realtime connection loop canceled")
-					return
-				} else if errors.Is(err, io.EOF) {
-					log.Info().
-						Stringer("realtime_session_id", c.realtimeSessionID).
-						Msg("Realtime stream closed")
-					break
-				} else {
-					c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to read realtime stream: %w", err))
-					break
-				}
-			}
-
-			if !bytes.HasPrefix(line, []byte("data:")) {
-				continue
-			}
-
-			var realtimeEvent RealtimeEvent
-			if err = json.Unmarshal(line[6:], &realtimeEvent); err != nil {
-				c.handlers.onTransientDisconnect(ctx, fmt.Errorf("failed to unmarshal realtime event: %w", err))
-				break
-			}
-
-			c.dispatchRealtimeEvent(ctx, realtimeEvent)
+		var realtimeEvent RealtimeEvent
+		if err = json.Unmarshal(line[6:], &realtimeEvent); err != nil {
+			return time.Since(connectedAt), fmt.Errorf("failed to unmarshal realtime event: %w", err)
 		}
-		realtimeResp.Body.Close()
+
+		c.dispatchRealtimeEvent(ctx, realtimeEvent)
 	}
 }
 

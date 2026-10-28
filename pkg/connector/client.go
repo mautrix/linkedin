@@ -110,7 +110,6 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 			},
 			TransientDisconnect: client.onTransientDisconnect,
 			BadCredentials:      client.onBadCredentials,
-			UnknownError:        client.onUnknownError,
 			DecoratedEvent:      client.onDecoratedEvent,
 			ConversationsSyncToken: func(ctx context.Context, syncToken string) {
 				meta.ConversationsSyncToken = syncToken

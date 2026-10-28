@@ -139,7 +139,6 @@ type Handlers struct {
 	ClientConnection       func(context.Context, *ClientConnection)
 	TransientDisconnect    func(context.Context, error)
 	BadCredentials         func(context.Context, error)
-	UnknownError           func(context.Context, error)
 	DecoratedEvent         func(context.Context, *DecoratedEvent)
 	ConversationsSyncToken func(context.Context, string)
 }
@@ -165,12 +164,6 @@ func (h Handlers) onTransientDisconnect(ctx context.Context, err error) {
 func (h Handlers) onBadCredentials(ctx context.Context, err error) {
 	if h.BadCredentials != nil {
 		h.BadCredentials(ctx, err)
-	}
-}
-
-func (h Handlers) onUnknownError(ctx context.Context, err error) {
-	if h.UnknownError != nil {
-		h.UnknownError(ctx, err)
 	}
 }
 
