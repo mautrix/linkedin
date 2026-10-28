@@ -89,6 +89,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			Time("last_activity_at", conv.LastActivityAt.Time).
 			Logger()
 
+		l.conversationStateLock.Lock()
 		l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
 		lastReadState, ok := l.conversationReadState[conv.EntityURN]
 		readStatusChanged := ok && lastReadState.Read != conv.Read
@@ -96,6 +97,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			LastReadAt: conv.LastReadAt,
 			Read:       conv.Read,
 		}
+		l.conversationStateLock.Unlock()
 
 		portalKey := l.makePortalKey(conv)
 		portal, err := l.main.Bridge.GetPortalByKey(ctx, portalKey)
