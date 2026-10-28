@@ -173,7 +173,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			WithHeader("Accept", contentTypeTextEventStream).
 			DoRaw(ctx)
 		if errors.Is(err, ErrTokenInvalidated) {
-			c.handlers.onBadCredentials(ctx, err)
+			c.onAuthRejected(ctx, err)
 			return
 		} else if err != nil {
 			connectAttempts += 1
@@ -198,7 +198,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 
 			switch realtimeResp.StatusCode {
 			case http.StatusUnauthorized, http.StatusFound:
-				c.handlers.onBadCredentials(ctx, fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode}))
+				c.onAuthRejected(ctx, fmt.Errorf("failed to connect: %w", &ResponseError{StatusCode: realtimeResp.StatusCode}))
 				return
 			case http.StatusBadRequest:
 				log.Warn().Msg("Got 400 on connect, resetting realtime session ID")

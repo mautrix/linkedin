@@ -309,7 +309,15 @@ func (a *authedRequest) doRawRetry(ctx context.Context) (*http.Response, error) 
 
 	resp, err := a.client.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
+		err = fmt.Errorf("failed to send request: %w", err)
+		if errors.Is(err, ErrTokenInvalidated) {
+			a.client.onAuthRejected(ctx, err)
+		}
+		return nil, err
+	}
+	// Signed media URLs answer 401 once they expire, so only requests authenticated by the session count.
+	if resp.StatusCode == http.StatusUnauthorized && a.header.Get("csrf-token") != "" {
+		a.client.onAuthRejected(ctx, fmt.Errorf("%s %s: %w", a.method, a.url.Path, &ResponseError{StatusCode: resp.StatusCode}))
 	}
 	return resp, nil
 }

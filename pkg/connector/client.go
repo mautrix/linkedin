@@ -167,6 +167,9 @@ func (l *LinkedInClient) Connect(ctx context.Context) {
 	l.userLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnecting})
 
 	l.getConversationsBySyncToken(ctx)
+	if !l.IsLoggedIn() {
+		return
+	}
 	if err := l.client.RealtimeConnect(ctx); err != nil {
 		l.userLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,

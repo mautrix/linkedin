@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -57,7 +58,8 @@ type Client struct {
 	realtimeCancelFn  context.CancelFunc
 	realtimeWaitGroup sync.WaitGroup
 
-	handlers Handlers
+	handlers  Handlers
+	loggedOut atomic.Bool
 
 	pageInstance   string
 	xLITrack       string
@@ -117,7 +119,13 @@ func NewClient(ctx context.Context, userEntityURN URN, jar *StringCookieJar, pag
 }
 
 func (c *Client) IsLoggedIn() bool {
-	return c.jar.GetCookie(LinkedInCookieJSESSIONID) != ""
+	return !c.loggedOut.Load() && c.jar.GetCookie(LinkedInCookieJSESSIONID) != ""
+}
+
+func (c *Client) onAuthRejected(ctx context.Context, err error) {
+	if c.loggedOut.CompareAndSwap(false, true) {
+		c.handlers.onBadCredentials(ctx, err)
+	}
 }
 
 func (c *Client) SetBrowserHeaders(headers http.Header) {
