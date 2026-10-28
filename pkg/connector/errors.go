@@ -84,6 +84,8 @@ func wrapLinkedInError(err error) error {
 	case statusCode == statusLinkedInBlocked:
 		return bridgev2.WrapErrorInStatus(err).
 			WithMessage("LinkedIn blocked the request").
+			WithErrorReason(event.MessageStatusNoPermission).
+			WithStatus(event.MessageStatusFail).
 			WithIsCertain(true).
 			WithSendNotice(true)
 	case statusCode >= 500:
@@ -91,9 +93,11 @@ func wrapLinkedInError(err error) error {
 			WithMessage("LinkedIn returned a server error").
 			WithIsCertain(false).
 			WithSendNotice(true)
-	case statusCode != 0:
+	case statusCode >= 400:
 		return bridgev2.WrapErrorInStatus(err).
 			WithMessage("LinkedIn rejected the request").
+			WithErrorReason(event.MessageStatusNetworkError).
+			WithStatus(event.MessageStatusFail).
 			WithIsCertain(true).
 			WithSendNotice(true)
 	case errors.Is(err, context.DeadlineExceeded):
