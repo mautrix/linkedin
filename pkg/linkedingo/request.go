@@ -301,6 +301,11 @@ func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 }
 
 func (a *authedRequest) doRawRetry(ctx context.Context) (*http.Response, error) {
+	if seeker, ok := a.body.(io.Seeker); ok {
+		if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+			return nil, fmt.Errorf("failed to rewind request body: %w", err)
+		}
+	}
 	req, err := http.NewRequestWithContext(ctx, a.method, a.url.String(), a.body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
