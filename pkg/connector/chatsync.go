@@ -56,11 +56,12 @@ func (l *LinkedInClient) deleteURN(ctx context.Context, urn linkedingo.URN) {
 	}
 }
 
-func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation) {
-	log := zerolog.Ctx(ctx)
+type conversationSyncCounts struct {
+	updated, created int
+}
 
-	updatedBefore := time.Now()
-	var updated, created int
+func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation, counts *conversationSyncCounts) (limitReached bool) {
+	log := zerolog.Ctx(ctx)
 
 	for _, conv := range convs {
 		if slices.Contains(conv.Categories, "SPAM") {
@@ -96,10 +97,6 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			Read:       conv.Read,
 		}
 
-		if conv.LastActivityAt.Before(updatedBefore) {
-			updatedBefore = conv.LastActivityAt.Time
-		}
-
 		portalKey := l.makePortalKey(conv)
 		portal, err := l.main.Bridge.GetPortalByKey(ctx, portalKey)
 		if err != nil {
@@ -112,13 +109,13 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 				return c.Str("update", "sync")
 			},
 			PortalKey:    portalKey,
-			CreatePortal: l.main.Config.Sync.CreateLimit == 0 || created <= l.main.Config.Sync.CreateLimit,
+			CreatePortal: l.main.Config.Sync.CreateLimit == 0 || counts.created <= l.main.Config.Sync.CreateLimit,
 		}
 
 		if portal == nil || portal.MXID == "" {
-			created++
+			counts.created++
 		}
-		updated++
+		counts.updated++
 
 		var latestMessageTS time.Time
 		var latestMessageID networkid.MessageID
@@ -160,11 +157,12 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			})
 		}
 
-		if l.main.Config.Sync.UpdateLimit > 0 && updated >= l.main.Config.Sync.UpdateLimit {
+		if l.main.Config.Sync.UpdateLimit > 0 && counts.updated >= l.main.Config.Sync.UpdateLimit {
 			log.Info().Msg("Update limit reached")
-			return
+			return true
 		}
 	}
+	return false
 }
 
 func (l *LinkedInClient) syncConversations(ctx context.Context) {
@@ -173,6 +171,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 
 	lastUsedUpdatedBefore := time.Time{}
 	updatedBefore := time.Now()
+	var counts conversationSyncCounts
 	for {
 		if ctx.Err() != nil {
 			log.Info().Msg("sync canceled")
@@ -201,7 +200,14 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 			return
 		}
 
-		l.handleConversations(ctx, conversations.Elements)
+		for _, conv := range conversations.Elements {
+			if !conv.LastActivityAt.IsZero() && conv.LastActivityAt.Before(updatedBefore) {
+				updatedBefore = conv.LastActivityAt.Time
+			}
+		}
+		if l.handleConversations(ctx, conversations.Elements, &counts) {
+			return
+		}
 	}
 }
 func (l *LinkedInClient) getConversationsBySyncToken(ctx context.Context) {
@@ -213,7 +219,7 @@ func (l *LinkedInClient) getConversationsBySyncToken(ctx context.Context) {
 	if convs == nil {
 		return
 	}
-	l.handleConversations(ctx, convs.Elements)
+	l.handleConversations(ctx, convs.Elements, &conversationSyncCounts{})
 	for _, item := range convs.Metadata.DeletedURNs {
 		l.deleteURN(ctx, item.Conversation.EntityURN)
 	}

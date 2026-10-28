@@ -92,7 +92,7 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 func (l *LinkedInClient) onRealtimeConversations(ctx context.Context, conv *linkedingo.Conversation) {
 	if conv != nil {
 		convs := []linkedingo.Conversation{*conv}
-		l.handleConversations(ctx, convs)
+		l.handleConversations(ctx, convs, &conversationSyncCounts{})
 	} else {
 		l.getConversationsBySyncToken(ctx)
 	}
