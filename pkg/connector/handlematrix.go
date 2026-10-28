@@ -301,7 +301,9 @@ func (l *LinkedInClient) HandleMatrixRoomName(ctx context.Context, msg *bridgev2
 }
 
 func (l *LinkedInClient) HandleMatrixMembership(ctx context.Context, msg *bridgev2.MatrixMembershipChange) (*bridgev2.MatrixMembershipResult, error) {
-	if msg.Portal.RoomType == database.RoomTypeDM {
+	if msg.Type != bridgev2.Invite && msg.Type != bridgev2.Kick {
+		return nil, nil
+	} else if msg.Portal.RoomType == database.RoomTypeDM {
 		return nil, errors.New("cannot change members for DM")
 	}
 
