@@ -47,6 +47,8 @@ type authedRequest struct {
 	rawQuery    string
 	body        io.Reader
 
+	skipSessionCheck bool
+
 	client *Client
 }
 
@@ -145,6 +147,14 @@ func (a *authedRequest) WithCSRF() *authedRequest {
 		return nil
 	}
 	return a.WithHeader("csrf-token", a.client.getCSRFToken())
+}
+
+func (a *authedRequest) WithoutSessionCheck() *authedRequest {
+	if a == nil {
+		return nil
+	}
+	a.skipSessionCheck = true
+	return a
 }
 
 func (a *authedRequest) WithJSONPayload(payload any) *authedRequest {
@@ -316,7 +326,7 @@ func (a *authedRequest) doRawRetry(ctx context.Context) (*http.Response, error) 
 		return nil, err
 	}
 	// Signed media URLs answer 401 once they expire, so only requests authenticated by the session count.
-	if resp.StatusCode == http.StatusUnauthorized && a.header.Get("csrf-token") != "" {
+	if resp.StatusCode == http.StatusUnauthorized && a.header.Get("csrf-token") != "" && !a.skipSessionCheck {
 		a.client.onAuthRejected(ctx, fmt.Errorf("%s %s: %w", a.method, a.url.Path, &ResponseError{StatusCode: resp.StatusCode}))
 	}
 	return resp, nil
