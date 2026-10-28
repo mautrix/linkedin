@@ -140,3 +140,25 @@ func wrapLinkedInRespError(err error) error {
 	}
 	return fmt.Errorf("%w: %w", mapped.WithInternalError(err), err)
 }
+
+// wrapDirectMediaError turns an error from fetching LinkedIn media into an HTTP error for the media
+// proxy, which otherwise answers 404 and makes clients treat the media as gone. Transport errors are
+// passed through, since the proxy already answers 502 for those.
+func wrapDirectMediaError(err error) error {
+	var mapped mautrix.RespError
+	statusCode := responseStatusCode(err)
+	switch {
+	case errors.Is(err, linkedingo.ErrTokenInvalidated), statusCode == http.StatusUnauthorized,
+		statusCode == http.StatusForbidden, statusCode == statusLinkedInBlocked:
+		mapped = mautrix.MForbidden.WithMessage("LinkedIn denied access to the media")
+	case statusCode == http.StatusNotFound, statusCode == http.StatusGone:
+		mapped = mautrix.MNotFound.WithMessage("Media no longer exists on LinkedIn")
+	case statusCode == http.StatusTooManyRequests:
+		mapped = mautrix.MLimitExceeded.WithMessage("Rate limited by LinkedIn").WithCanRetry(true)
+	case statusCode != 0:
+		mapped = mautrix.MUnknown.WithMessage("LinkedIn failed to serve the media").WithStatus(http.StatusBadGateway).WithCanRetry(true)
+	default:
+		return err
+	}
+	return fmt.Errorf("%w: %w", mapped, err)
+}
