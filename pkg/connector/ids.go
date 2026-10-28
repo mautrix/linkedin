@@ -18,6 +18,7 @@ package connector
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -94,11 +95,35 @@ func makeMessageID(senderID string, msgID string) networkid.MessageID {
 	return networkid.MessageID(id)
 }
 
+const (
+	mediaIDVersionRawMessageID     byte = 1
+	mediaIDVersionDecodedMessageID byte = 2
+)
+
+const base64MessageIDPrefix = "2-"
+
+func decodeMessageID(msgID string) ([]byte, bool) {
+	encoded, ok := strings.CutPrefix(msgID, base64MessageIDPrefix)
+	if !ok {
+		return nil, false
+	}
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil || base64.StdEncoding.EncodeToString(decoded) != encoded {
+		return nil, false
+	}
+	return decoded, true
+}
+
 func MakeMediaID(userID networkid.UserLoginID, messageID networkid.MessageID, partID networkid.PartID) networkid.MediaID {
-	mediaID := []byte{1}
 	_, msgID := parseMessageID(messageID)
+	mediaID := []byte{mediaIDVersionRawMessageID}
+	msgIDBytes := []byte(msgID)
+	if decoded, ok := decodeMessageID(msgID); ok {
+		mediaID[0] = mediaIDVersionDecodedMessageID
+		msgIDBytes = decoded
+	}
 	mediaID = appendBytes(mediaID, []byte(userID))
-	mediaID = appendBytes(mediaID, []byte(msgID))
+	mediaID = appendBytes(mediaID, msgIDBytes)
 	mediaID = appendBytes(mediaID, []byte(partID))
 	return mediaID
 }
@@ -110,7 +135,7 @@ func ParseMediaID(mediaID networkid.MediaID) (*MediaInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	if version[0] != byte(1) {
+	if version[0] != mediaIDVersionRawMessageID && version[0] != mediaIDVersionDecodedMessageID {
 		return nil, fmt.Errorf("unknown mediaID version: %v", version)
 	}
 
@@ -124,6 +149,9 @@ func ParseMediaID(mediaID networkid.MediaID) (*MediaInfo, error) {
 	msgID, err := readBytes(buf)
 	if err != nil {
 		return nil, err
+	}
+	if version[0] == mediaIDVersionDecodedMessageID {
+		msgID = base64MessageIDPrefix + base64.StdEncoding.EncodeToString([]byte(msgID))
 	}
 	mediaInfo.MessageID = makeMessageID(userID, msgID)
 
