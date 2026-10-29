@@ -55,6 +55,7 @@ func (c *Client) GetCurrentUserProfile(ctx context.Context) (*UserProfile, error
 }
 
 func (c *Client) Logout(ctx context.Context) error {
+	c.loggedOut.Store(true)
 	_, err := c.newAuthedRequest(http.MethodGet, linkedInLogoutURL).
 		WithQueryParam("csrfToken", c.getCSRFToken()).
 		Do(ctx, nil)

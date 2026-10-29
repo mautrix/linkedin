@@ -227,6 +227,7 @@ func (c *Client) UploadMedia(ctx context.Context, mediaUploadType MediaUploadTyp
 
 	_, err = c.newAuthedRequest(http.MethodPut, uploadMetadata.Data.Value.SingleUploadURL).
 		WithCSRF().
+		WithoutSessionCheck().
 		WithHeader("content-length", strconv.Itoa(size)).
 		WithContentType(contentType).
 		WithBody(r).
