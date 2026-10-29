@@ -206,7 +206,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 			return
 		} else if conversations == nil {
 			log.Warn().Msg("no conversations found")
-			break
+			return
 		}
 
 		for _, conv := range conversations.Elements {
