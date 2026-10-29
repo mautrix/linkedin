@@ -46,6 +46,7 @@ type LinkedInClient struct {
 	client    *linkedingo.Client
 
 	sessID                uuid.UUID
+	syncConversationsLock sync.Mutex
 	conversationStateLock sync.Mutex
 	conversationLastRead  map[linkedingo.URN]jsontime.UnixMilli
 	conversationReadState map[linkedingo.URN]ConversationReadState

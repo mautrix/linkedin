@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -56,11 +57,7 @@ func (l *LinkedInClient) deleteURN(ctx context.Context, urn linkedingo.URN) {
 	}
 }
 
-type conversationSyncCounts struct {
-	updated, created int
-}
-
-func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation, counts *conversationSyncCounts) (limitReached bool) {
+func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation, synced *int) (limitReached bool) {
 	log := zerolog.Ctx(ctx)
 
 	for _, conv := range convs {
@@ -100,24 +97,14 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		l.conversationStateLock.Unlock()
 
 		portalKey := l.makePortalKey(conv)
-		portal, err := l.main.Bridge.GetPortalByKey(ctx, portalKey)
-		if err != nil {
-			log.Err(err).Msg("Failed to get portal")
-			continue
-		}
-
 		meta := simplevent.EventMeta{
 			LogContext: func(c zerolog.Context) zerolog.Context {
 				return c.Str("update", "sync")
 			},
 			PortalKey:    portalKey,
-			CreatePortal: l.main.Config.Sync.CreateLimit == 0 || counts.created <= l.main.Config.Sync.CreateLimit,
+			CreatePortal: l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit,
 		}
-
-		if portal == nil || portal.MXID == "" {
-			counts.created++
-		}
-		counts.updated++
+		*synced++
 
 		var latestMessageTS time.Time
 		var latestMessageID networkid.MessageID
@@ -159,7 +146,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			})
 		}
 
-		if l.main.Config.Sync.UpdateLimit > 0 && counts.updated >= l.main.Config.Sync.UpdateLimit {
+		if l.main.Config.Sync.UpdateLimit > 0 && *synced >= l.main.Config.Sync.UpdateLimit {
 			log.Info().Msg("Update limit reached")
 			return true
 		}
@@ -168,12 +155,19 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 }
 
 func (l *LinkedInClient) syncConversations(ctx context.Context) {
-	log := zerolog.Ctx(ctx).With().Str("action", "sync_conversations").Logger()
+	l.syncConversationsLock.Lock()
+	defer l.syncConversationsLock.Unlock()
+	meta := l.userLogin.Metadata.(*UserLoginMetadata)
+	log := zerolog.Ctx(ctx).With().
+		Str("action", "sync_conversations").
+		Time("synced_up_to", meta.ConversationsSyncedUpTo.Time).
+		Logger()
 	log.Info().Msg("starting conversation sync")
 
+	syncStart := time.Now()
 	lastUsedUpdatedBefore := time.Time{}
-	updatedBefore := time.Now()
-	var counts conversationSyncCounts
+	updatedBefore := syncStart
+	var synced int
 	for {
 		if ctx.Err() != nil {
 			log.Info().Msg("sync canceled")
@@ -187,7 +181,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 
 		if lastUsedUpdatedBefore.Equal(updatedBefore) {
 			log.Info().Msg("no more conversations found")
-			return
+			break
 		}
 		lastUsedUpdatedBefore = updatedBefore
 
@@ -199,7 +193,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 			return
 		} else if conversations == nil {
 			log.Warn().Msg("no conversations found")
-			return
+			break
 		}
 
 		for _, conv := range conversations.Elements {
@@ -207,9 +201,16 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 				updatedBefore = conv.LastActivityAt.Time
 			}
 		}
-		if l.handleConversations(ctx, conversations.Elements, &counts) {
-			return
+		if l.handleConversations(ctx, conversations.Elements, &synced) {
+			break
+		} else if updatedBefore.Before(meta.ConversationsSyncedUpTo.Time) {
+			log.Info().Msg("reached conversations synced previously")
+			break
 		}
+	}
+	meta.ConversationsSyncedUpTo = jsontime.UM(syncStart)
+	if err := l.userLogin.Save(ctx); err != nil {
+		log.Err(err).Msg("failed to save conversation sync timestamp")
 	}
 }
 func (l *LinkedInClient) getConversationsBySyncToken(ctx context.Context) {
@@ -221,7 +222,7 @@ func (l *LinkedInClient) getConversationsBySyncToken(ctx context.Context) {
 	if convs == nil {
 		return
 	}
-	l.handleConversations(ctx, convs.Elements, &conversationSyncCounts{})
+	l.handleConversations(ctx, convs.Elements, new(int))
 	for _, item := range convs.Metadata.DeletedURNs {
 		l.deleteURN(ctx, item.Conversation.EntityURN)
 	}
