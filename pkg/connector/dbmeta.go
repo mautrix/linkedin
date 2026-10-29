@@ -40,11 +40,12 @@ func (lc *LinkedInConnector) GetDBMetaTypes() database.MetaTypes {
 }
 
 type UserLoginMetadata struct {
-	Cookies                *linkedingo.StringCookieJar `json:"cookies,omitempty"`
-	XLITrack               string                      `json:"x_li_track,omitempty"`
-	XLIPageInstance        string                      `json:"x_li_page_instance,omitempty"`
-	BrowserHeaders         http.Header                 `json:"browser_headers,omitempty"`
-	ConversationsSyncToken string                      `json:"conversations_sync_token,omitempty"`
+	Cookies                 *linkedingo.StringCookieJar `json:"cookies,omitempty"`
+	XLITrack                string                      `json:"x_li_track,omitempty"`
+	XLIPageInstance         string                      `json:"x_li_page_instance,omitempty"`
+	BrowserHeaders          http.Header                 `json:"browser_headers,omitempty"`
+	ConversationsSyncToken  string                      `json:"conversations_sync_token,omitempty"`
+	ConversationsSyncedUpTo jsontime.UnixMilli          `json:"conversations_synced_up_to,omitempty"`
 }
 
 type MessageMetadata struct {
