@@ -205,6 +205,8 @@ func (c *Client) GetConversationsBySyncToken(ctx context.Context) (*CollectionRe
 	_, err := req.Do(ctx, &response)
 	if err != nil {
 		return nil, err
+	} else if response.Data.MessengerConversationsBySyncToken == nil {
+		return nil, ErrMissingGraphQLData
 	}
 
 	newToken := response.Data.MessengerConversationsBySyncToken.Metadata.NewSyncToken

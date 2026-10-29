@@ -296,6 +296,8 @@ func (c *Client) GetMessagesBefore(ctx context.Context, conversationURN URN, bef
 		Do(ctx, &response)
 	if err != nil {
 		return nil, err
+	} else if response.Data.MessengerMessagesByAnchorTimestamp == nil {
+		return nil, ErrMissingGraphQLData
 	}
 
 	return response.Data.MessengerMessagesByAnchorTimestamp, nil
@@ -315,6 +317,8 @@ func (c *Client) GetMessagesWithPrevCursor(ctx context.Context, conversationURN 
 		Do(ctx, &response)
 	if err != nil {
 		return nil, err
+	} else if response.Data.MessengerMessagesByConversation == nil {
+		return nil, ErrMissingGraphQLData
 	}
 	return response.Data.MessengerMessagesByConversation, nil
 }

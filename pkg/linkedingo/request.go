@@ -223,6 +223,7 @@ func (a *authedRequest) WithWebpageHeaders() *authedRequest {
 
 var reqIDCounter atomic.Int64
 var ErrClientIsNil = errors.New("client is nil")
+var ErrMissingGraphQLData = errors.New("graphql response is missing data")
 
 func (a *authedRequest) DoRaw(ctx context.Context) (*http.Response, error) {
 	if a == nil {
