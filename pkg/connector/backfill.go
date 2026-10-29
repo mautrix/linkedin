@@ -77,7 +77,9 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		log = log.With().Time("stop_at", stopAt).Logger()
 	}
 
+	l.conversationStateLock.Lock()
 	lastRead := l.conversationLastRead[convURN]
+	l.conversationStateLock.Unlock()
 
 	for _, msg := range messages {
 		log := log.With().Stringer("entity_urn", msg.EntityURN).Logger()
