@@ -67,7 +67,7 @@ func (l *LinkedInConnector) Download(ctx context.Context, mediaID networkid.Medi
 	client := ul.Client.(*LinkedInClient)
 	resp, err := l.downloadDirectMedia(ctx, client.client, msg, mediaInfo.PartID)
 	if err != nil {
-		return nil, err
+		return nil, wrapDirectMediaError(err)
 	}
 	return &mediaproxy.GetMediaResponseData{
 		Reader:        resp.Body,
@@ -105,7 +105,7 @@ func (l *LinkedInConnector) downloadDirectMedia(ctx context.Context, client dire
 	zerolog.Ctx(ctx).Debug().Err(downloadErr).Msg("Refreshing direct media URL")
 	fresh, err := refreshDirectMedia(ctx, client, msg, partID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to refresh direct media: %w", errors.Join(downloadErr, err))
+		return nil, fmt.Errorf("failed to refresh direct media: %w", err)
 	}
 	fresh.MimeType = info.MimeType
 	meta.DirectMediaMeta = fresh

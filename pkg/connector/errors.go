@@ -84,6 +84,8 @@ func wrapLinkedInError(err error) error {
 	case statusCode == statusLinkedInBlocked:
 		return bridgev2.WrapErrorInStatus(err).
 			WithMessage("LinkedIn blocked the request").
+			WithErrorReason(event.MessageStatusNoPermission).
+			WithStatus(event.MessageStatusFail).
 			WithIsCertain(true).
 			WithSendNotice(true)
 	case statusCode >= 500:
@@ -91,9 +93,11 @@ func wrapLinkedInError(err error) error {
 			WithMessage("LinkedIn returned a server error").
 			WithIsCertain(false).
 			WithSendNotice(true)
-	case statusCode != 0:
+	case statusCode >= 400:
 		return bridgev2.WrapErrorInStatus(err).
 			WithMessage("LinkedIn rejected the request").
+			WithErrorReason(event.MessageStatusNetworkError).
+			WithStatus(event.MessageStatusFail).
 			WithIsCertain(true).
 			WithSendNotice(true)
 	case errors.Is(err, context.DeadlineExceeded):
@@ -135,4 +139,26 @@ func wrapLinkedInRespError(err error) error {
 		mapped = bridgev2.RespError(mautrix.MUnknown.WithMessage("Request to LinkedIn failed"))
 	}
 	return fmt.Errorf("%w: %w", mapped.WithInternalError(err), err)
+}
+
+// wrapDirectMediaError turns an error from fetching LinkedIn media into an HTTP error for the media
+// proxy, which otherwise answers 404 and makes clients treat the media as gone. Transport errors are
+// passed through, since the proxy already answers 502 for those.
+func wrapDirectMediaError(err error) error {
+	var mapped mautrix.RespError
+	statusCode := responseStatusCode(err)
+	switch {
+	case errors.Is(err, linkedingo.ErrTokenInvalidated), statusCode == http.StatusUnauthorized,
+		statusCode == http.StatusForbidden, statusCode == statusLinkedInBlocked:
+		mapped = mautrix.MForbidden.WithMessage("LinkedIn denied access to the media")
+	case statusCode == http.StatusNotFound, statusCode == http.StatusGone:
+		mapped = mautrix.MNotFound.WithMessage("Media no longer exists on LinkedIn")
+	case statusCode == http.StatusTooManyRequests:
+		mapped = mautrix.MLimitExceeded.WithMessage("Rate limited by LinkedIn").WithCanRetry(true)
+	case statusCode != 0:
+		mapped = mautrix.MUnknown.WithMessage("LinkedIn failed to serve the media").WithStatus(http.StatusBadGateway).WithCanRetry(true)
+	default:
+		return err
+	}
+	return fmt.Errorf("%w: %w", mapped, err)
 }
