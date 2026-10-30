@@ -76,6 +76,8 @@ func (c *Client) GetReactors(ctx context.Context, messageURN URN, emoji string) 
 		Do(ctx, &response)
 	if err != nil {
 		return nil, err
+	} else if response.Data.MessengerMessagingParticipantsByMessageAndEmoji == nil {
+		return nil, ErrMissingGraphQLData
 	}
 	return response.Data.MessengerMessagingParticipantsByMessageAndEmoji, nil
 }
