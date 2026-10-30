@@ -72,6 +72,14 @@ func Parse(ctx context.Context, message string, attributes []linkedingo.Attribut
 		return l.Start - r.Start
 	})
 	for _, a := range attributes {
+		if a.Start < 0 || a.Length <= 0 || a.Start >= maxLength {
+			log.Warn().
+				Int("start", a.Start).
+				Int("length", a.Length).
+				Int("text_length", maxLength).
+				Msg("Skipping attribute outside of text")
+			continue
+		}
 		br := BodyRange{
 			Start:  a.Start,
 			Length: a.Length,
@@ -89,7 +97,7 @@ func Parse(ctx context.Context, message string, attributes []linkedingo.Attribut
 					Msg("Failed to get user info for mention")
 				continue // Skip this mention
 			}
-			userInfo.Name = string(charArr[a.Start+1 : a.Start+a.Length])
+			userInfo.Name = string(charArr[br.Start+1 : br.End()])
 			mentions[userInfo.MXID] = struct{}{}
 			br.Value = Mention{userInfo, networkid.UserID(urn.ID())}
 		case a.AttributeKind.Hyperlink != nil:
