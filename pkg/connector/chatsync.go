@@ -150,14 +150,27 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 				Sender:      networkid.UserID(l.userLogin.ID),
 				SenderLogin: l.userLogin.ID,
 			}
-			l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MarkUnread{
-				EventMeta: simplevent.EventMeta{
-					Type:      bridgev2.RemoteEventMarkUnread,
-					PortalKey: portalKey,
-					Sender:    sender,
-				},
-				Unread: !conv.Read,
-			})
+			if conv.Read {
+				l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Receipt{
+					EventMeta: simplevent.EventMeta{
+						Type:      bridgev2.RemoteEventReadReceipt,
+						PortalKey: portalKey,
+						Sender:    sender,
+						Timestamp: conv.LastReadAt.Time,
+					},
+					LastTarget: latestMessageID,
+					ReadUpTo:   conv.LastReadAt.Time,
+				})
+			} else {
+				l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MarkUnread{
+					EventMeta: simplevent.EventMeta{
+						Type:      bridgev2.RemoteEventMarkUnread,
+						PortalKey: portalKey,
+						Sender:    sender,
+					},
+					Unread: true,
+				})
+			}
 		}
 
 		if l.main.Config.Sync.UpdateLimit > 0 && updated >= l.main.Config.Sync.UpdateLimit {
