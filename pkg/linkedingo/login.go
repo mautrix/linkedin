@@ -246,7 +246,7 @@ func (c *PasswordLoginClient) postAuthentication(ctx context.Context, body []byt
 		"Sec-Fetch-Mode":                 {"cors"},
 		"Sec-Fetch-Site":                 {"same-origin"},
 	}
-	data, resp, err := c.request(ctx, stage, http.MethodPost, "/flagship-web/rsc-action/actions/server-request", body, headers)
+	data, resp, err := c.request(ctx, stage, http.MethodPost, "/flagship-web/rsc-action/actions/server-request?sduiid="+passwordAuthenticationRequest, body, headers)
 	if err != nil {
 		return nil, err
 	}
