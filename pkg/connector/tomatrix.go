@@ -77,7 +77,8 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 				cm.Parts = append(cm.Parts, textPart)
 			}
 			var senderName string
-			switch sender := rc.ForwardedMessage.OriginalSender.ParticipantType; {
+			sender := rc.ForwardedMessage.OriginalSender.ParticipantType
+			switch {
 			case sender.Member != nil:
 				senderName = fmt.Sprintf("%s %s:", sender.Member.FirstName.Text, sender.Member.LastName.Text)
 			case sender.Organization != nil:
