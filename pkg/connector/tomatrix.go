@@ -76,8 +76,14 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 				textPart = &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: content}
 				cm.Parts = append(cm.Parts, textPart)
 			}
-			sender := rc.ForwardedMessage.OriginalSender.ParticipantType.Member
-			senderName := fmt.Sprintf("%s %s:", sender.FirstName.Text, sender.LastName.Text)
+			var senderName string
+			sender := rc.ForwardedMessage.OriginalSender.ParticipantType
+			switch {
+			case sender.Member != nil:
+				senderName = fmt.Sprintf("%s %s:", sender.Member.FirstName.Text, sender.Member.LastName.Text)
+			case sender.Organization != nil:
+				senderName = fmt.Sprintf("%s:", sender.Organization.Name.Text)
+			}
 			content, err := linkedinfmt.Parse(ctx, rc.ForwardedMessage.ForwardedBody.Text, rc.ForwardedMessage.ForwardedBody.Attributes, l.linkedinFmtParams)
 			if err == nil {
 				textPart.Content.EnsureHasHTML()
