@@ -38,13 +38,14 @@ import (
 type PasswordLoginErrorKind string
 
 const (
-	PasswordLoginUnavailable PasswordLoginErrorKind = "unavailable"
-	PasswordLoginRateLimited PasswordLoginErrorKind = "rate_limited"
-	PasswordLoginBlocked     PasswordLoginErrorKind = "blocked"
-	PasswordLoginUnsupported PasswordLoginErrorKind = "unsupported_bootstrap"
-	PasswordLoginRejected    PasswordLoginErrorKind = "rejected"
-	PasswordLoginChallenge   PasswordLoginErrorKind = "challenge"
-	PasswordLoginBadResponse PasswordLoginErrorKind = "bad_response"
+	PasswordLoginUnavailable  PasswordLoginErrorKind = "unavailable"
+	PasswordLoginRateLimited  PasswordLoginErrorKind = "rate_limited"
+	PasswordLoginBlocked      PasswordLoginErrorKind = "blocked"
+	PasswordLoginUnsupported  PasswordLoginErrorKind = "unsupported_bootstrap"
+	PasswordLoginRejected     PasswordLoginErrorKind = "rejected"
+	PasswordLoginChallenge    PasswordLoginErrorKind = "challenge"
+	PasswordLoginBadResponse  PasswordLoginErrorKind = "bad_response"
+	PasswordLoginRegionLocked PasswordLoginErrorKind = "region_locked"
 )
 
 type PasswordLoginError struct {
@@ -165,6 +166,9 @@ func (c *PasswordLoginClient) bootstrap(ctx context.Context) (*passwordLoginPage
 			}
 			if strings.HasPrefix(location.Path, "/checkpoint/") || location.Path == "/authwall" {
 				return nil, nil, c.checkpointError(ctx, location, "bootstrap", resp.StatusCode)
+			}
+			if strings.HasPrefix(location.Path, "/zh-cn/customer/") {
+				return nil, nil, &PasswordLoginError{Kind: PasswordLoginRegionLocked, Stage: "bootstrap", Status: resp.StatusCode}
 			}
 			path = location.RequestURI()
 			continue

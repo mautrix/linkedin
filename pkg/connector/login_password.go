@@ -157,6 +157,11 @@ func (p *PasswordLogin) SubmitUserInput(ctx context.Context, input map[string]st
 		login = p.newLoginClient().Login
 	}
 	session, err := login(ctx, identifier, password)
+	if p.clientHTTP != nil && linkedingo.IsPasswordLoginError(err, linkedingo.PasswordLoginRegionLocked) {
+		zerolog.Ctx(ctx).Debug().Msg("LinkedIn redirected the client to its China site, retrying login from the bridge")
+		p.clientHTTP = nil
+		session, err = p.newLoginClient().Login(ctx, identifier, password)
+	}
 	if err != nil {
 		return p.handleLoginError(ctx, err)
 	}
