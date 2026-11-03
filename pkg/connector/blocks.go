@@ -24,10 +24,10 @@ func (l *LinkedInClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev
 		return errors.New("cannot block yourself")
 	} else if msg.Content.ReportSpam {
 		return bridgev2.WrapErrorInStatus(errors.New("spam reporting is not supported")).
-			WithIsCertain(true).WithErrorAsMessage().WithErrorReason(event.MessageStatusUnsupported)
+			WithIsCertain(true).WithErrorAsMessage().WithErrorReason(event.MessageStatusUnsupported).WithStatus(event.MessageStatusFail)
 	} else if !msg.Content.Block {
 		return bridgev2.WrapErrorInStatus(errors.New("unblock this member in LinkedIn settings: https://www.linkedin.com/mypreferences/d/manage-by-blocked-list")).
-			WithIsCertain(true).WithErrorAsMessage().WithErrorReason(event.MessageStatusUnsupported)
+			WithIsCertain(true).WithErrorAsMessage().WithErrorReason(event.MessageStatusUnsupported).WithStatus(event.MessageStatusFail)
 	} else if !l.IsLoggedIn() {
 		return errors.New("not logged in")
 	}
@@ -37,7 +37,7 @@ func (l *LinkedInClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev
 	l.blockSyncTime = time.Time{}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	return l.client.BlockUser(ctx, linkedingo.NewURN(msg.Portal.OtherUserID).AsFsdProfile(), msg.Portal.Name)
+	return wrapLinkedInError(l.client.BlockUser(ctx, linkedingo.NewURN(msg.Portal.OtherUserID).AsFsdProfile(), msg.Portal.Name))
 }
 
 func (l *LinkedInClient) HandleMatrixViewingChat(ctx context.Context, chat *bridgev2.MatrixViewingChat) error {
