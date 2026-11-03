@@ -37,7 +37,15 @@ func (l *LinkedInClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev
 	l.blockSyncTime = time.Time{}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	return wrapLinkedInError(l.client.BlockUser(ctx, linkedingo.NewURN(msg.Portal.OtherUserID).AsFsdProfile(), msg.Portal.Name))
+	return withoutNotice(wrapLinkedInError(l.client.BlockUser(ctx, linkedingo.NewURN(msg.Portal.OtherUserID).AsFsdProfile(), msg.Portal.Name)))
+}
+
+func withoutNotice(err error) error {
+	var ms bridgev2.MessageStatus
+	if errors.As(err, &ms) {
+		return ms.WithSendNotice(false)
+	}
+	return err
 }
 
 func (l *LinkedInClient) HandleMatrixViewingChat(ctx context.Context, chat *bridgev2.MatrixViewingChat) error {
