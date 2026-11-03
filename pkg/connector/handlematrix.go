@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/google/uuid"
@@ -289,7 +290,12 @@ func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.M
 }
 
 func (l *LinkedInClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
-	return wrapLinkedInError(l.client.DeleteConversation(ctx, linkedingo.NewURN(chat.Portal.ID)))
+	err := l.client.DeleteConversation(ctx, linkedingo.NewURN(chat.Portal.ID))
+	if responseStatusCode(err) == http.StatusNotFound {
+		zerolog.Ctx(ctx).Debug().Msg("Conversation not found on LinkedIn, deleting portal anyway")
+		return nil
+	}
+	return wrapLinkedInError(err)
 }
 
 func (l *LinkedInClient) HandleMatrixRoomName(ctx context.Context, msg *bridgev2.MatrixRoomName) (bool, error) {
