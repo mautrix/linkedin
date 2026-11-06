@@ -108,25 +108,43 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		Stringer("message_urn", msg.EntityURN).
 		Stringer("conversation_urn", msg.Conversation.EntityURN).
 		Msg("Processing realtime message")
+	hasConversation := !msg.Conversation.EntityURN.IsEmpty()
+	portalKey := l.makePortalKey(msg.Conversation)
+	if !hasConversation {
+		existing, err := l.main.Bridge.DB.Message.GetFirstPartByID(ctx, l.userLogin.ID, msg.MessageID())
+		if err != nil {
+			log.Err(err).Stringer("message_urn", msg.EntityURN).Msg("Failed to get existing message for realtime message without conversation")
+			return
+		} else if existing == nil {
+			log.Warn().
+				Stringer("message_urn", msg.EntityURN).
+				Str("render_format", string(msg.MessageBodyRenderFormat)).
+				Msg("Dropping realtime message without conversation")
+			return
+		}
+		portalKey = existing.Room
+	}
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
 				Stringer("entity_urn", msg.EntityURN).
 				Stringer("sender", msg.Sender.EntityURN)
 		},
-		PortalKey:    l.makePortalKey(msg.Conversation),
+		PortalKey:    portalKey,
 		Sender:       l.makeSender(msg.Sender),
 		Timestamp:    msg.DeliveredAt.Time,
 		StreamOrder:  msg.DeliveredAt.UnixMilli(),
-		CreatePortal: true,
+		CreatePortal: hasConversation,
 	}
 
-	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
-	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
-		EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
-		ChatInfo:        &chatInfo,
-		LatestMessageTS: msg.DeliveredAt.Time,
-	})
+	if hasConversation {
+		chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
+		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
+			EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
+			ChatInfo:        &chatInfo,
+			LatestMessageTS: msg.DeliveredAt.Time,
+		})
+	}
 
 	evt := simplevent.Message[linkedingo.Message]{
 		ID:                 msg.MessageID(),
