@@ -108,6 +108,13 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		Stringer("message_urn", msg.EntityURN).
 		Stringer("conversation_urn", msg.Conversation.EntityURN).
 		Msg("Processing realtime message")
+	if msg.Conversation.EntityURN.IsEmpty() {
+		log.Debug().
+			Stringer("message_urn", msg.EntityURN).
+			Str("render_format", string(msg.MessageBodyRenderFormat)).
+			Msg("Ignoring realtime message without conversation")
+		return
+	}
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
