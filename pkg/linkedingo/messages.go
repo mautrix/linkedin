@@ -185,7 +185,7 @@ func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body Send
 	if c == nil {
 		return nil, ErrClientIsNil
 	}
-	payload := sendMessagePayload{
+	return c.createMessage(ctx, sendMessagePayload{
 		Message: SendMessage{
 			Body:                body,
 			RenderContentUnions: renderContent,
@@ -194,41 +194,30 @@ func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body Send
 		},
 		MailboxURN: c.userEntityURN.WithPrefix("urn", "li", "fsd_profile"),
 		TrackingID: random.String(16),
-	}
-
-	var messageSentResponse MessageSentResponse
-	_, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
-		WithJSONPayload(payload).
-		WithQueryParam("action", "createMessage").
-		WithCSRF().
-		WithContentType(contentTypePlaintextUTF8).
-		WithXLIHeaders().
-		Do(ctx, &messageSentResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return &messageSentResponse, nil
+	})
 }
 
-func (c *Client) NewChat(ctx context.Context, title string, participants []URN) (*MessageSentResponse, error) {
+func (c *Client) NewChat(ctx context.Context, title string, participants []URN, body SendMessageBody, renderContent []SendRenderContent, transactionID string) (*MessageSentResponse, error) {
 	if c == nil {
 		return nil, ErrClientIsNil
 	}
-	transactionID := uuid.NewString()
-	payload := sendMessagePayload{
+	if transactionID == "" {
+		transactionID = uuid.NewString()
+	}
+	return c.createMessage(ctx, sendMessagePayload{
 		Message: SendMessage{
-			Body: SendMessageBody{
-				Text: "New chat",
-			},
-			OriginToken: transactionID,
+			Body:                body,
+			RenderContentUnions: renderContent,
+			OriginToken:         transactionID,
 		},
 		MailboxURN:        c.userEntityURN.AsFsdProfile(),
 		TrackingID:        random.String(16),
 		HostRecipientURNs: participants,
 		ConversationTitle: title,
-	}
+	})
+}
 
+func (c *Client) createMessage(ctx context.Context, payload sendMessagePayload) (*MessageSentResponse, error) {
 	var messageSentResponse MessageSentResponse
 	_, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDashMessengerMessagesURL).
 		WithJSONPayload(payload).

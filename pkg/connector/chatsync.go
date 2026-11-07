@@ -96,6 +96,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		}
 		l.conversationStateLock.Unlock()
 
+		l.claimPendingDM(ctx, conv)
 		portalKey := l.makePortalKey(conv)
 		meta := simplevent.EventMeta{
 			LogContext: func(c zerolog.Context) zerolog.Context {

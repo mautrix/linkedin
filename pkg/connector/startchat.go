@@ -52,19 +52,20 @@ func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier strin
 				PortalKey: portal.PortalKey,
 			}
 		} else {
-			chatInfo := &bridgev2.ChatInfo{
-				Type: ptr.Ptr(database.RoomTypeDM),
-				Members: &bridgev2.ChatMemberList{
-					MemberMap: map[networkid.UserID]bridgev2.ChatMember{},
+			sender := l.makeSender(linkedingo.MessagingParticipant{
+				EntityURN: linkedingo.NewURN(id).AsFsdProfile(),
+			})
+			chat = &bridgev2.CreateChatResponse{
+				PortalKey: l.makePendingDMPortalKey(id),
+				PortalInfo: &bridgev2.ChatInfo{
+					Type: ptr.Ptr(database.RoomTypeDM),
+					Members: &bridgev2.ChatMemberList{
+						OtherUserID: id,
+						MemberMap: map[networkid.UserID]bridgev2.ChatMember{
+							sender.Sender: {EventSender: sender, Membership: event.MembershipJoin},
+						},
+					},
 				},
-			}
-			participants := []networkid.UserID{
-				networkid.UserID(identifier),
-			}
-			var err error
-			chat, err = l.createChat(ctx, chatInfo, participants)
-			if err != nil {
-				return nil, wrapLinkedInRespError(fmt.Errorf("failed to create dm chat: %w", err))
 			}
 		}
 	}
@@ -112,7 +113,7 @@ func (l *LinkedInClient) createChat(ctx context.Context, chatInfo *bridgev2.Chat
 			Membership:  event.MembershipJoin,
 		}
 	}
-	resp, err := l.client.NewChat(ctx, ptr.Val(chatInfo.Name), participants)
+	resp, err := l.client.NewChat(ctx, ptr.Val(chatInfo.Name), participants, linkedingo.SendMessageBody{Text: "New chat"}, nil, "")
 
 	if err != nil {
 		return nil, err
@@ -126,6 +127,49 @@ func (l *LinkedInClient) createChat(ctx context.Context, chatInfo *bridgev2.Chat
 		PortalKey:  portalKey,
 		PortalInfo: chatInfo,
 	}, nil
+}
+
+func (l *LinkedInClient) claimPendingDM(ctx context.Context, conv linkedingo.Conversation) {
+	if conv.GroupChat || conv.EntityURN.IsEmpty() {
+		return
+	}
+	var otherUserID networkid.UserID
+	for _, participant := range conv.ConversationParticipants {
+		if userID := networkid.UserID(participant.EntityURN.ID()); userID != l.userID {
+			otherUserID = userID
+			break
+		}
+	}
+	if otherUserID == "" {
+		return
+	}
+	log := zerolog.Ctx(ctx)
+	if portal, err := l.main.Bridge.GetExistingPortalByKey(ctx, l.makePortalKey(conv)); err != nil {
+		log.Err(err).Msg("Failed to get portal for conversation")
+		return
+	} else if portal != nil && portal.MXID != "" {
+		return
+	}
+	if pending, err := l.main.Bridge.GetExistingPortalByKey(ctx, l.makePendingDMPortalKey(otherUserID)); err != nil {
+		log.Err(err).Msg("Failed to get pending DM portal")
+		return
+	} else if pending == nil {
+		return
+	}
+	l.reIDPendingDM(ctx, otherUserID, conv.EntityURN)
+}
+
+func (l *LinkedInClient) reIDPendingDM(ctx context.Context, otherUserID networkid.UserID, conversationURN linkedingo.URN) {
+	target := networkid.PortalKey{
+		ID:       networkid.PortalID(conversationURN.String()),
+		Receiver: l.userLogin.ID,
+	}
+	result, portal, err := l.main.Bridge.ReIDPortal(ctx, l.makePendingDMPortalKey(otherUserID), target)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Stringer("conversation_urn", conversationURN).Msg("Failed to move pending DM to LinkedIn conversation")
+	} else if result == bridgev2.ReIDResultSourceReIDd || result == bridgev2.ReIDResultTargetDeletedAndSourceReIDd {
+		portal.UpdateBridgeInfo(ctx)
+	}
 }
 
 func (l *LinkedInClient) SearchUsers(ctx context.Context, query string) (resp []*bridgev2.ResolveIdentifierResponse, err error) {

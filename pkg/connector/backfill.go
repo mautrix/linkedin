@@ -32,6 +32,9 @@ var (
 )
 
 func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
+	if _, isPendingDM := parsePendingDMPortalID(fetchParams.Portal.ID); isPendingDM {
+		return &bridgev2.FetchMessagesResponse{HasMore: false, Forward: fetchParams.Forward}, nil
+	}
 	log := zerolog.Ctx(ctx).With().Str("method", "fetch_messages").Logger()
 	ctx = log.WithContext(ctx)
 

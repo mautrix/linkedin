@@ -213,9 +213,19 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if transactionID == "" {
 		transactionID = uuid.NewString()
 	}
-	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent, transactionID)
+	body := matrixfmt.Parse(ctx, l.matrixParser, msg.Content)
+	var resp *linkedingo.MessageSentResponse
+	var err error
+	otherUserID, isPendingDM := parsePendingDMPortalID(msg.Portal.ID)
+	if isPendingDM {
+		resp, err = l.client.NewChat(ctx, "", []linkedingo.URN{linkedingo.NewURN(otherUserID).AsFsdProfile()}, body, renderContent, transactionID)
+	} else {
+		resp, err = l.client.SendMessage(ctx, conversationURN, body, renderContent, transactionID)
+	}
 	if err != nil {
 		return nil, wrapLinkedInError(err)
+	} else if isPendingDM && !resp.Data.ConversationURN.IsEmpty() {
+		l.reIDPendingDM(ctx, otherUserID, resp.Data.ConversationURN)
 	}
 	return &bridgev2.MatrixMessageResponse{
 		DB: &database.Message{
@@ -274,6 +284,8 @@ func (l *LinkedInClient) HandleMatrixReactionRemove(ctx context.Context, msg *br
 func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
+	} else if _, isPendingDM := parsePendingDMPortalID(msg.Portal.ID); isPendingDM {
+		return nil
 	}
 	_, err := l.client.MarkConversationRead(ctx, linkedingo.NewURN(msg.Portal.ID))
 	return wrapLinkedInError(err)
@@ -283,13 +295,18 @@ func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.M
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
 	}
-	if msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
+	if _, isPendingDM := parsePendingDMPortalID(msg.Portal.ID); isPendingDM {
+		return nil
+	} else if msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
 		return wrapLinkedInError(l.client.StartTyping(ctx, linkedingo.NewURN(msg.Portal.ID)))
 	}
 	return nil
 }
 
 func (l *LinkedInClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
+	if _, isPendingDM := parsePendingDMPortalID(chat.Portal.ID); isPendingDM {
+		return nil
+	}
 	err := l.client.DeleteConversation(ctx, linkedingo.NewURN(chat.Portal.ID))
 	if responseStatusCode(err) == http.StatusNotFound {
 		zerolog.Ctx(ctx).Debug().Msg("Conversation not found on LinkedIn, deleting portal anyway")
