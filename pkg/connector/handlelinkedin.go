@@ -108,6 +108,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		Stringer("message_urn", msg.EntityURN).
 		Stringer("conversation_urn", msg.Conversation.EntityURN).
 		Msg("Processing realtime message")
+	l.claimPendingDM(ctx, msg.Conversation)
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
