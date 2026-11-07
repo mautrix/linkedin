@@ -52,18 +52,24 @@ func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier strin
 				PortalKey: portal.PortalKey,
 			}
 		} else {
-			sender := l.makeSender(linkedingo.MessagingParticipant{
-				EntityURN: linkedingo.NewURN(id).AsFsdProfile(),
-			})
+			memberMap := make(bridgev2.ChatMemberMap, 2)
+			for _, userID := range []networkid.UserID{l.userID, id} {
+				memberMap.Set(bridgev2.ChatMember{
+					EventSender: l.makeSender(linkedingo.MessagingParticipant{
+						EntityURN: linkedingo.NewURN(userID).AsFsdProfile(),
+					}),
+					Membership: event.MembershipJoin,
+				})
+			}
 			chat = &bridgev2.CreateChatResponse{
 				PortalKey: l.makePendingDMPortalKey(id),
 				PortalInfo: &bridgev2.ChatInfo{
 					Type: ptr.Ptr(database.RoomTypeDM),
 					Members: &bridgev2.ChatMemberList{
-						OtherUserID: id,
-						MemberMap: map[networkid.UserID]bridgev2.ChatMember{
-							sender.Sender: {EventSender: sender, Membership: event.MembershipJoin},
-						},
+						IsFull:           true,
+						TotalMemberCount: 2,
+						OtherUserID:      id,
+						MemberMap:        memberMap,
 					},
 				},
 			}
