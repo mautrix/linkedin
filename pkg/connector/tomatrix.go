@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"html"
 	"io"
 	"strings"
 
@@ -52,6 +53,22 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 
 		textPart = &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: content}
 		cm.Parts = []*bridgev2.ConvertedMessagePart{textPart}
+	}
+
+	if msg.Subject != "" {
+		if textPart == nil {
+			textPart = &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: &event.MessageEventContent{MsgType: event.MsgText}}
+			cm.Parts = []*bridgev2.ConvertedMessagePart{textPart}
+		}
+		textPart.Content.EnsureHasHTML()
+		subjectHTML := fmt.Sprintf("<strong>%s</strong>", html.EscapeString(msg.Subject))
+		if textPart.Content.Body == "" {
+			textPart.Content.Body = msg.Subject
+			textPart.Content.FormattedBody = subjectHTML
+		} else {
+			textPart.Content.Body = msg.Subject + "\n\n" + textPart.Content.Body
+			textPart.Content.FormattedBody = subjectHTML + "<br><br>" + textPart.Content.FormattedBody
+		}
 	}
 
 	ctx = context.WithValue(ctx, contextKeyMsgID, msg.MessageID())
