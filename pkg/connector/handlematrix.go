@@ -43,6 +43,7 @@ var (
 	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*LinkedInClient)(nil)
 	_ bridgev2.EditHandlingNetworkAPI        = (*LinkedInClient)(nil)
 	_ bridgev2.MembershipHandlingNetworkAPI  = (*LinkedInClient)(nil)
+	_ bridgev2.MuteHandlingNetworkAPI        = (*LinkedInClient)(nil)
 	_ bridgev2.ReactionHandlingNetworkAPI    = (*LinkedInClient)(nil)
 	_ bridgev2.RedactionHandlingNetworkAPI   = (*LinkedInClient)(nil)
 	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*LinkedInClient)(nil)
@@ -277,6 +278,17 @@ func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridg
 	}
 	_, err := l.client.MarkConversationRead(ctx, linkedingo.NewURN(msg.Portal.ID))
 	return wrapLinkedInError(err)
+}
+
+func (l *LinkedInClient) HandleMute(ctx context.Context, msg *bridgev2.MatrixMute) error {
+	if !l.IsLoggedIn() {
+		return ErrNotLoggedIn
+	}
+	status := linkedingo.NotificationStatusActive
+	if msg.Content.IsMuted() {
+		status = linkedingo.NotificationStatusMute
+	}
+	return wrapLinkedInError(l.client.SetNotificationStatus(ctx, linkedingo.NewURN(msg.Portal.ID), status))
 }
 
 func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {

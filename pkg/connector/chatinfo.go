@@ -106,6 +106,13 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 
 	ci.CanBackfill = true
 
+	switch conv.NotificationStatus {
+	case linkedingo.NotificationStatusMute:
+		ci.UserLocal = &bridgev2.UserLocalPortalInfo{MutedUntil: ptr.Ptr(event.MutedForever)}
+	case linkedingo.NotificationStatusActive:
+		ci.UserLocal = &bridgev2.UserLocalPortalInfo{MutedUntil: ptr.Ptr(bridgev2.Unmuted)}
+	}
+
 	ci.Members = &bridgev2.ChatMemberList{
 		IsFull:           true,
 		TotalMemberCount: len(conv.ConversationParticipants),
