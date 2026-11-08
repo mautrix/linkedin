@@ -284,9 +284,14 @@ func (l *LinkedInClient) HandleMute(ctx context.Context, msg *bridgev2.MatrixMut
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
 	}
-	status := linkedingo.NotificationStatusActive
-	if msg.Content.IsMuted() {
+	var status linkedingo.NotificationStatus
+	switch {
+	case !msg.Content.IsMuted():
+		status = linkedingo.NotificationStatusActive
+	case msg.Content.GetMutedUntilTime() == event.MutedForever:
 		status = linkedingo.NotificationStatusMute
+	default:
+		return nil
 	}
 	return wrapLinkedInError(l.client.SetNotificationStatus(ctx, linkedingo.NewURN(msg.Portal.ID), status))
 }

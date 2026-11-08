@@ -23,10 +23,12 @@ import (
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/jsontime"
+	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
+	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
@@ -90,9 +92,11 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
 		lastReadState, ok := l.conversationReadState[conv.EntityURN]
 		readStatusChanged := ok && lastReadState.Read != conv.Read
+		muteStatusChanged := !ok || lastReadState.NotificationStatus != conv.NotificationStatus
 		l.conversationReadState[conv.EntityURN] = ConversationReadState{
-			LastReadAt: conv.LastReadAt,
-			Read:       conv.Read,
+			LastReadAt:         conv.LastReadAt,
+			Read:               conv.Read,
+			NotificationStatus: conv.NotificationStatus,
 		}
 		l.conversationStateLock.Unlock()
 
@@ -118,6 +122,14 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		if !userInChat {
 			log.Debug().Msg("User not in chat")
 			continue
+		}
+		if muteStatusChanged {
+			switch conv.NotificationStatus {
+			case linkedingo.NotificationStatusMute:
+				chatInfo.UserLocal = &bridgev2.UserLocalPortalInfo{MutedUntil: ptr.Ptr(event.MutedForever)}
+			case linkedingo.NotificationStatusActive:
+				chatInfo.UserLocal = &bridgev2.UserLocalPortalInfo{MutedUntil: ptr.Ptr(bridgev2.Unmuted)}
+			}
 		}
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 			ChatInfo:        &chatInfo,
