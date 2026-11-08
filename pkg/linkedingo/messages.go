@@ -244,6 +244,36 @@ func (c *Client) NewChat(ctx context.Context, title string, participants []URN) 
 	return &messageSentResponse, nil
 }
 
+type DeliveryMechanism string
+
+const (
+	DeliveryMechanismRealtime DeliveryMechanism = "REALTIME"
+)
+
+type deliveryAcknowledgementPayload struct {
+	MessageURNs       []URN             `json:"messageUrns"`
+	ClientID          string            `json:"clientId"`
+	DeliveryMechanism DeliveryMechanism `json:"deliveryMechanism"`
+	ClientConsumedAt  int64             `json:"clientConsumedAt"`
+}
+
+func (c *Client) AcknowledgeDelivery(ctx context.Context, mechanism DeliveryMechanism, messageURNs ...URN) error {
+	_, err := c.newAuthedRequest(http.MethodPost, linkedInVoyagerMessagingDeliveryAcksURL).
+		WithQueryParam("action", "sendDeliveryAcknowledgement").
+		WithCSRF().
+		WithContentType(contentTypePlaintextUTF8).
+		WithHeader("accept", contentTypeJSON).
+		WithXLIHeaders().
+		WithJSONPayload(deliveryAcknowledgementPayload{
+			MessageURNs:       messageURNs,
+			ClientID:          "voyager-web",
+			DeliveryMechanism: mechanism,
+			ClientConsumedAt:  time.Now().UnixMilli(),
+		}).
+		Do(ctx, nil)
+	return err
+}
+
 type GraphQLPatchBody struct {
 	Patch Patch `json:"patch,omitempty"`
 }

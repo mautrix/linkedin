@@ -108,6 +108,9 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		Stringer("message_urn", msg.EntityURN).
 		Stringer("conversation_urn", msg.Conversation.EntityURN).
 		Msg("Processing realtime message")
+	if !msg.EntityURN.IsEmpty() {
+		go l.acknowledgeDelivery(ctx, msg.EntityURN)
+	}
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
@@ -153,6 +156,13 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		log.Warn().Str("message_body_render_format", string(msg.MessageBodyRenderFormat)).Msg("Unknown render format")
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
+}
+
+func (l *LinkedInClient) acknowledgeDelivery(ctx context.Context, messageURN linkedingo.URN) {
+	err := l.client.AcknowledgeDelivery(ctx, linkedingo.DeliveryMechanismRealtime, messageURN)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Stringer("message_urn", messageURN).Msg("Failed to acknowledge message delivery")
+	}
 }
 
 func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *linkedingo.DecoratedEvent) {
