@@ -121,6 +121,14 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		CreatePortal: true,
 	}
 
+	if msg.MessageBodyRenderFormat == linkedingo.MessageBodyRenderFormatRecalled {
+		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
+			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove),
+			TargetMessage: msg.MessageID(),
+		})
+		return
+	}
+
 	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 		EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
@@ -140,12 +148,6 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
 	case linkedingo.MessageBodyRenderFormatEdited:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
-	case linkedingo.MessageBodyRenderFormatRecalled:
-		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
-			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove),
-			TargetMessage: msg.MessageID(),
-		})
-		return
 	case linkedingo.MessageBodyRenderFormatSystem:
 		log.Info().Msg("Ignoring system message")
 		return
