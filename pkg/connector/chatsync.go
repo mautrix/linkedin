@@ -92,7 +92,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
 		lastReadState, ok := l.conversationReadState[conv.EntityURN]
 		readStatusChanged := ok && lastReadState.Read != conv.Read
-		muteStatusChanged := !ok || lastReadState.NotificationStatus != conv.NotificationStatus
+		muteStatusChanged := lastReadState.NotificationStatus != conv.NotificationStatus && (ok || conv.NotificationStatus == linkedingo.NotificationStatusMute)
 		l.conversationReadState[conv.EntityURN] = ConversationReadState{
 			LastReadAt:         conv.LastReadAt,
 			Read:               conv.Read,
