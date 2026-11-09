@@ -158,6 +158,8 @@ type MessagingParticipant struct {
 type ParticipantType struct {
 	Member       *MemberParticipantInfo       `json:"member,omitempty"`
 	Organization *OrganizationParticipantInfo `json:"organization,omitempty"`
+	Custom       *CustomParticipantInfo       `json:"custom,omitempty"`
+	Agent        *AgentParticipantInfo        `json:"agent,omitempty"`
 }
 
 // MemberParticipantInfo represents a
@@ -177,6 +179,20 @@ type OrganizationParticipantInfo struct {
 	Name    AttributedText `json:"name,omitempty"`
 	Logo    *VectorImage   `json:"logo,omitempty"`
 	PageURL string         `json:"pageUrl,omitempty"`
+}
+
+// CustomParticipantInfo represents a
+// com.linkedin.messenger.CustomParticipantInfo object.
+type CustomParticipantInfo struct {
+	Name  AttributedText `json:"name,omitempty"`
+	Image *VectorImage   `json:"image,omitempty"`
+}
+
+// AgentParticipantInfo represents a
+// com.linkedin.messenger.AgentParticipantInfo object.
+type AgentParticipantInfo struct {
+	Name           AttributedText `json:"name,omitempty"`
+	ProfilePicture *VectorImage   `json:"profilePicture,omitempty"`
 }
 
 func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefore time.Time) (*CollectionResponse[ConversationCursorMetadata, Conversation], error) {
