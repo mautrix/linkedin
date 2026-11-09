@@ -23,7 +23,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/jsontime"
-	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -91,11 +90,9 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
 		lastReadState, ok := l.conversationReadState[conv.EntityURN]
 		readStatusChanged := ok && lastReadState.Read != conv.Read
-		unmuted := lastReadState.NotificationStatus == linkedingo.NotificationStatusMute && conv.NotificationStatus == linkedingo.NotificationStatusActive
 		l.conversationReadState[conv.EntityURN] = ConversationReadState{
-			LastReadAt:         conv.LastReadAt,
-			Read:               conv.Read,
-			NotificationStatus: conv.NotificationStatus,
+			LastReadAt: conv.LastReadAt,
+			Read:       conv.Read,
 		}
 		l.conversationStateLock.Unlock()
 
@@ -121,9 +118,6 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		if !userInChat {
 			log.Debug().Msg("User not in chat")
 			continue
-		}
-		if unmuted {
-			chatInfo.UserLocal.MutedUntil = ptr.Ptr(bridgev2.Unmuted)
 		}
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 			ChatInfo:        &chatInfo,

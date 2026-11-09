@@ -35,9 +35,8 @@ import (
 )
 
 type ConversationReadState struct {
-	LastReadAt         jsontime.UnixMilli
-	Read               bool
-	NotificationStatus linkedingo.NotificationStatus
+	LastReadAt jsontime.UnixMilli
+	Read       bool
 }
 
 type LinkedInClient struct {

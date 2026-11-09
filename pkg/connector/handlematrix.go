@@ -303,17 +303,8 @@ func (l *LinkedInClient) HandleMute(ctx context.Context, msg *bridgev2.MatrixMut
 	if msg.Content.IsMuted() && msg.Content.GetMutedUntilTime() == event.MutedForever {
 		status = linkedingo.NotificationStatusMute
 	}
-	urn := linkedingo.NewURN(msg.Portal.ID)
-	if err := l.client.SetNotificationStatus(ctx, urn, status); err != nil {
-		return wrapLinkedInError(err)
-	}
-	l.conversationStateLock.Lock()
-	if state, ok := l.conversationReadState[urn]; ok {
-		state.NotificationStatus = status
-		l.conversationReadState[urn] = state
-	}
-	l.conversationStateLock.Unlock()
-	return nil
+	err := l.client.SetNotificationStatus(ctx, linkedingo.NewURN(msg.Portal.ID), status)
+	return wrapLinkedInError(err)
 }
 
 func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {

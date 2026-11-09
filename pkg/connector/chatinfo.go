@@ -120,6 +120,8 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	ci.UserLocal = &bridgev2.UserLocalPortalInfo{}
 	if conv.NotificationStatus == linkedingo.NotificationStatusMute {
 		ci.UserLocal.MutedUntil = ptr.Ptr(event.MutedForever)
+	} else if conv.NotificationStatus == linkedingo.NotificationStatusActive {
+		ci.UserLocal.MutedUntil = ptr.Ptr(bridgev2.Unmuted)
 	}
 
 	if conv.DisabledFeatures != nil {
