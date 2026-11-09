@@ -128,7 +128,7 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context, stopStream context.Cance
 			WithHeader("Priority", "u=1, i").
 			WithXLIHeaders().
 			WithJSONPayload(map[string]any{
-				"isFirstHeartbeat":  !isFirst,
+				"isFirstHeartbeat":  isFirst,
 				"isLastHeartbeat":   false,
 				"realtimeSessionId": c.realtimeSessionID.String(),
 				"mpName":            "voyager-web",

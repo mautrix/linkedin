@@ -40,15 +40,16 @@ import (
 )
 
 var (
-	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*LinkedInClient)(nil)
-	_ bridgev2.EditHandlingNetworkAPI        = (*LinkedInClient)(nil)
-	_ bridgev2.MembershipHandlingNetworkAPI  = (*LinkedInClient)(nil)
-	_ bridgev2.MuteHandlingNetworkAPI        = (*LinkedInClient)(nil)
-	_ bridgev2.ReactionHandlingNetworkAPI    = (*LinkedInClient)(nil)
-	_ bridgev2.RedactionHandlingNetworkAPI   = (*LinkedInClient)(nil)
-	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*LinkedInClient)(nil)
-	_ bridgev2.RoomNameHandlingNetworkAPI    = (*LinkedInClient)(nil)
-	_ bridgev2.TypingHandlingNetworkAPI      = (*LinkedInClient)(nil)
+	_ bridgev2.DeleteChatHandlingNetworkAPI   = (*LinkedInClient)(nil)
+	_ bridgev2.EditHandlingNetworkAPI         = (*LinkedInClient)(nil)
+	_ bridgev2.MarkedUnreadHandlingNetworkAPI = (*LinkedInClient)(nil)
+	_ bridgev2.MembershipHandlingNetworkAPI   = (*LinkedInClient)(nil)
+	_ bridgev2.MuteHandlingNetworkAPI         = (*LinkedInClient)(nil)
+	_ bridgev2.ReactionHandlingNetworkAPI     = (*LinkedInClient)(nil)
+	_ bridgev2.RedactionHandlingNetworkAPI    = (*LinkedInClient)(nil)
+	_ bridgev2.ReadReceiptHandlingNetworkAPI  = (*LinkedInClient)(nil)
+	_ bridgev2.RoomNameHandlingNetworkAPI     = (*LinkedInClient)(nil)
+	_ bridgev2.TypingHandlingNetworkAPI       = (*LinkedInClient)(nil)
 )
 
 func getMediaFilename(content *event.MessageEventContent) (filename string) {
@@ -269,7 +270,7 @@ func (l *LinkedInClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2
 }
 
 func (l *LinkedInClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev2.MatrixReactionRemove) error {
-	return wrapLinkedInError(l.client.RemoveReaction(ctx, linkedingo.NewURN(msg.TargetReaction.MessageID), msg.TargetReaction.Emoji))
+	return wrapLinkedInError(l.client.RemoveReaction(ctx, linkedingo.NewURN(msg.TargetReaction.MessageID), string(msg.TargetReaction.EmojiID)))
 }
 
 func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
@@ -277,6 +278,20 @@ func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridg
 		return ErrNotLoggedIn
 	}
 	_, err := l.client.MarkConversationRead(ctx, linkedingo.NewURN(msg.Portal.ID))
+	return wrapLinkedInError(err)
+}
+
+func (l *LinkedInClient) HandleMarkedUnread(ctx context.Context, msg *bridgev2.MatrixMarkedUnread) error {
+	if !l.IsLoggedIn() {
+		return ErrNotLoggedIn
+	}
+	conversationURN := linkedingo.NewURN(msg.Portal.ID)
+	var err error
+	if msg.Content.Unread {
+		_, err = l.client.MarkConversationUnread(ctx, conversationURN)
+	} else {
+		_, err = l.client.MarkConversationRead(ctx, conversationURN)
+	}
 	return wrapLinkedInError(err)
 }
 
@@ -345,7 +360,7 @@ func (l *LinkedInClient) HandleMatrixMembership(ctx context.Context, msg *bridge
 	switch msg.Type {
 	case bridgev2.Invite:
 		err = l.client.AddParticipants(ctx, linkedingo.NewURN(msg.Portal.ID), participants)
-	case bridgev2.Kick:
+	case bridgev2.Kick, bridgev2.Leave:
 		err = l.client.RemoveParticipants(ctx, linkedingo.NewURN(msg.Portal.ID), participants)
 	}
 
