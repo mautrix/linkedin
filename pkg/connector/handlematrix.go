@@ -47,6 +47,7 @@ var (
 	_ bridgev2.RedactionHandlingNetworkAPI   = (*LinkedInClient)(nil)
 	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*LinkedInClient)(nil)
 	_ bridgev2.RoomNameHandlingNetworkAPI    = (*LinkedInClient)(nil)
+	_ bridgev2.TagHandlingNetworkAPI         = (*LinkedInClient)(nil)
 	_ bridgev2.TypingHandlingNetworkAPI      = (*LinkedInClient)(nil)
 )
 
@@ -277,6 +278,37 @@ func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridg
 	}
 	_, err := l.client.MarkConversationRead(ctx, linkedingo.NewURN(msg.Portal.ID))
 	return wrapLinkedInError(err)
+}
+
+func (l *LinkedInClient) HandleRoomTag(ctx context.Context, msg *bridgev2.MatrixRoomTag) error {
+	if !l.IsLoggedIn() {
+		return ErrNotLoggedIn
+	}
+	conversationURN := linkedingo.NewURN(msg.Portal.ID)
+	l.conversationStateLock.Lock()
+	state := l.conversationReadState[conversationURN]
+	l.conversationStateLock.Unlock()
+	for _, mapping := range []struct {
+		tag      event.RoomTag
+		category linkedingo.ConversationCategory
+		current  bool
+	}{
+		{l.main.Config.PinnedTag, linkedingo.ConversationCategoryStarred, state.Starred},
+		{l.main.Config.ArchiveTag, linkedingo.ConversationCategoryArchive, state.Archived},
+	} {
+		if mapping.tag == "" {
+			continue
+		}
+		_, isTagged := msg.Content.Tags[mapping.tag]
+		if isTagged == mapping.current {
+			continue
+		}
+		err := l.client.SetConversationCategory(ctx, conversationURN, mapping.category, isTagged)
+		if err != nil {
+			return wrapLinkedInError(err)
+		}
+	}
+	return nil
 }
 
 func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {

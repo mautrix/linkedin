@@ -23,6 +23,7 @@ import (
 
 	up "go.mau.fi/util/configupgrade"
 	"gopkg.in/yaml.v3"
+	"maunium.net/go/mautrix/event"
 )
 
 //go:embed example-config.yaml
@@ -32,6 +33,8 @@ type Config struct {
 	DisplaynameTemplate       string             `yaml:"displayname_template"`
 	displaynameTemplate       *template.Template `yaml:"-"`
 	LogRedactedLoginResponses bool               `yaml:"log_redacted_login_responses"`
+	PinnedTag                 event.RoomTag      `yaml:"pinned_tag"`
+	ArchiveTag                event.RoomTag      `yaml:"archive_tag"`
 
 	Sync struct {
 		UpdateLimit int `yaml:"update_limit"`
@@ -57,6 +60,8 @@ func (c *Config) PostProcess() (err error) {
 func upgradeConfig(helper up.Helper) {
 	helper.Copy(up.Str, "displayname_template")
 	helper.Copy(up.Bool, "log_redacted_login_responses")
+	helper.Copy(up.Str|up.Null, "pinned_tag")
+	helper.Copy(up.Str|up.Null, "archive_tag")
 	helper.Copy(up.Int, "sync", "update_limit")
 	helper.Copy(up.Int, "sync", "create_limit")
 }

@@ -27,6 +27,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/status"
+	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/linkedinfmt"
@@ -37,6 +38,9 @@ import (
 type ConversationReadState struct {
 	LastReadAt jsontime.UnixMilli
 	Read       bool
+	Tag        event.RoomTag
+	Starred    bool
+	Archived   bool
 }
 
 type LinkedInClient struct {
@@ -65,7 +69,6 @@ var (
 	// _ bridgev2.ContactListingNetworkAPI        = (*LinkedInClient)(nil)
 	// _ bridgev2.UserSearchingNetworkAPI         = (*LinkedInClient)(nil)
 	// _ bridgev2.MuteHandlingNetworkAPI          = (*LinkedInClient)(nil)
-	// _ bridgev2.TagHandlingNetworkAPI           = (*LinkedInClient)(nil)
 )
 
 func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridgev2.UserLogin) *LinkedInClient {

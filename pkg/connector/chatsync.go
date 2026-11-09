@@ -27,6 +27,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
+	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
@@ -65,7 +66,8 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			l.deleteConversation(ctx, conv)
 			continue
 		}
-		if !slices.Contains(conv.Categories, "INBOX") {
+		inInbox := slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryInbox))
+		if !inInbox && !slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryArchive)) {
 			continue
 		}
 
@@ -86,13 +88,18 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			Time("last_activity_at", conv.LastActivityAt.Time).
 			Logger()
 
+		tag := l.conversationTag(conv)
 		l.conversationStateLock.Lock()
 		l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
 		lastReadState, ok := l.conversationReadState[conv.EntityURN]
 		readStatusChanged := ok && lastReadState.Read != conv.Read
+		tagChanged := lastReadState.Tag != tag && (ok || tag != "")
 		l.conversationReadState[conv.EntityURN] = ConversationReadState{
 			LastReadAt: conv.LastReadAt,
 			Read:       conv.Read,
+			Tag:        tag,
+			Starred:    slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryStarred)),
+			Archived:   slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryArchive)),
 		}
 		l.conversationStateLock.Unlock()
 
@@ -102,7 +109,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 				return c.Str("update", "sync")
 			},
 			PortalKey:    portalKey,
-			CreatePortal: l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit,
+			CreatePortal: inInbox && (l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit),
 		}
 		*synced++
 
@@ -118,6 +125,9 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		if !userInChat {
 			log.Debug().Msg("User not in chat")
 			continue
+		}
+		if tagChanged {
+			chatInfo.UserLocal = &bridgev2.UserLocalPortalInfo{Tag: &tag}
 		}
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 			ChatInfo:        &chatInfo,
@@ -165,6 +175,15 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		}
 	}
 	return false
+}
+
+func (l *LinkedInClient) conversationTag(conv linkedingo.Conversation) event.RoomTag {
+	if l.main.Config.PinnedTag != "" && slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryStarred)) {
+		return l.main.Config.PinnedTag
+	} else if l.main.Config.ArchiveTag != "" && slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryArchive)) {
+		return l.main.Config.ArchiveTag
+	}
+	return ""
 }
 
 func (l *LinkedInClient) syncConversations(ctx context.Context) {
