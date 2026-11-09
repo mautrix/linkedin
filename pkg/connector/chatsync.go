@@ -27,7 +27,6 @@ import (
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
-	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
@@ -88,16 +87,13 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			Time("last_activity_at", conv.LastActivityAt.Time).
 			Logger()
 
-		tag := l.conversationTag(conv)
 		l.conversationStateLock.Lock()
 		l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
 		lastReadState, ok := l.conversationReadState[conv.EntityURN]
 		readStatusChanged := ok && lastReadState.Read != conv.Read
-		untagged := lastReadState.Tag != "" && tag == ""
 		l.conversationReadState[conv.EntityURN] = ConversationReadState{
 			LastReadAt: conv.LastReadAt,
 			Read:       conv.Read,
-			Tag:        tag,
 		}
 		l.conversationStateLock.Unlock()
 
@@ -125,9 +121,6 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		if !userInChat {
 			log.Debug().Msg("User not in chat")
 			continue
-		}
-		if untagged {
-			chatInfo.UserLocal.Tag = &tag
 		}
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 			ChatInfo:        &chatInfo,
@@ -175,15 +168,6 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		}
 	}
 	return false
-}
-
-func (l *LinkedInClient) conversationTag(conv linkedingo.Conversation) event.RoomTag {
-	if l.main.Config.PinnedTag != "" && slices.Contains(conv.Categories, "STARRED") {
-		return l.main.Config.PinnedTag
-	} else if l.main.Config.ArchiveTag != "" && slices.Contains(conv.Categories, "ARCHIVE") {
-		return l.main.Config.ArchiveTag
-	}
-	return ""
 }
 
 func (l *LinkedInClient) syncConversations(ctx context.Context) {

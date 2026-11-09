@@ -27,7 +27,6 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/status"
-	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-linkedin/pkg/connector/linkedinfmt"
@@ -38,7 +37,6 @@ import (
 type ConversationReadState struct {
 	LastReadAt jsontime.UnixMilli
 	Read       bool
-	Tag        event.RoomTag
 }
 
 type LinkedInClient struct {
