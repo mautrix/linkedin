@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"go.mau.fi/util/ffmpeg"
@@ -26,6 +27,8 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/event"
+
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
 func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
@@ -170,6 +173,31 @@ func (l *LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.P
 	}
 	if portal.RoomType == database.RoomTypeDM {
 		caps.ID += "+dm"
+	}
+	for _, feature := range portal.Metadata.(*PortalMetadata).DisabledFeatures {
+		switch feature {
+		case linkedingo.ConversationFeatureReactions:
+			caps.Reaction = event.CapLevelRejected
+		case linkedingo.ConversationFeatureEditMessage:
+			caps.Edit = event.CapLevelRejected
+		case linkedingo.ConversationFeatureDeleteMessage:
+			caps.Delete = event.CapLevelRejected
+		case linkedingo.ConversationFeatureReplyToMessage:
+			caps.Reply = event.CapLevelRejected
+		case linkedingo.ConversationFeatureSendVoiceMessage:
+			caps.File = caps.File.Clone()
+			delete(caps.File, event.CapMsgVoice)
+		case linkedingo.ConversationFeatureAddParticipant:
+			caps.MemberActions[event.MemberActionInvite] = event.CapLevelRejected
+		case linkedingo.ConversationFeatureRemoveParticipant:
+			caps.MemberActions[event.MemberActionKick] = event.CapLevelRejected
+		case linkedingo.ConversationFeatureRename:
+			caps.State = caps.State.Clone()
+			delete(caps.State, event.StateRoomName.Type)
+		default:
+			continue
+		}
+		caps.ID += "+no_" + strings.ToLower(string(feature))
 	}
 	return caps
 }
