@@ -133,7 +133,10 @@ type Conversation struct {
 
 type ConversationState string
 
-const ConversationStatePending ConversationState = "PENDING"
+const (
+	ConversationStatePending  ConversationState = "PENDING"
+	ConversationStateAccepted ConversationState = "ACCEPTED"
+)
 
 // MessagingParticipant represents a
 // com.linkedin.messenger.MessagingParticipant object.
