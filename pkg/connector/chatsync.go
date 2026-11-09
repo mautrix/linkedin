@@ -67,7 +67,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			continue
 		}
 		inInbox := slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryInbox))
-		if !inInbox && !slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryArchive)) {
+		if !inInbox && (l.main.Config.ArchiveTag == "" || !slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryArchive))) {
 			continue
 		}
 
@@ -93,13 +93,11 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		l.conversationLastRead[conv.EntityURN] = conv.LastReadAt
 		lastReadState, ok := l.conversationReadState[conv.EntityURN]
 		readStatusChanged := ok && lastReadState.Read != conv.Read
-		tagChanged := lastReadState.Tag != tag && (ok || tag != "")
+		untagged := lastReadState.Tag != "" && tag == ""
 		l.conversationReadState[conv.EntityURN] = ConversationReadState{
 			LastReadAt: conv.LastReadAt,
 			Read:       conv.Read,
 			Tag:        tag,
-			Starred:    slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryStarred)),
-			Archived:   slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryArchive)),
 		}
 		l.conversationStateLock.Unlock()
 
@@ -111,7 +109,9 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			PortalKey:    portalKey,
 			CreatePortal: inInbox && (l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit),
 		}
-		*synced++
+		if inInbox {
+			*synced++
+		}
 
 		var latestMessageTS time.Time
 		var latestMessageID networkid.MessageID
@@ -126,7 +126,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			log.Debug().Msg("User not in chat")
 			continue
 		}
-		if tagChanged {
+		if untagged {
 			chatInfo.UserLocal = &bridgev2.UserLocalPortalInfo{Tag: &tag}
 		}
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{

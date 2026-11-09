@@ -39,8 +39,6 @@ type ConversationReadState struct {
 	LastReadAt jsontime.UnixMilli
 	Read       bool
 	Tag        event.RoomTag
-	Starred    bool
-	Archived   bool
 }
 
 type LinkedInClient struct {

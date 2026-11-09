@@ -285,30 +285,56 @@ func (l *LinkedInClient) HandleRoomTag(ctx context.Context, msg *bridgev2.Matrix
 		return ErrNotLoggedIn
 	}
 	conversationURN := linkedingo.NewURN(msg.Portal.ID)
-	l.conversationStateLock.Lock()
-	state := l.conversationReadState[conversationURN]
-	l.conversationStateLock.Unlock()
+	newTag := l.visibleTag(msg.Content)
+	oldTag, known := l.visibleTag(msg.PrevContent), msg.PrevContent != nil
+	if !known && !l.main.Bridge.Config.TagOnlyOnCreate {
+		l.conversationStateLock.Lock()
+		var state ConversationReadState
+		state, known = l.conversationReadState[conversationURN]
+		l.conversationStateLock.Unlock()
+		oldTag = state.Tag
+	}
+	if known && oldTag == newTag {
+		return nil
+	}
 	for _, mapping := range []struct {
 		tag      event.RoomTag
 		category linkedingo.ConversationCategory
-		current  bool
 	}{
-		{l.main.Config.PinnedTag, linkedingo.ConversationCategoryStarred, state.Starred},
-		{l.main.Config.ArchiveTag, linkedingo.ConversationCategoryArchive, state.Archived},
+		{l.main.Config.PinnedTag, linkedingo.ConversationCategoryStarred},
+		{l.main.Config.ArchiveTag, linkedingo.ConversationCategoryArchive},
 	} {
 		if mapping.tag == "" {
 			continue
 		}
-		_, isTagged := msg.Content.Tags[mapping.tag]
-		if isTagged == mapping.current {
+		add := newTag == mapping.tag
+		if !add && (!known || oldTag != mapping.tag) {
 			continue
 		}
-		err := l.client.SetConversationCategory(ctx, conversationURN, mapping.category, isTagged)
-		if err != nil {
+		err := l.client.SetConversationCategory(ctx, conversationURN, mapping.category, add)
+		if err != nil && (add || responseStatusCode(err) != http.StatusInternalServerError) {
 			return wrapLinkedInError(err)
 		}
 	}
+	l.conversationStateLock.Lock()
+	if state, ok := l.conversationReadState[conversationURN]; ok {
+		state.Tag = newTag
+		l.conversationReadState[conversationURN] = state
+	}
+	l.conversationStateLock.Unlock()
 	return nil
+}
+
+func (l *LinkedInClient) visibleTag(content *event.TagEventContent) event.RoomTag {
+	if content == nil {
+		return ""
+	}
+	for _, tag := range []event.RoomTag{l.main.Config.PinnedTag, l.main.Config.ArchiveTag} {
+		if _, ok := content.Tags[tag]; ok && tag != "" {
+			return tag
+		}
+	}
+	return ""
 }
 
 func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
