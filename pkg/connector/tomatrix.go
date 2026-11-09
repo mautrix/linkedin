@@ -353,6 +353,9 @@ func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bri
 		}, nil
 	} else {
 		textPart.Content.Body += " " + url
+		if textPart.Content.FormattedBody != "" {
+			textPart.Content.FormattedBody += fmt.Sprintf(` <a href="%s">%s</a>`, html.EscapeString(url), html.EscapeString(url))
+		}
 		textPart.Content.BeeperLinkPreviews = []*event.BeeperLinkPreview{&linkPreview}
 		return nil, nil
 	}
