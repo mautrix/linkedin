@@ -67,6 +67,7 @@ var (
 	// _ bridgev2.ContactListingNetworkAPI        = (*LinkedInClient)(nil)
 	// _ bridgev2.UserSearchingNetworkAPI         = (*LinkedInClient)(nil)
 	// _ bridgev2.MuteHandlingNetworkAPI          = (*LinkedInClient)(nil)
+	// _ bridgev2.TagHandlingNetworkAPI           = (*LinkedInClient)(nil)
 )
 
 func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridgev2.UserLogin) *LinkedInClient {

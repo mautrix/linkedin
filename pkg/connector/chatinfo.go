@@ -106,8 +106,9 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 
 	ci.CanBackfill = true
 
+	ci.UserLocal = &bridgev2.UserLocalPortalInfo{}
 	if tag := l.conversationTag(conv); tag != "" {
-		ci.UserLocal = &bridgev2.UserLocalPortalInfo{Tag: &tag}
+		ci.UserLocal.Tag = &tag
 	}
 
 	ci.Members = &bridgev2.ChatMemberList{

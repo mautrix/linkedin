@@ -66,8 +66,8 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			l.deleteConversation(ctx, conv)
 			continue
 		}
-		inInbox := slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryInbox))
-		if !inInbox && (l.main.Config.ArchiveTag == "" || !slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryArchive))) {
+		inInbox := slices.Contains(conv.Categories, "INBOX")
+		if !inInbox && (l.main.Config.ArchiveTag == "" || !slices.Contains(conv.Categories, "ARCHIVE")) {
 			continue
 		}
 
@@ -127,7 +127,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			continue
 		}
 		if untagged {
-			chatInfo.UserLocal = &bridgev2.UserLocalPortalInfo{Tag: &tag}
+			chatInfo.UserLocal.Tag = &tag
 		}
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 			ChatInfo:        &chatInfo,
@@ -178,9 +178,9 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 }
 
 func (l *LinkedInClient) conversationTag(conv linkedingo.Conversation) event.RoomTag {
-	if l.main.Config.PinnedTag != "" && slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryStarred)) {
+	if l.main.Config.PinnedTag != "" && slices.Contains(conv.Categories, "STARRED") {
 		return l.main.Config.PinnedTag
-	} else if l.main.Config.ArchiveTag != "" && slices.Contains(conv.Categories, string(linkedingo.ConversationCategoryArchive)) {
+	} else if l.main.Config.ArchiveTag != "" && slices.Contains(conv.Categories, "ARCHIVE") {
 		return l.main.Config.ArchiveTag
 	}
 	return ""
