@@ -42,7 +42,6 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 				"group": {
 					TypeDescription: "a group chat",
 					Name:            bridgev2.GroupFieldCapability{Allowed: true, Required: true, MaxLength: 300},
-					Topic:           bridgev2.GroupFieldCapability{Allowed: true},
 					Participants:    bridgev2.GroupFieldCapability{Allowed: true, Required: true, MinLength: 2},
 				},
 			},
