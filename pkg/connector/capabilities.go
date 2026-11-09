@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"go.mau.fi/util/ffmpeg"
@@ -26,6 +27,8 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/event"
+
+	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
 )
 
 func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
@@ -48,7 +51,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 11
+	return 1, 12
 }
 
 const MaxTextLength = 8000
@@ -62,7 +65,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID() string {
-	base := "fi.mau.linkedin.capabilities.2026_10_26"
+	base := "fi.mau.linkedin.capabilities.2026_11_09"
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -170,6 +173,33 @@ func (l *LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.P
 	}
 	if portal.RoomType == database.RoomTypeDM {
 		caps.ID += "+dm"
+	}
+	for _, feature := range portal.Metadata.(*PortalMetadata).DisabledFeatures {
+		switch feature {
+		case linkedingo.ConversationFeatureReactions:
+			caps.Reaction = event.CapLevelRejected
+		case linkedingo.ConversationFeatureEditMessage:
+			caps.Edit = event.CapLevelRejected
+		case linkedingo.ConversationFeatureDeleteMessage:
+			caps.Delete = event.CapLevelRejected
+		case linkedingo.ConversationFeatureReplyToMessage:
+			caps.Reply = event.CapLevelRejected
+		case linkedingo.ConversationFeatureSendVoiceMessage:
+			caps.File = caps.File.Clone()
+			delete(caps.File, event.CapMsgVoice)
+		case linkedingo.ConversationFeatureSendVideoMessage:
+			caps.File = caps.File.Clone()
+			delete(caps.File, event.MsgVideo)
+		case linkedingo.ConversationFeatureAddParticipant:
+			caps.MemberActions[event.MemberActionInvite] = event.CapLevelRejected
+		case linkedingo.ConversationFeatureRemoveParticipant:
+			caps.MemberActions[event.MemberActionKick] = event.CapLevelRejected
+		case linkedingo.ConversationFeatureRename:
+			caps.State = event.StateFeatureMap{}
+		default:
+			continue
+		}
+		caps.ID += "+no_" + strings.ToLower(string(feature))
 	}
 	return caps
 }

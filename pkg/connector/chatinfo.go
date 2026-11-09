@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ptr"
@@ -105,6 +106,20 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	}
 
 	ci.CanBackfill = true
+
+	disabledFeatures := make([]linkedingo.ConversationFeature, 0, len(conv.DisabledFeatures))
+	for _, feature := range conv.DisabledFeatures {
+		disabledFeatures = append(disabledFeatures, feature.DisabledFeature)
+	}
+	slices.Sort(disabledFeatures)
+	ci.ExtraUpdates = func(ctx context.Context, portal *bridgev2.Portal) bool {
+		meta := portal.Metadata.(*PortalMetadata)
+		if slices.Equal(meta.DisabledFeatures, disabledFeatures) {
+			return false
+		}
+		meta.DisabledFeatures = disabledFeatures
+		return true
+	}
 
 	ci.Members = &bridgev2.ChatMemberList{
 		IsFull:           true,

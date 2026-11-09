@@ -28,7 +28,9 @@ import (
 func (lc *LinkedInConnector) GetDBMetaTypes() database.MetaTypes {
 	return database.MetaTypes{
 		Reaction: nil,
-		Portal:   nil,
+		Portal: func() any {
+			return &PortalMetadata{}
+		},
 		Message: func() any {
 			return &MessageMetadata{}
 		},
@@ -46,6 +48,10 @@ type UserLoginMetadata struct {
 	BrowserHeaders          http.Header                 `json:"browser_headers,omitempty"`
 	ConversationsSyncToken  string                      `json:"conversations_sync_token,omitempty"`
 	ConversationsSyncedUpTo jsontime.UnixMilli          `json:"conversations_synced_up_to,omitempty"`
+}
+
+type PortalMetadata struct {
+	DisabledFeatures []linkedingo.ConversationFeature `json:"disabled_features,omitempty"`
 }
 
 type MessageMetadata struct {
