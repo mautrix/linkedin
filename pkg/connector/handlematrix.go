@@ -284,16 +284,21 @@ func (l *LinkedInClient) HandleMute(ctx context.Context, msg *bridgev2.MatrixMut
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
 	}
-	var status linkedingo.NotificationStatus
-	switch {
-	case !msg.Content.IsMuted():
-		status = linkedingo.NotificationStatusActive
-	case msg.Content.GetMutedUntilTime() == event.MutedForever:
+	status := linkedingo.NotificationStatusActive
+	if msg.Content.IsMuted() && msg.Content.GetMutedUntilTime() == event.MutedForever {
 		status = linkedingo.NotificationStatusMute
-	default:
-		return nil
 	}
-	return wrapLinkedInError(l.client.SetNotificationStatus(ctx, linkedingo.NewURN(msg.Portal.ID), status))
+	urn := linkedingo.NewURN(msg.Portal.ID)
+	if err := l.client.SetNotificationStatus(ctx, urn, status); err != nil {
+		return wrapLinkedInError(err)
+	}
+	l.conversationStateLock.Lock()
+	if state, ok := l.conversationReadState[urn]; ok {
+		state.NotificationStatus = status
+		l.conversationReadState[urn] = state
+	}
+	l.conversationStateLock.Unlock()
+	return nil
 }
 
 func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
