@@ -123,7 +123,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			continue
 		}
 		if unmuted {
-			chatInfo.UserLocal = &bridgev2.UserLocalPortalInfo{MutedUntil: ptr.Ptr(bridgev2.Unmuted)}
+			chatInfo.UserLocal.MutedUntil = ptr.Ptr(bridgev2.Unmuted)
 		}
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 			ChatInfo:        &chatInfo,

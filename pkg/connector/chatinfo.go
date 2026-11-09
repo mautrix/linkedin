@@ -106,8 +106,9 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 
 	ci.CanBackfill = true
 
+	ci.UserLocal = &bridgev2.UserLocalPortalInfo{}
 	if conv.NotificationStatus == linkedingo.NotificationStatusMute {
-		ci.UserLocal = &bridgev2.UserLocalPortalInfo{MutedUntil: ptr.Ptr(event.MutedForever)}
+		ci.UserLocal.MutedUntil = ptr.Ptr(event.MutedForever)
 	}
 
 	ci.Members = &bridgev2.ChatMemberList{
