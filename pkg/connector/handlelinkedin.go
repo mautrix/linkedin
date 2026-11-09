@@ -71,6 +71,8 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 		l.onRealtimeMessageSeenReceipts(ctx, decoratedEvent.Payload.Data.DecoratedSeenReceipt.Result)
 	case linkedingo.RealtimeEventTopicMessageReactionSummaries:
 		l.onRealtimeReactionSummaries(ctx, decoratedEvent.Payload.Data.DecoratedReactionSummary.Result)
+	case linkedingo.RealtimeEventTopicReplySuggestionV2, linkedingo.RealtimeEventTopicSecondaryPreviewBanner, linkedingo.RealtimeEventTopicMemberVerification:
+		log.Debug().Msg("Ignoring event topic")
 	default:
 		log.Warn().Msg("Unsupported event topic")
 	}

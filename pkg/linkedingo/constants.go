@@ -57,6 +57,8 @@ const (
 	RealtimeEventTopicMessagingProgressIndicator = "messagingProgressIndicatorTopic"
 	RealtimeEventTopicMessagingDataSync          = "messagingDataSyncTopic"
 	RealtimeEventTopicPresenceStatus             = "presenceStatusTopic"
+	RealtimeEventTopicSecondaryPreviewBanner     = "messagingSecondaryPreviewBannerTopic"
+	RealtimeEventTopicMemberVerification         = "memberVerificationResultsPersonalTopic"
 )
 
 const (
