@@ -189,8 +189,9 @@ func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, rece
 	part, err := l.main.Bridge.DB.Message.GetLastPartByID(ctx, l.userLogin.ID, receipt.Message.MessageID())
 	if err != nil {
 		log.Err(err).Msg("failed to get read message")
+		return
 	} else if part == nil {
-		log.Warn().Msg("couldn't find read message")
+		log.Debug().Msg("couldn't find read message")
 		return
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Receipt{
