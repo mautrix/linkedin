@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"html"
 	"io"
 	"strings"
 
@@ -52,6 +53,22 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 
 		textPart = &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: content}
 		cm.Parts = []*bridgev2.ConvertedMessagePart{textPart}
+	}
+
+	if msg.Subject != "" {
+		if textPart == nil {
+			textPart = &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: &event.MessageEventContent{MsgType: event.MsgText}}
+			cm.Parts = []*bridgev2.ConvertedMessagePart{textPart}
+		}
+		textPart.Content.EnsureHasHTML()
+		subjectHTML := fmt.Sprintf("<strong>%s</strong>", html.EscapeString(msg.Subject))
+		if textPart.Content.Body == "" {
+			textPart.Content.Body = msg.Subject
+			textPart.Content.FormattedBody = subjectHTML
+		} else {
+			textPart.Content.Body = msg.Subject + "\n\n" + textPart.Content.Body
+			textPart.Content.FormattedBody = subjectHTML + "<br><br>" + textPart.Content.FormattedBody
+		}
 	}
 
 	ctx = context.WithValue(ctx, contextKeyMsgID, msg.MessageID())
@@ -124,6 +141,7 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 		zerolog.Ctx(ctx).Warn().
 			Str("body_text", msg.Body.Text).
 			Int("render_content_count", len(msg.RenderContent)).
+			Str("render_format", string(msg.MessageBodyRenderFormat)).
 			Stringer("message_urn", msg.EntityURN).
 			Msg("Message conversion resulted in empty parts")
 	}
@@ -336,6 +354,9 @@ func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bri
 		}, nil
 	} else {
 		textPart.Content.Body += " " + url
+		if textPart.Content.FormattedBody != "" {
+			textPart.Content.FormattedBody += fmt.Sprintf(` <a href="%s">%s</a>`, html.EscapeString(url), html.EscapeString(url))
+		}
 		textPart.Content.BeeperLinkPreviews = []*event.BeeperLinkPreview{&linkPreview}
 		return nil, nil
 	}
