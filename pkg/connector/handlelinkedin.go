@@ -111,6 +111,13 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 	if !msg.EntityURN.IsEmpty() {
 		go l.acknowledgeDelivery(ctx, msg.EntityURN)
 	}
+	if msg.Conversation.EntityURN.IsEmpty() {
+		log.Debug().
+			Stringer("message_urn", msg.EntityURN).
+			Str("render_format", string(msg.MessageBodyRenderFormat)).
+			Msg("Ignoring realtime message without conversation")
+		return
+	}
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
@@ -122,6 +129,14 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		Timestamp:    msg.DeliveredAt.Time,
 		StreamOrder:  msg.DeliveredAt.UnixMilli(),
 		CreatePortal: true,
+	}
+
+	if msg.MessageBodyRenderFormat == linkedingo.MessageBodyRenderFormatRecalled {
+		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
+			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove).WithCreatePortal(false),
+			TargetMessage: msg.MessageID(),
+		})
+		return
 	}
 
 	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
@@ -143,12 +158,6 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
 	case linkedingo.MessageBodyRenderFormatEdited:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
-	case linkedingo.MessageBodyRenderFormatRecalled:
-		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
-			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove),
-			TargetMessage: msg.MessageID(),
-		})
-		return
 	case linkedingo.MessageBodyRenderFormatSystem:
 		log.Info().Msg("Ignoring system message")
 		return
