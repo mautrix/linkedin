@@ -123,7 +123,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 
 	if msg.MessageBodyRenderFormat == linkedingo.MessageBodyRenderFormatRecalled {
 		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
-			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove),
+			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove).WithCreatePortal(false),
 			TargetMessage: msg.MessageID(),
 		})
 		return
