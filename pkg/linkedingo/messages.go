@@ -137,6 +137,7 @@ type Message struct {
 	Conversation            Conversation            `json:"conversation,omitempty"`
 	ConversationURN         URN                     `json:"conversationUrn,omitempty"`
 	RenderContent           []RenderContent         `json:"renderContent,omitempty"`
+	RenderContentFallback   string                  `json:"renderContentFallbackText,omitempty"`
 	ReactionSummaries       []ReactionSummary       `json:"reactionSummaries,omitempty"`
 }
 
@@ -154,14 +155,49 @@ const (
 )
 
 type RenderContent struct {
-	Audio                 *AudioMetadata     `json:"audio,omitempty"`
-	ExternalMedia         *ExternalMedia     `json:"externalMedia,omitempty"`
-	File                  *FileAttachment    `json:"file,omitempty"`
-	ForwardedMessage      *ForwardedMessage  `json:"forwardedMessageContent,omitempty"`
-	HostURNData           *HostURNData       `json:"hostUrnData,omitempty"`
-	RepliedMessageContent *RepliedMessage    `json:"repliedMessageContent,omitempty"`
-	VectorImage           *VectorImage       `json:"vectorImage,omitempty"`
-	Video                 *VideoPlayMetadata `json:"video,omitempty"`
+	Audio                 *AudioMetadata      `json:"audio,omitempty"`
+	AwayMessage           *AwayMessage        `json:"awayMessage,omitempty"`
+	CallMessageContent    *CallMessage        `json:"callMessageContent,omitempty"`
+	UnavailableContent    *UnavailableContent `json:"unavailableContent,omitempty"`
+	VideoMeeting          *VideoMeeting       `json:"videoMeeting,omitempty"`
+	ExternalMedia         *ExternalMedia      `json:"externalMedia,omitempty"`
+	File                  *FileAttachment     `json:"file,omitempty"`
+	ForwardedMessage      *ForwardedMessage   `json:"forwardedMessageContent,omitempty"`
+	HostURNData           *HostURNData        `json:"hostUrnData,omitempty"`
+	RepliedMessageContent *RepliedMessage     `json:"repliedMessageContent,omitempty"`
+	VectorImage           *VectorImage        `json:"vectorImage,omitempty"`
+	Video                 *VideoPlayMetadata  `json:"video,omitempty"`
+}
+
+type AwayMessage struct {
+	Text       AttributedText `json:"text,omitempty"`
+	FooterText AttributedText `json:"footerText,omitempty"`
+}
+
+type CallStatus string
+
+const CallStatusMissed CallStatus = "MISSED"
+
+type CallMessage struct {
+	CallStatus CallStatus         `json:"callStatus,omitempty"`
+	CallTime   jsontime.UnixMilli `json:"callTime,omitempty"`
+	Duration   *float64           `json:"duration,omitempty"`
+	Reason     string             `json:"reason,omitempty"`
+}
+
+type UnavailableContent struct {
+	ContentType       string         `json:"contentType,omitempty"`
+	UnavailableReason AttributedText `json:"unavailableReason,omitempty"`
+}
+
+type VideoMeeting struct {
+	TimeRange *struct {
+		Start jsontime.UnixMilli `json:"start,omitempty"`
+		End   jsontime.UnixMilli `json:"end,omitempty"`
+	} `json:"timeRange,omitempty"`
+	VideoMeeting *struct {
+		EntityURN URN `json:"entityUrn,omitempty"`
+	} `json:"videoMeeting,omitempty"`
 }
 
 type ForwardedMessage struct {

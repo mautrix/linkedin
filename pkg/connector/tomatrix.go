@@ -63,6 +63,14 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 		switch {
 		case rc.Audio != nil:
 			part, err = l.convertAudioToMatrix(ctx, portal, intent, rc.Audio)
+		case rc.AwayMessage != nil:
+			part = convertAwayMessageToMatrix(rc.AwayMessage)
+		case rc.CallMessageContent != nil:
+			part = convertCallToMatrix(msg, rc.CallMessageContent)
+		case rc.UnavailableContent != nil:
+			part = convertUnavailableContentToMatrix(rc.UnavailableContent)
+		case rc.VideoMeeting != nil:
+			part = convertVideoMeetingToMatrix(msg, rc.VideoMeeting)
 		case rc.ExternalMedia != nil:
 			part, err = l.convertExternalMediaToMatrix(ctx, portal, intent, rc.ExternalMedia)
 		case rc.File != nil:
@@ -120,6 +128,9 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 
 	cm.MergeCaption()
 
+	if len(cm.Parts) == 0 && msg.RenderContentFallback != "" {
+		cm.Parts = append(cm.Parts, noticePart(msg.RenderContentFallback))
+	}
 	if len(cm.Parts) == 0 {
 		zerolog.Ctx(ctx).Warn().
 			Str("body_text", msg.Body.Text).
@@ -129,6 +140,89 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 	}
 
 	return &cm, nil
+}
+
+func noticePart(body string) *bridgev2.ConvertedMessagePart {
+	return &bridgev2.ConvertedMessagePart{
+		Type:    event.EventMessage,
+		Content: &event.MessageEventContent{MsgType: event.MsgNotice, Body: body},
+	}
+}
+
+func participantName(participant linkedingo.MessagingParticipant) string {
+	switch {
+	case participant.ParticipantType.Member != nil:
+		return strings.TrimSpace(participant.ParticipantType.Member.FirstName.Text + " " + participant.ParticipantType.Member.LastName.Text)
+	case participant.ParticipantType.Organization != nil:
+		return participant.ParticipantType.Organization.Name.Text
+	}
+	return ""
+}
+
+func convertAwayMessageToMatrix(away *linkedingo.AwayMessage) *bridgev2.ConvertedMessagePart {
+	content := &event.MessageEventContent{
+		MsgType:       event.MsgText,
+		Body:          away.Text.Text,
+		Format:        event.FormatHTML,
+		FormattedBody: event.TextToHTML(away.Text.Text),
+	}
+	if away.FooterText.Text != "" {
+		content.Body += "\n\n" + away.FooterText.Text
+		content.FormattedBody += "<br><br><em>" + event.TextToHTML(away.FooterText.Text) + "</em>"
+	}
+	return &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: content}
+}
+
+func convertCallToMatrix(msg linkedingo.Message, call *linkedingo.CallMessage) *bridgev2.ConvertedMessagePart {
+	body := "Missed call"
+	if call.CallStatus != linkedingo.CallStatusMissed {
+		body = "Call"
+		if name := participantName(msg.Sender); name != "" {
+			body = "Call with " + name
+		}
+		if call.Duration != nil {
+			secs := int(*call.Duration)
+			if secs >= 3600 {
+				body += fmt.Sprintf(" (%02d:%02d:%02d)", secs/3600, secs%3600/60, secs%60)
+			} else {
+				body += fmt.Sprintf(" (%02d:%02d)", secs/60, secs%60)
+			}
+		}
+	}
+	if call.Reason != "" {
+		body += fmt.Sprintf("\n%s role", call.Reason)
+	}
+	return noticePart(body)
+}
+
+func convertUnavailableContentToMatrix(content *linkedingo.UnavailableContent) *bridgev2.ConvertedMessagePart {
+	body := "This content is currently unavailable."
+	if content.UnavailableReason.Text != "" {
+		body = content.UnavailableReason.Text
+	}
+	return noticePart(body)
+}
+
+func convertVideoMeetingToMatrix(msg linkedingo.Message, meeting *linkedingo.VideoMeeting) *bridgev2.ConvertedMessagePart {
+	body := "Video meeting"
+	if name := participantName(msg.Sender); name != "" {
+		body = name + "'s meeting"
+	}
+	if meeting.TimeRange != nil && !meeting.TimeRange.Start.IsZero() {
+		body += "\nTime: " + meeting.TimeRange.Start.UTC().Format("Jan 2, 2006 15:04 MST")
+		if meeting.TimeRange.End.After(meeting.TimeRange.Start.Time) {
+			body += fmt.Sprintf("\nDuration: %d min", int(meeting.TimeRange.End.Sub(meeting.TimeRange.Start.Time).Minutes()))
+		}
+	}
+	conversationID := msg.Conversation.EntityURN.ID()
+	if conversationID == "" {
+		conversationID = msg.ConversationURN.ID()
+	}
+	threadID := strings.TrimSuffix(conversationID[strings.LastIndex(conversationID, ",")+1:], ")")
+	if meeting.VideoMeeting != nil && threadID != "" {
+		body += fmt.Sprintf("\nJoin video meeting: https://www.linkedin.com/thread/%s/conference/%s", threadID, meeting.VideoMeeting.EntityURN.ID())
+	}
+	return noticePart(body)
 }
 
 func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message, msg linkedingo.Message) (*bridgev2.ConvertedEdit, error) {
