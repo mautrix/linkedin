@@ -105,6 +105,7 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	}
 
 	ci.CanBackfill = true
+	ci.MessageRequest = ptr.Ptr(conv.State == linkedingo.ConversationStatePending)
 
 	ci.Members = &bridgev2.ChatMemberList{
 		IsFull:           true,
