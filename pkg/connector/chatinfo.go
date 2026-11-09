@@ -62,6 +62,16 @@ func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.
 		}))
 		ui.Avatar = l.getAvatar(participant.ParticipantType.Organization.Logo)
 		ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
+	case participant.ParticipantType.Custom != nil:
+		ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
+			Organization: participant.ParticipantType.Custom.Name.Text,
+		}))
+		ui.Avatar = l.getAvatar(participant.ParticipantType.Custom.Image)
+	case participant.ParticipantType.Agent != nil:
+		ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
+			Organization: participant.ParticipantType.Agent.Name.Text,
+		}))
+		ui.Avatar = l.getAvatar(participant.ParticipantType.Agent.ProfilePicture)
 	}
 	return
 }
