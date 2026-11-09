@@ -338,7 +338,7 @@ func (l *LinkedInClient) HandleMatrixMembership(ctx context.Context, msg *bridge
 	switch msg.Type {
 	case bridgev2.Invite:
 		err = l.client.AddParticipants(ctx, linkedingo.NewURN(msg.Portal.ID), participants)
-	case bridgev2.Kick:
+	case bridgev2.Kick, bridgev2.Leave:
 		err = l.client.RemoveParticipants(ctx, linkedingo.NewURN(msg.Portal.ID), participants)
 	}
 
