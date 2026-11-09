@@ -130,6 +130,7 @@ type SendURL struct {
 // Message represents a com.linkedin.messenger.Message object.
 type Message struct {
 	Body                    AttributedText          `json:"body,omitempty"`
+	Subject                 string                  `json:"subject,omitempty"`
 	DeliveredAt             jsontime.UnixMilli      `json:"deliveredAt,omitempty"`
 	EntityURN               URN                     `json:"entityUrn,omitempty"`
 	Sender                  MessagingParticipant    `json:"sender,omitempty"`
