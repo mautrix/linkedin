@@ -71,6 +71,8 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 		l.onRealtimeMessageSeenReceipts(ctx, decoratedEvent.Payload.Data.DecoratedSeenReceipt.Result)
 	case linkedingo.RealtimeEventTopicMessageReactionSummaries:
 		l.onRealtimeReactionSummaries(ctx, decoratedEvent.Payload.Data.DecoratedReactionSummary.Result)
+	case linkedingo.RealtimeEventTopicReplySuggestionV2, linkedingo.RealtimeEventTopicSecondaryPreviewBanner, linkedingo.RealtimeEventTopicMemberVerification:
+		log.Debug().Msg("Ignoring event topic")
 	default:
 		log.Warn().Msg("Unsupported event topic")
 	}
@@ -138,9 +140,8 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 
 	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
-		EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
-		ChatInfo:        &chatInfo,
-		LatestMessageTS: msg.DeliveredAt.Time,
+		EventMeta: meta.WithType(bridgev2.RemoteEventChatResync),
+		ChatInfo:  &chatInfo,
 	})
 
 	evt := simplevent.Message[linkedingo.Message]{
@@ -190,8 +191,9 @@ func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, rece
 	part, err := l.main.Bridge.DB.Message.GetLastPartByID(ctx, l.userLogin.ID, receipt.Message.MessageID())
 	if err != nil {
 		log.Err(err).Msg("failed to get read message")
+		return
 	} else if part == nil {
-		log.Warn().Msg("couldn't find read message")
+		log.Debug().Msg("couldn't find read message")
 		return
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Receipt{

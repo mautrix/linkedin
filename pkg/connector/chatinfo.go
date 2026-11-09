@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ptr"
@@ -62,6 +63,16 @@ func (l *LinkedInClient) getMessagingParticipantUserInfo(participant linkedingo.
 		}))
 		ui.Avatar = l.getAvatar(participant.ParticipantType.Organization.Logo)
 		ui.Identifiers = []string{fmt.Sprintf("linkedin:%s", participant.EntityURN.ID())}
+	case participant.ParticipantType.Custom != nil:
+		ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
+			Organization: participant.ParticipantType.Custom.Name.Text,
+		}))
+		ui.Avatar = l.getAvatar(participant.ParticipantType.Custom.Image)
+	case participant.ParticipantType.Agent != nil:
+		ui.Name = ptr.Ptr(l.main.Config.FormatDisplayname(DisplaynameParams{
+			Organization: participant.ParticipantType.Agent.Name.Text,
+		}))
+		ui.Avatar = l.getAvatar(participant.ParticipantType.Agent.ProfilePicture)
 	}
 	return
 }
@@ -109,6 +120,22 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	ci.UserLocal = &bridgev2.UserLocalPortalInfo{}
 	if tag := l.conversationTag(conv); tag != "" {
 		ci.UserLocal.Tag = &tag
+	}
+
+	if conv.DisabledFeatures != nil {
+		disabledFeatures := make([]linkedingo.ConversationFeature, 0, len(conv.DisabledFeatures))
+		for _, feature := range conv.DisabledFeatures {
+			disabledFeatures = append(disabledFeatures, feature.DisabledFeature)
+		}
+		slices.Sort(disabledFeatures)
+		ci.ExtraUpdates = func(ctx context.Context, portal *bridgev2.Portal) bool {
+			meta := portal.Metadata.(*PortalMetadata)
+			if slices.Equal(meta.DisabledFeatures, disabledFeatures) {
+				return false
+			}
+			meta.DisabledFeatures = disabledFeatures
+			return true
+		}
 	}
 
 	ci.Members = &bridgev2.ChatMemberList{
