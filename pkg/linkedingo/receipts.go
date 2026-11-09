@@ -20,10 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 
 	"go.mau.fi/util/jsontime"
@@ -50,7 +48,7 @@ type PatchEntitiesPayload struct {
 
 type MarkThreadReadResponse struct {
 	Results map[URNString]MarkThreadReadResult `json:"results,omitempty"`
-	Errors  map[string]error                   `json:"errors,omitempty"`
+	Errors  map[URNString]MarkThreadReadResult `json:"errors,omitempty"`
 }
 
 type MarkThreadReadResult struct {
@@ -87,5 +85,9 @@ func (c *Client) doMarkConversationRead(ctx context.Context, read bool, convURNs
 		return nil, err
 	}
 
-	return &result, errors.Join(slices.Collect(maps.Values(result.Errors))...)
+	errs := make([]error, 0, len(result.Errors))
+	for _, convErr := range result.Errors {
+		errs = append(errs, &ResponseError{StatusCode: convErr.Status})
+	}
+	return &result, errors.Join(errs...)
 }

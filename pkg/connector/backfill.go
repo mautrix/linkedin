@@ -84,6 +84,7 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 	lastRead := l.conversationLastRead[convURN]
 	l.conversationStateLock.Unlock()
 
+	var skippedRecalled bool
 	for _, msg := range messages {
 		log := log.With().Stringer("entity_urn", msg.EntityURN).Logger()
 		ctx := log.WithContext(ctx)
@@ -100,6 +101,11 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 				log.Debug().Msg("skipping message past anchor message")
 				continue
 			}
+		}
+
+		if msg.MessageBodyRenderFormat == linkedingo.MessageBodyRenderFormatRecalled {
+			skippedRecalled = true
+			continue
 		}
 
 		sender := l.makeSender(msg.Sender)
@@ -143,7 +149,7 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		}
 	}
 
-	resp.HasMore = len(resp.Messages) > 0
+	resp.HasMore = len(resp.Messages) > 0 || (skippedRecalled && resp.Cursor != "" && resp.Cursor != fetchParams.Cursor)
 	if !resp.MarkRead && !lastRead.Time.IsZero() {
 		resp.ReadUpTo = lastRead.Time
 	}
