@@ -158,15 +158,15 @@ type RenderContent struct {
 	Audio                 *AudioMetadata      `json:"audio,omitempty"`
 	AwayMessage           *AwayMessage        `json:"awayMessage,omitempty"`
 	CallMessageContent    *CallMessage        `json:"callMessageContent,omitempty"`
-	UnavailableContent    *UnavailableContent `json:"unavailableContent,omitempty"`
-	VideoMeeting          *VideoMeeting       `json:"videoMeeting,omitempty"`
 	ExternalMedia         *ExternalMedia      `json:"externalMedia,omitempty"`
 	File                  *FileAttachment     `json:"file,omitempty"`
 	ForwardedMessage      *ForwardedMessage   `json:"forwardedMessageContent,omitempty"`
 	HostURNData           *HostURNData        `json:"hostUrnData,omitempty"`
 	RepliedMessageContent *RepliedMessage     `json:"repliedMessageContent,omitempty"`
+	UnavailableContent    *UnavailableContent `json:"unavailableContent,omitempty"`
 	VectorImage           *VectorImage        `json:"vectorImage,omitempty"`
 	Video                 *VideoPlayMetadata  `json:"video,omitempty"`
+	VideoMeeting          *VideoMeeting       `json:"videoMeeting,omitempty"`
 }
 
 type AwayMessage struct {
