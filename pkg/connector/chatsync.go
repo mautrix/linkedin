@@ -109,7 +109,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		var latestMessageTS time.Time
 		var latestMessageID networkid.MessageID
 		for _, msg := range conv.Messages.Elements {
-			if msg.MessageBodyRenderFormat != linkedingo.MessageBodyRenderFormatRecalled && msg.DeliveredAt.After(latestMessageTS) {
+			if msg.DeliveredAt.After(latestMessageTS) {
 				latestMessageTS = msg.DeliveredAt.Time
 				latestMessageID = msg.MessageID()
 			}

@@ -146,7 +146,7 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		}
 	}
 
-	resp.HasMore = len(resp.Messages) > 0 || skippedRecalled
+	resp.HasMore = len(resp.Messages) > 0 || (skippedRecalled && resp.Cursor != "" && resp.Cursor != fetchParams.Cursor)
 	if !resp.MarkRead && !lastRead.Time.IsZero() {
 		resp.ReadUpTo = lastRead.Time
 	}
