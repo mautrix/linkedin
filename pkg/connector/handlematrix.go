@@ -268,7 +268,7 @@ func (l *LinkedInClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2
 }
 
 func (l *LinkedInClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev2.MatrixReactionRemove) error {
-	return wrapLinkedInError(l.client.RemoveReaction(ctx, linkedingo.NewURN(msg.TargetReaction.MessageID), msg.TargetReaction.Emoji))
+	return wrapLinkedInError(l.client.RemoveReaction(ctx, linkedingo.NewURN(msg.TargetReaction.MessageID), string(msg.TargetReaction.EmojiID)))
 }
 
 func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
