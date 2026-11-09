@@ -244,6 +244,26 @@ func (c *Client) RenameConversation(ctx context.Context, conversationURN URN, ti
 	return err
 }
 
+type conversationCategoryPayload struct {
+	ConversationURNs []URN  `json:"conversationUrns"`
+	Category         string `json:"category"`
+}
+
+func (c *Client) SetConversationStarred(ctx context.Context, conversationURN URN, starred bool) error {
+	action := "removeCategory"
+	if starred {
+		action = "addCategory"
+	}
+	_, err := c.newAuthedRequest(http.MethodPost, linkedInMessagingDashMessengerConversationsURL).
+		WithQueryParam("action", action).
+		WithCSRF().
+		WithContentType(contentTypePlaintextUTF8).
+		WithXLIHeaders().
+		WithJSONPayload(conversationCategoryPayload{ConversationURNs: []URN{conversationURN}, Category: "STARRED"}).
+		Do(ctx, nil)
+	return err
+}
+
 func (c *Client) manageParticipants(ctx context.Context, conversationURN URN, participants []URN, action string) error {
 	payload := ParticipantsPayload{
 		ConversationURN: conversationURN,
