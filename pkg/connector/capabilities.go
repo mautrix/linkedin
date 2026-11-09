@@ -51,7 +51,7 @@ func (*LinkedInConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 }
 
 func (*LinkedInConnector) GetBridgeInfoVersion() (info, capabilities int) {
-	return 1, 12
+	return 1, 11
 }
 
 const MaxTextLength = 8000
@@ -65,7 +65,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID() string {
-	base := "fi.mau.linkedin.capabilities.2026_11_09"
+	base := "fi.mau.linkedin.capabilities.2026_10_26"
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -187,15 +187,13 @@ func (l *LinkedInClient) GetCapabilities(ctx context.Context, portal *bridgev2.P
 		case linkedingo.ConversationFeatureSendVoiceMessage:
 			caps.File = caps.File.Clone()
 			delete(caps.File, event.CapMsgVoice)
-		case linkedingo.ConversationFeatureSendVideoMessage:
-			caps.File = caps.File.Clone()
-			delete(caps.File, event.MsgVideo)
 		case linkedingo.ConversationFeatureAddParticipant:
 			caps.MemberActions[event.MemberActionInvite] = event.CapLevelRejected
 		case linkedingo.ConversationFeatureRemoveParticipant:
 			caps.MemberActions[event.MemberActionKick] = event.CapLevelRejected
 		case linkedingo.ConversationFeatureRename:
-			caps.State = event.StateFeatureMap{}
+			caps.State = caps.State.Clone()
+			delete(caps.State, event.StateRoomName.Type)
 		default:
 			continue
 		}

@@ -143,7 +143,6 @@ const (
 	ConversationFeatureDeleteMessage     ConversationFeature = "DELETE_MESSAGE"
 	ConversationFeatureReplyToMessage    ConversationFeature = "REPLY_TO_MESSAGE"
 	ConversationFeatureSendVoiceMessage  ConversationFeature = "SEND_VOICE_MESSAGE"
-	ConversationFeatureSendVideoMessage  ConversationFeature = "SEND_VIDEO_MESSAGE"
 	ConversationFeatureAddParticipant    ConversationFeature = "ADD_PARTICIPANT"
 	ConversationFeatureRemoveParticipant ConversationFeature = "REMOVE_PARTICIPANT"
 	ConversationFeatureRename            ConversationFeature = "RENAMED_CONVERSATION"
