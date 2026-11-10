@@ -209,10 +209,10 @@ func (c *PasswordLoginClient) Login(ctx context.Context, identifier, password st
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to prepare password submit request")
 		return nil, &PasswordLoginError{Kind: PasswordLoginUnsupported, Stage: "request"}
 	}
-	return c.postAuthentication(ctx, body, bootstrapHeaders, "authenticate", "/login")
+	return c.postAuthentication(ctx, passwordAuthenticationRequest, body, bootstrapHeaders, "authenticate", "/login")
 }
 
-func (c *PasswordLoginClient) postAuthentication(ctx context.Context, body []byte, bootstrapHeaders http.Header, stage, refererPath string) (*PasswordLoginSession, error) {
+func (c *PasswordLoginClient) postAuthentication(ctx context.Context, requestID string, body []byte, bootstrapHeaders http.Header, stage, refererPath string) (*PasswordLoginSession, error) {
 	defer clear(body)
 	version := bootstrapHeaders.Get("X-Li-Application-Version")
 	if version == "" {
@@ -250,7 +250,7 @@ func (c *PasswordLoginClient) postAuthentication(ctx context.Context, body []byt
 		"Sec-Fetch-Mode":                 {"cors"},
 		"Sec-Fetch-Site":                 {"same-origin"},
 	}
-	data, resp, err := c.request(ctx, stage, http.MethodPost, "/flagship-web/rsc-action/actions/server-request?sduiid="+passwordAuthenticationRequest, body, headers)
+	data, resp, err := c.request(ctx, stage, http.MethodPost, "/flagship-web/rsc-action/actions/server-request?sduiid="+requestID, body, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +283,18 @@ func (c *PasswordLoginClient) postAuthentication(ctx context.Context, body []byt
 			}
 			return &PasswordLoginSession{Cookies: c.jar, BrowserHeaders: c.headers.Clone()}, nil
 		}
+	}
+	if result.ChallengeRoute != nil && requestID != passwordChallengeRouteRequest {
+		screenID := "com.linkedin.sdui.flagshipnav.login.Login"
+		if screen := bootstrapHeaders.Get("X-Li-Leaf-Screen-Id"); strings.HasPrefix(screen, "com.linkedin.sdui.") {
+			screenID = screen
+		}
+		body, err := marshalLoginAction(result.ChallengeRoute, []any{}, screenID)
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("Failed to marshal challenge route action")
+			return nil, &PasswordLoginError{Kind: PasswordLoginUnsupported, Stage: "challenge_route"}
+		}
+		return c.postAuthentication(ctx, passwordChallengeRouteRequest, body, bootstrapHeaders, "challenge_route", refererPath)
 	}
 	return nil, &PasswordLoginError{Kind: PasswordLoginBadResponse, Stage: "completion", Status: resp.StatusCode}
 }
