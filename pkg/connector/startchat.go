@@ -135,36 +135,6 @@ func (l *LinkedInClient) createChat(ctx context.Context, chatInfo *bridgev2.Chat
 	}, nil
 }
 
-func (l *LinkedInClient) claimPendingDM(ctx context.Context, conv linkedingo.Conversation) {
-	if conv.GroupChat || conv.EntityURN.IsEmpty() {
-		return
-	}
-	var otherUserID networkid.UserID
-	for _, participant := range conv.ConversationParticipants {
-		if userID := networkid.UserID(participant.EntityURN.ID()); userID != l.userID {
-			otherUserID = userID
-			break
-		}
-	}
-	if otherUserID == "" {
-		return
-	}
-	log := zerolog.Ctx(ctx)
-	if portal, err := l.main.Bridge.GetExistingPortalByKey(ctx, l.makePortalKey(conv)); err != nil {
-		log.Err(err).Msg("Failed to get portal for conversation")
-		return
-	} else if portal != nil && portal.MXID != "" {
-		return
-	}
-	if pending, err := l.main.Bridge.GetExistingPortalByKey(ctx, l.makePendingDMPortalKey(otherUserID)); err != nil {
-		log.Err(err).Msg("Failed to get pending DM portal")
-		return
-	} else if pending == nil {
-		return
-	}
-	l.reIDPendingDM(ctx, otherUserID, conv.EntityURN)
-}
-
 func (l *LinkedInClient) reIDPendingDM(ctx context.Context, otherUserID networkid.UserID, conversationURN linkedingo.URN) {
 	target := networkid.PortalKey{
 		ID:       networkid.PortalID(conversationURN.String()),

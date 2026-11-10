@@ -120,7 +120,6 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 			Msg("Ignoring realtime message without conversation")
 		return
 	}
-	l.claimPendingDM(ctx, msg.Conversation)
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
