@@ -66,7 +66,7 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 		case rc.AwayMessage != nil:
 			l.convertAwayMessageToMatrix(ctx, &cm, &textPart, rc.AwayMessage)
 		case rc.CallMessageContent != nil:
-			l.convertCallToMatrix(&cm, &textPart, msg, rc.CallMessageContent)
+			convertCallToMatrix(&cm, &textPart, rc.CallMessageContent)
 		case rc.ExternalMedia != nil:
 			part, err = l.convertExternalMediaToMatrix(ctx, portal, intent, rc.ExternalMedia)
 		case rc.File != nil:
@@ -161,16 +161,6 @@ func appendNotice(cm *bridgev2.ConvertedMessage, textPart **bridgev2.ConvertedMe
 	appendToText(cm, textPart, event.MsgNotice, body, event.TextToHTML(body))
 }
 
-func participantFirstName(participant linkedingo.MessagingParticipant) string {
-	switch {
-	case participant.ParticipantType.Member != nil:
-		return participant.ParticipantType.Member.FirstName.Text
-	case participant.ParticipantType.Organization != nil:
-		return participant.ParticipantType.Organization.Name.Text
-	}
-	return ""
-}
-
 func (l *LinkedInClient) convertAwayMessageToMatrix(ctx context.Context, cm *bridgev2.ConvertedMessage, textPart **bridgev2.ConvertedMessagePart, away *linkedingo.AwayMessage) {
 	if away.Text.Text == "" || (*textPart != nil && (*textPart).Content.Body == away.Text.Text) {
 		return
@@ -188,27 +178,12 @@ func (l *LinkedInClient) convertAwayMessageToMatrix(ctx context.Context, cm *bri
 	appendToText(cm, textPart, event.MsgText, content.Body, content.FormattedBody)
 }
 
-func (l *LinkedInClient) convertCallToMatrix(cm *bridgev2.ConvertedMessage, textPart **bridgev2.ConvertedMessagePart, msg linkedingo.Message, call *linkedingo.CallMessage) {
-	title := "Missed call"
-	if call.CallStatus != linkedingo.CallStatusMissed {
-		title = "Call"
-		if name := participantFirstName(msg.Sender); name != "" && networkid.UserID(msg.Sender.EntityURN.ID()) != l.userID {
-			title = "Call with " + name
-		}
-		if call.Duration != nil && *call.Duration > 0 {
-			secs := int(*call.Duration)
-			if secs >= 3600 {
-				title += fmt.Sprintf(" (%02d:%02d:%02d)", secs/3600, secs%3600/60, secs%60)
-			} else {
-				title += fmt.Sprintf(" (%02d:%02d)", secs/60, secs%60)
-			}
-		}
+func convertCallToMatrix(cm *bridgev2.ConvertedMessage, textPart **bridgev2.ConvertedMessagePart, call *linkedingo.CallMessage) {
+	body := "Call"
+	if call.CallStatus == linkedingo.CallStatusMissed {
+		body = "Missed call"
 	}
-	lines := []string{title}
-	if call.Reason != "" {
-		lines = append(lines, call.Reason+" role")
-	}
-	appendNotice(cm, textPart, lines...)
+	appendNotice(cm, textPart, body)
 }
 
 func convertUnavailableContentToMatrix(cm *bridgev2.ConvertedMessage, textPart **bridgev2.ConvertedMessagePart, content *linkedingo.UnavailableContent) {
@@ -221,15 +196,6 @@ func convertUnavailableContentToMatrix(cm *bridgev2.ConvertedMessage, textPart *
 
 func convertVideoMeetingToMatrix(cm *bridgev2.ConvertedMessage, textPart **bridgev2.ConvertedMessagePart, msg linkedingo.Message, meeting *linkedingo.VideoMeeting) {
 	lines := []string{"Video meeting"}
-	if name := participantFirstName(msg.Sender); name != "" {
-		lines[0] = name + "'s meeting"
-	}
-	if meeting.TimeRange != nil && !meeting.TimeRange.Start.IsZero() {
-		lines = append(lines, "Time: "+meeting.TimeRange.Start.UTC().Format("Jan 2, 2006 15:04 MST"))
-		if meeting.TimeRange.End.After(meeting.TimeRange.Start.Time) {
-			lines = append(lines, fmt.Sprintf("Duration: %d min", int(meeting.TimeRange.End.Sub(meeting.TimeRange.Start.Time).Minutes())))
-		}
-	}
 	conversationID := msg.Conversation.EntityURN.ID()
 	if conversationID == "" {
 		conversationID = msg.ConversationURN.ID()

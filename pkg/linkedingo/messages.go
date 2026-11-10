@@ -179,22 +179,14 @@ type CallStatus string
 const CallStatusMissed CallStatus = "MISSED"
 
 type CallMessage struct {
-	CallStatus CallStatus         `json:"callStatus,omitempty"`
-	CallTime   jsontime.UnixMilli `json:"callTime,omitempty"`
-	Duration   *float64           `json:"duration,omitempty"`
-	Reason     string             `json:"reason,omitempty"`
+	CallStatus CallStatus `json:"callStatus,omitempty"`
 }
 
 type UnavailableContent struct {
-	ContentType       string         `json:"contentType,omitempty"`
 	UnavailableReason AttributedText `json:"unavailableReason,omitempty"`
 }
 
 type VideoMeeting struct {
-	TimeRange *struct {
-		Start jsontime.UnixMilli `json:"start,omitempty"`
-		End   jsontime.UnixMilli `json:"end,omitempty"`
-	} `json:"timeRange,omitempty"`
 	VideoMeeting *struct {
 		EntityURN URN `json:"entityUrn,omitempty"`
 	} `json:"videoMeeting,omitempty"`
