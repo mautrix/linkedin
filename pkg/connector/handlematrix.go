@@ -225,14 +225,18 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	}
 	if err != nil {
 		return nil, wrapLinkedInError(err)
-	} else if isPendingDM && !resp.Data.ConversationURN.IsEmpty() {
-		l.reIDPendingDM(ctx, otherUserID, resp.Data.ConversationURN)
+	}
+	room := msg.Portal.PortalKey
+	if isPendingDM && !resp.Data.ConversationURN.IsEmpty() {
+		if newKey, ok := l.reIDPendingDM(ctx, otherUserID, resp.Data.ConversationURN); ok {
+			room = newKey
+		}
 	}
 	return &bridgev2.MatrixMessageResponse{
 		DB: &database.Message{
 			ID:        resp.Data.MessageID(),
 			MXID:      msg.Event.ID,
-			Room:      msg.Portal.PortalKey,
+			Room:      room,
 			SenderID:  l.userID,
 			Timestamp: resp.Data.DeliveredAt.Time,
 		},
@@ -285,10 +289,12 @@ func (l *LinkedInClient) HandleMatrixReactionRemove(ctx context.Context, msg *br
 func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
-	} else if _, isPendingDM := parsePendingDMPortalID(msg.Portal.ID); isPendingDM {
+	}
+	conversationURN, ok := portalConversationURN(msg.Portal)
+	if !ok {
 		return nil
 	}
-	_, err := l.client.MarkConversationRead(ctx, linkedingo.NewURN(msg.Portal.ID))
+	_, err := l.client.MarkConversationRead(ctx, conversationURN)
 	return wrapLinkedInError(err)
 }
 
@@ -310,10 +316,8 @@ func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.M
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
 	}
-	if _, isPendingDM := parsePendingDMPortalID(msg.Portal.ID); isPendingDM {
-		return nil
-	} else if msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
-		return wrapLinkedInError(l.client.StartTyping(ctx, linkedingo.NewURN(msg.Portal.ID)))
+	if conversationURN, ok := portalConversationURN(msg.Portal); ok && msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
+		return wrapLinkedInError(l.client.StartTyping(ctx, conversationURN))
 	}
 	return nil
 }

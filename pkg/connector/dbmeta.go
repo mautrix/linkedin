@@ -52,6 +52,7 @@ type UserLoginMetadata struct {
 
 type PortalMetadata struct {
 	DisabledFeatures []linkedingo.ConversationFeature `json:"disabled_features,omitempty"`
+	ConversationURN  string                           `json:"conversation_urn,omitempty"`
 }
 
 type MessageMetadata struct {

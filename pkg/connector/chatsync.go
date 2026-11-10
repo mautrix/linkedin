@@ -96,13 +96,13 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 		}
 		l.conversationStateLock.Unlock()
 
-		portalKey := l.makePortalKey(conv)
+		portalKey, isPendingDM := l.makeEventPortalKey(ctx, conv)
 		meta := simplevent.EventMeta{
 			LogContext: func(c zerolog.Context) zerolog.Context {
 				return c.Str("update", "sync")
 			},
 			PortalKey:    portalKey,
-			CreatePortal: l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit,
+			CreatePortal: !isPendingDM && (l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit),
 		}
 		*synced++
 

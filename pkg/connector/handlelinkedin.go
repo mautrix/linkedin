@@ -66,7 +66,7 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 	case linkedingo.RealtimeEventTopicMessages:
 		l.onRealtimeMessage(ctx, decoratedEvent.Payload.Data.DecoratedMessage.Result)
 	case linkedingo.RealtimeEventTopicTypingIndicators:
-		l.onRealtimeTypingIndicator(decoratedEvent)
+		l.onRealtimeTypingIndicator(ctx, decoratedEvent)
 	case linkedingo.RealtimeEventTopicMessageSeenReceipts:
 		l.onRealtimeMessageSeenReceipts(ctx, decoratedEvent.Payload.Data.DecoratedSeenReceipt.Result)
 	case linkedingo.RealtimeEventTopicMessageReactionSummaries:
@@ -120,17 +120,18 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 			Msg("Ignoring realtime message without conversation")
 		return
 	}
+	portalKey, isPendingDM := l.makeEventPortalKey(ctx, msg.Conversation)
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
 				Stringer("entity_urn", msg.EntityURN).
 				Stringer("sender", msg.Sender.EntityURN)
 		},
-		PortalKey:    l.makePortalKey(msg.Conversation),
+		PortalKey:    portalKey,
 		Sender:       l.makeSender(msg.Sender),
 		Timestamp:    msg.DeliveredAt.Time,
 		StreamOrder:  msg.DeliveredAt.UnixMilli(),
-		CreatePortal: true,
+		CreatePortal: !isPendingDM,
 	}
 
 	if msg.MessageBodyRenderFormat == linkedingo.MessageBodyRenderFormatRecalled {
@@ -175,7 +176,7 @@ func (l *LinkedInClient) acknowledgeDelivery(ctx context.Context, messageURN lin
 	}
 }
 
-func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *linkedingo.DecoratedEvent) {
+func (l *LinkedInClient) onRealtimeTypingIndicator(ctx context.Context, decoratedEvent *linkedingo.DecoratedEvent) {
 	typingIndicator := decoratedEvent.Payload.Data.DecoratedTypingIndicator.Result
 	meta := simplevent.EventMeta{
 		Type: bridgev2.RemoteEventTyping,
@@ -184,10 +185,10 @@ func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *linkedingo.De
 				Stringer("conversation_urn", typingIndicator.Conversation.EntityURN).
 				Stringer("typing_participant_urn", typingIndicator.TypingParticipant.EntityURN)
 		},
-		PortalKey: l.makePortalKey(typingIndicator.Conversation),
 		Sender:    l.makeSender(typingIndicator.TypingParticipant),
 		Timestamp: decoratedEvent.LeftServerAt.Time,
 	}
+	meta.PortalKey, _ = l.makeEventPortalKey(ctx, typingIndicator.Conversation)
 
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Typing{
 		EventMeta: meta,

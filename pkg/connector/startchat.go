@@ -135,7 +135,38 @@ func (l *LinkedInClient) createChat(ctx context.Context, chatInfo *bridgev2.Chat
 	}, nil
 }
 
-func (l *LinkedInClient) reIDPendingDM(ctx context.Context, otherUserID networkid.UserID, conversationURN linkedingo.URN) {
+func (l *LinkedInClient) makeEventPortalKey(ctx context.Context, conv linkedingo.Conversation) (networkid.PortalKey, bool) {
+	key := l.makePortalKey(conv)
+	if conv.GroupChat {
+		return key, false
+	}
+	var otherUserID networkid.UserID
+	for _, participant := range conv.ConversationParticipants {
+		if userID := networkid.UserID(participant.EntityURN.ID()); userID != l.userID {
+			otherUserID = userID
+			break
+		}
+	}
+	if otherUserID == "" {
+		return key, false
+	}
+	log := zerolog.Ctx(ctx)
+	pendingKey := l.makePendingDMPortalKey(otherUserID)
+	if pending, err := l.main.Bridge.GetExistingPortalByKey(ctx, pendingKey); err != nil {
+		log.Err(err).Msg("Failed to get pending DM portal")
+		return key, false
+	} else if pending == nil || pending.MXID == "" {
+		return key, false
+	} else if existing, err := l.main.Bridge.GetExistingPortalByKey(ctx, key); err != nil {
+		log.Err(err).Msg("Failed to get portal for conversation")
+		return key, false
+	} else if existing != nil && existing.MXID != "" {
+		return key, false
+	}
+	return pendingKey, true
+}
+
+func (l *LinkedInClient) reIDPendingDM(ctx context.Context, otherUserID networkid.UserID, conversationURN linkedingo.URN) (networkid.PortalKey, bool) {
 	target := networkid.PortalKey{
 		ID:       networkid.PortalID(conversationURN.String()),
 		Receiver: l.userLogin.ID,
@@ -143,9 +174,11 @@ func (l *LinkedInClient) reIDPendingDM(ctx context.Context, otherUserID networki
 	result, portal, err := l.main.Bridge.ReIDPortal(ctx, l.makePendingDMPortalKey(otherUserID), target)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Stringer("conversation_urn", conversationURN).Msg("Failed to move pending DM to LinkedIn conversation")
+		return networkid.PortalKey{}, false
 	} else if result == bridgev2.ReIDResultSourceReIDd || result == bridgev2.ReIDResultTargetDeletedAndSourceReIDd {
 		portal.UpdateBridgeInfo(ctx)
 	}
+	return target, true
 }
 
 func (l *LinkedInClient) SearchUsers(ctx context.Context, query string) (resp []*bridgev2.ResolveIdentifierResponse, err error) {

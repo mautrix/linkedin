@@ -52,6 +52,15 @@ func parsePendingDMPortalID(portalID networkid.PortalID) (networkid.UserID, bool
 	return networkid.UserID(userID), ok
 }
 
+func portalConversationURN(portal *bridgev2.Portal) (linkedingo.URN, bool) {
+	if _, isPendingDM := parsePendingDMPortalID(portal.ID); !isPendingDM {
+		return linkedingo.NewURN(portal.ID), true
+	} else if urn := portal.Metadata.(*PortalMetadata).ConversationURN; urn != "" {
+		return linkedingo.NewURN(urn), true
+	}
+	return linkedingo.URN{}, false
+}
+
 func (l *LinkedInClient) makeSender(participant linkedingo.MessagingParticipant) (sender bridgev2.EventSender) {
 	id := participant.EntityURN.ID()
 	sender.IsFromMe = id == string(l.userID)
