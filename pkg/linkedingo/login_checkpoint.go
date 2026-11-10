@@ -335,7 +335,7 @@ func (c *PasswordCheckpoint) submitForm(ctx context.Context, fields url.Values) 
 			zerolog.Ctx(ctx).Err(err).Msg("Failed to marshal checkpoint completion action")
 			return nil, &PasswordLoginError{Kind: PasswordLoginUnsupported, Stage: "checkpoint_complete"}
 		}
-		return c.client.postAuthentication(ctx, body, c.headers, "checkpoint_complete", c.path)
+		return c.client.postAuthentication(ctx, passwordAuthenticationRequest, body, c.headers, "checkpoint_complete", c.path)
 	}
 	return nil, &PasswordLoginError{Kind: PasswordLoginChallenge, Stage: stage, Status: resp.StatusCode}
 }
