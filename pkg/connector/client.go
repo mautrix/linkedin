@@ -109,6 +109,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 				} else {
 					client.getConversationsBySyncToken(ctx)
 				}
+				go client.syncBlockedUsers(ctx)
 			},
 			TransientDisconnect: client.onTransientDisconnect,
 			BadCredentials:      client.onBadCredentials,
