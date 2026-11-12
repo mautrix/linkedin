@@ -111,7 +111,12 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		Stringer("conversation_urn", msg.Conversation.EntityURN).
 		Msg("Processing realtime message")
 	if !msg.EntityURN.IsEmpty() {
-		go l.acknowledgeDelivery(ctx, msg.EntityURN)
+		existing, err := l.main.Bridge.DB.Message.GetFirstPartByID(ctx, l.userLogin.ID, msg.MessageID())
+		if err != nil {
+			log.Err(err).Stringer("message_urn", msg.EntityURN).Msg("Failed to check if realtime message was already bridged")
+		} else if existing == nil {
+			go l.acknowledgeDelivery(ctx, msg.EntityURN)
+		}
 	}
 	if msg.Conversation.EntityURN.IsEmpty() {
 		log.Debug().
