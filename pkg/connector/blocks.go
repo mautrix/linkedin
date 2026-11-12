@@ -50,15 +50,15 @@ func withoutNotice(err error) error {
 }
 
 func (l *LinkedInClient) HandleMatrixViewingChat(ctx context.Context, chat *bridgev2.MatrixViewingChat) error {
-	l.resyncUserBlock(ctx, chat.Portal)
+	l.resyncUserBlock(ctx, chat.Portal, time.Hour)
 	return nil
 }
 
-func (l *LinkedInClient) resyncUserBlock(ctx context.Context, portal *bridgev2.Portal) {
+func (l *LinkedInClient) resyncUserBlock(ctx context.Context, portal *bridgev2.Portal, maxAge time.Duration) {
 	if portal == nil || portal.RoomType != database.RoomTypeDM || portal.Receiver == "" || portal.Receiver != l.userLogin.ID || portal.OtherUserID == "" || portal.OtherUserID == l.userID || !l.IsLoggedIn() {
 		return
 	}
-	go l.syncUserBlock(context.WithoutCancel(ctx), portal)
+	go l.syncUserBlock(context.WithoutCancel(ctx), portal, maxAge)
 }
 
 func (l *LinkedInClient) getBlockedUsers(ctx context.Context, maxAge time.Duration) map[networkid.UserID]bool {
@@ -82,15 +82,15 @@ func (l *LinkedInClient) getBlockedUsers(ctx context.Context, maxAge time.Durati
 	return maps.Clone(l.blockedUsers)
 }
 
-func (l *LinkedInClient) syncUserBlock(ctx context.Context, portal *bridgev2.Portal) {
-	if l.getBlockedUsers(ctx, time.Hour) == nil {
+func (l *LinkedInClient) syncUserBlock(ctx context.Context, portal *bridgev2.Portal, maxAge time.Duration) {
+	if l.getBlockedUsers(ctx, maxAge) == nil {
 		return
 	}
 	l.queueBlockInfoChange(portal.PortalKey, portal.OtherUserID)
 }
 
 func (l *LinkedInClient) syncBlockedUsers(ctx context.Context) {
-	blocked := l.getBlockedUsers(ctx, 5*time.Minute)
+	blocked := l.getBlockedUsers(ctx, 0)
 	if blocked == nil {
 		return
 	}
@@ -125,6 +125,12 @@ func (l *LinkedInClient) syncBlockedUsers(ctx context.Context) {
 	}
 	for key, userID := range targets {
 		l.queueBlockInfoChange(key, userID)
+	}
+}
+
+func (l *LinkedInClient) resyncBlockedPortalOnMessage(ctx context.Context, portal *bridgev2.Portal) {
+	if portal.UserBlocked {
+		l.resyncUserBlock(ctx, portal, 0)
 	}
 }
 

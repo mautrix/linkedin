@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -67,7 +68,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if !l.IsLoggedIn() {
 		return nil, ErrNotLoggedIn
 	}
-	l.resyncUserBlock(ctx, msg.Portal)
+	l.resyncUserBlock(ctx, msg.Portal, time.Hour)
 	conversationURN := linkedingo.NewURN(msg.Portal.ID)
 
 	// Handle emotes by adding a "*" and the user's name to the message
