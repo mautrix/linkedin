@@ -9,6 +9,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ptr"
+	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -38,7 +39,7 @@ func (l *LinkedInConnector) ValidateUserID(uid networkid.UserID) bool {
 func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier string, createChat bool) (*bridgev2.ResolveIdentifierResponse, error) {
 	id := networkid.UserID(identifier)
 	if !l.main.ValidateUserID(id) {
-		return nil, fmt.Errorf("invalid identifier: %s", identifier)
+		return nil, bridgev2.RespError(mautrix.MInvalidParam.WithMessage("Invalid LinkedIn user ID %q", identifier))
 	}
 	ghost, err := l.main.Bridge.GetGhostByID(ctx, id)
 	if err != nil {
