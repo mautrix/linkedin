@@ -27,6 +27,7 @@ const (
 	linkedInVoyagerCommonMeURL                       = "https://www.linkedin.com/voyager/api/me"
 	linkedInVoyagerMediaUploadMetadataURL            = "https://www.linkedin.com/voyager/api/voyagerVideoDashMediaUploadMetadata"
 	linkedInVoyagerMessagingDashMessengerMessagesURL = "https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages"
+	linkedInVoyagerMessagingDeliveryAcksURL          = "https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessageDeliveryAcknowledgements"
 	linkedInVoyagerNotificationsDashPushRegistration = "https://www.linkedin.com/voyager/api/voyagerNotificationsDashPushRegistration"
 )
 
@@ -57,13 +58,15 @@ const (
 	RealtimeEventTopicMessagingProgressIndicator = "messagingProgressIndicatorTopic"
 	RealtimeEventTopicMessagingDataSync          = "messagingDataSyncTopic"
 	RealtimeEventTopicPresenceStatus             = "presenceStatusTopic"
+	RealtimeEventTopicSecondaryPreviewBanner     = "messagingSecondaryPreviewBannerTopic"
+	RealtimeEventTopicMemberVerification         = "memberVerificationResultsPersonalTopic"
 )
 
 const (
-	graphQLQueryIDMessengerConversations              = "messengerConversations.f0873b936b43ed663997b215b2c28359"
+	graphQLQueryIDMessengerConversations              = "messengerConversations.0d5e6781bbee71c3e51c8843c6519f48"
 	graphQLQueryIDMessengerConversationsWithSyncToken = "messengerConversations.74c17e85611b60b7ba2700481151a316"
-	graphQLQueryIDMessengerConversationsWithCursor    = "messengerConversations.8656fb361a8ad0c178e8d3ff1a84ce26"
-	graphQLQueryIDMessengerMessagesByAnchorTimestamp  = "messengerMessages.4088d03bc70c91c3fa68965cb42336de"
+	graphQLQueryIDMessengerConversationsWithCursor    = "messengerConversations.9501074288a12f3ae9e3c7ea243bccbf"
+	graphQLQueryIDMessengerMessagesByAnchorTimestamp  = "messengerMessages.d8ea76885a52fd5dc5c317078ab7c977"
 	graphQLQueryIDMessengerMessagesByPrevCursor       = "messengerMessages.34c9888be71c8010fecfb575cb38308f"
 	graphQLQueryIDVoyagerFeedDashUpdates              = "voyagerFeedDashUpdates.c2a318e55b634e20689c80e3dd11952e"
 	graphQLQueryIDVoyagerMessagingTypeahead           = "voyagerMessagingDashMessagingTypeahead.7f566173ac0c94b510b3dc2b2a6763d4"

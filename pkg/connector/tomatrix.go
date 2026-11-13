@@ -17,8 +17,12 @@
 package connector
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"strings"
 
@@ -52,6 +56,22 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 
 		textPart = &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: content}
 		cm.Parts = []*bridgev2.ConvertedMessagePart{textPart}
+	}
+
+	if msg.Subject != "" {
+		if textPart == nil {
+			textPart = &bridgev2.ConvertedMessagePart{Type: event.EventMessage, Content: &event.MessageEventContent{MsgType: event.MsgText}}
+			cm.Parts = []*bridgev2.ConvertedMessagePart{textPart}
+		}
+		textPart.Content.EnsureHasHTML()
+		subjectHTML := fmt.Sprintf("<strong>%s</strong>", html.EscapeString(msg.Subject))
+		if textPart.Content.Body == "" {
+			textPart.Content.Body = msg.Subject
+			textPart.Content.FormattedBody = subjectHTML
+		} else {
+			textPart.Content.Body = msg.Subject + "\n\n" + textPart.Content.Body
+			textPart.Content.FormattedBody = subjectHTML + "<br><br>" + textPart.Content.FormattedBody
+		}
 	}
 
 	ctx = context.WithValue(ctx, contextKeyMsgID, msg.MessageID())
@@ -135,6 +155,7 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 		zerolog.Ctx(ctx).Warn().
 			Str("body_text", msg.Body.Text).
 			Int("render_content_count", len(msg.RenderContent)).
+			Str("render_format", string(msg.MessageBodyRenderFormat)).
 			Stringer("message_urn", msg.EntityURN).
 			Msg("Message conversion resulted in empty parts")
 	}
@@ -211,6 +232,14 @@ func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridge
 	if len(existing) != 1 {
 		return nil, fmt.Errorf("editing a message that was bridged as multiple parts is not supported")
 	}
+	bodyJSON, err := json.Marshal(msg.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal edit body: %w", err)
+	}
+	editHash := sha256.Sum256(bodyJSON)
+	if existingMeta, ok := existing[0].Metadata.(*MessageMetadata); ok && bytes.Equal(existingMeta.EditHash, editHash[:]) {
+		return nil, fmt.Errorf("%w: edit body is unchanged", bridgev2.ErrIgnoringRemoteEvent)
+	}
 	converted, err := l.convertToMatrix(ctx, portal, intent, msg)
 	if err != nil {
 		return nil, err
@@ -219,11 +248,16 @@ func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridge
 		return nil, fmt.Errorf("editing a message in a way that creates multiple parts is not supported")
 	}
 
-	var convertedEdit bridgev2.ConvertedEdit
-	for i, part := range converted.Parts {
-		convertedEdit.ModifiedParts = append(convertedEdit.ModifiedParts, part.ToEditPart(existing[i]))
+	editPart := converted.Parts[0].ToEditPart(existing[0])
+	meta, ok := editPart.Part.Metadata.(*MessageMetadata)
+	if !ok || meta == nil {
+		meta = &MessageMetadata{}
+		editPart.Part.Metadata = meta
 	}
-	return &convertedEdit, nil
+	meta.EditHash = editHash[:]
+	return &bridgev2.ConvertedEdit{
+		ModifiedParts: []*bridgev2.ConvertedEditPart{editPart},
+	}, nil
 }
 
 func (l *LinkedInClient) convertToDirectMedia(ctx context.Context, portal *bridgev2.Portal, content *event.MessageEventContent, url string, expiresAt jsontime.UnixMilli) (*bridgev2.ConvertedMessagePart, error) {
@@ -412,6 +446,9 @@ func (l *LinkedInClient) convertHostURNToMatrix(ctx context.Context, portal *bri
 		}, nil
 	} else {
 		textPart.Content.Body += " " + url
+		if textPart.Content.FormattedBody != "" {
+			textPart.Content.FormattedBody += fmt.Sprintf(` <a href="%s">%s</a>`, html.EscapeString(url), html.EscapeString(url))
+		}
 		textPart.Content.BeeperLinkPreviews = []*event.BeeperLinkPreview{&linkPreview}
 		return nil, nil
 	}

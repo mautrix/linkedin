@@ -25,6 +25,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -59,11 +60,53 @@ var (
 // ResponseError is returned when LinkedIn answers with a non-2xx status. It is a typed
 // error so callers can branch on the status code instead of parsing the message.
 type ResponseError struct {
-	StatusCode int
+	StatusCode       int
+	Code             string
+	ServiceErrorCode int
+	ExceptionClass   string
 }
 
 func (re *ResponseError) Error() string {
+	var details []string
+	if re.Code != "" {
+		details = append(details, "code "+re.Code)
+	}
+	if re.ServiceErrorCode != 0 {
+		details = append(details, fmt.Sprintf("service error code %d", re.ServiceErrorCode))
+	}
+	if re.ExceptionClass != "" {
+		details = append(details, "exception "+re.ExceptionClass)
+	}
+	if len(details) > 0 {
+		return fmt.Sprintf("unexpected status code %d (%s)", re.StatusCode, strings.Join(details, ", "))
+	}
 	return fmt.Sprintf("unexpected status code %d", re.StatusCode)
+}
+
+var errorTokenRegex = regexp.MustCompile(`^[A-Za-z0-9_.$-]{1,128}$`)
+
+type errorResponseBody struct {
+	Code             string             `json:"code"`
+	ServiceErrorCode int                `json:"serviceErrorCode"`
+	ExceptionClass   string             `json:"exceptionClass"`
+	Data             *errorResponseBody `json:"data"`
+}
+
+func (re *ResponseError) readBody(body io.Reader) {
+	var parsed errorResponseBody
+	if json.NewDecoder(io.LimitReader(body, 64*1024)).Decode(&parsed) != nil {
+		return
+	}
+	if parsed.Data != nil && parsed.Code == "" && parsed.ServiceErrorCode == 0 && parsed.ExceptionClass == "" {
+		parsed = *parsed.Data
+	}
+	if errorTokenRegex.MatchString(parsed.Code) {
+		re.Code = parsed.Code
+	}
+	re.ServiceErrorCode = parsed.ServiceErrorCode
+	if errorTokenRegex.MatchString(parsed.ExceptionClass) {
+		re.ExceptionClass = parsed.ExceptionClass
+	}
 }
 
 func (c *Client) checkHTTPRedirect(req *http.Request, via []*http.Request) error {
@@ -350,7 +393,11 @@ func (a *authedRequest) Do(ctx context.Context, out any) (*http.Response, error)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
-		return resp, &ResponseError{StatusCode: resp.StatusCode}
+		respErr := &ResponseError{StatusCode: resp.StatusCode}
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			respErr.readBody(resp.Body)
+		}
+		return resp, respErr
 	}
 
 	if out == nil {

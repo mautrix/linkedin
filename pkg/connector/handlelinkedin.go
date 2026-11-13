@@ -71,6 +71,8 @@ func (l *LinkedInClient) onDecoratedEvent(ctx context.Context, decoratedEvent *l
 		l.onRealtimeMessageSeenReceipts(ctx, decoratedEvent.Payload.Data.DecoratedSeenReceipt.Result)
 	case linkedingo.RealtimeEventTopicMessageReactionSummaries:
 		l.onRealtimeReactionSummaries(ctx, decoratedEvent.Payload.Data.DecoratedReactionSummary.Result)
+	case linkedingo.RealtimeEventTopicReplySuggestionV2, linkedingo.RealtimeEventTopicSecondaryPreviewBanner, linkedingo.RealtimeEventTopicMemberVerification:
+		log.Debug().Msg("Ignoring event topic")
 	default:
 		log.Warn().Msg("Unsupported event topic")
 	}
@@ -108,6 +110,16 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		Stringer("message_urn", msg.EntityURN).
 		Stringer("conversation_urn", msg.Conversation.EntityURN).
 		Msg("Processing realtime message")
+	if !msg.EntityURN.IsEmpty() && l.startDeliveryAck(msg.EntityURN) {
+		go l.acknowledgeDelivery(ctx, msg.EntityURN)
+	}
+	if msg.Conversation.EntityURN.IsEmpty() {
+		log.Debug().
+			Stringer("message_urn", msg.EntityURN).
+			Str("render_format", string(msg.MessageBodyRenderFormat)).
+			Msg("Ignoring realtime message without conversation")
+		return
+	}
 	meta := simplevent.EventMeta{
 		LogContext: func(c zerolog.Context) zerolog.Context {
 			return c.
@@ -121,11 +133,18 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		CreatePortal: true,
 	}
 
+	if msg.MessageBodyRenderFormat == linkedingo.MessageBodyRenderFormatRecalled {
+		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
+			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove).WithCreatePortal(false),
+			TargetMessage: msg.MessageID(),
+		})
+		return
+	}
+
 	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
-		EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
-		ChatInfo:        &chatInfo,
-		LatestMessageTS: msg.DeliveredAt.Time,
+		EventMeta: meta.WithType(bridgev2.RemoteEventChatResync),
+		ChatInfo:  &chatInfo,
 	})
 
 	evt := simplevent.Message[linkedingo.Message]{
@@ -140,12 +159,6 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
 	case linkedingo.MessageBodyRenderFormatEdited:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
-	case linkedingo.MessageBodyRenderFormatRecalled:
-		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.MessageRemove{
-			EventMeta:     meta.WithType(bridgev2.RemoteEventMessageRemove),
-			TargetMessage: msg.MessageID(),
-		})
-		return
 	case linkedingo.MessageBodyRenderFormatSystem:
 		log.Info().Msg("Ignoring system message")
 		return
@@ -153,6 +166,38 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		log.Warn().Str("message_body_render_format", string(msg.MessageBodyRenderFormat)).Msg("Unknown render format")
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
+}
+
+const ackedMessageTTL = time.Hour
+
+func (l *LinkedInClient) startDeliveryAck(messageURN linkedingo.URN) bool {
+	l.ackedMessagesLock.Lock()
+	defer l.ackedMessagesLock.Unlock()
+	now := time.Now()
+	if ackedAt, ok := l.ackedMessages[messageURN]; ok && now.Sub(ackedAt) < ackedMessageTTL {
+		return false
+	}
+	if l.ackedMessages == nil {
+		l.ackedMessages = make(map[linkedingo.URN]time.Time)
+	} else if len(l.ackedMessages) >= 1000 {
+		for urn, ackedAt := range l.ackedMessages {
+			if now.Sub(ackedAt) >= ackedMessageTTL {
+				delete(l.ackedMessages, urn)
+			}
+		}
+	}
+	l.ackedMessages[messageURN] = now
+	return true
+}
+
+func (l *LinkedInClient) acknowledgeDelivery(ctx context.Context, messageURN linkedingo.URN) {
+	err := l.client.AcknowledgeDelivery(ctx, linkedingo.DeliveryMechanismRealtime, messageURN)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Stringer("message_urn", messageURN).Msg("Failed to acknowledge message delivery")
+		l.ackedMessagesLock.Lock()
+		delete(l.ackedMessages, messageURN)
+		l.ackedMessagesLock.Unlock()
+	}
 }
 
 func (l *LinkedInClient) onRealtimeTypingIndicator(decoratedEvent *linkedingo.DecoratedEvent) {
@@ -181,8 +226,9 @@ func (l *LinkedInClient) onRealtimeMessageSeenReceipts(ctx context.Context, rece
 	part, err := l.main.Bridge.DB.Message.GetLastPartByID(ctx, l.userLogin.ID, receipt.Message.MessageID())
 	if err != nil {
 		log.Err(err).Msg("failed to get read message")
+		return
 	} else if part == nil {
-		log.Warn().Msg("couldn't find read message")
+		log.Debug().Msg("couldn't find read message")
 		return
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.Receipt{
