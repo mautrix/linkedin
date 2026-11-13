@@ -110,7 +110,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		Stringer("message_urn", msg.EntityURN).
 		Stringer("conversation_urn", msg.Conversation.EntityURN).
 		Msg("Processing realtime message")
-	if !msg.EntityURN.IsEmpty() {
+	if !msg.EntityURN.IsEmpty() && l.startDeliveryAck(msg.EntityURN) {
 		go l.acknowledgeDelivery(ctx, msg.EntityURN)
 	}
 	if msg.Conversation.EntityURN.IsEmpty() {
@@ -168,10 +168,35 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
 }
 
+const ackedMessageTTL = time.Hour
+
+func (l *LinkedInClient) startDeliveryAck(messageURN linkedingo.URN) bool {
+	l.ackedMessagesLock.Lock()
+	defer l.ackedMessagesLock.Unlock()
+	now := time.Now()
+	if ackedAt, ok := l.ackedMessages[messageURN]; ok && now.Sub(ackedAt) < ackedMessageTTL {
+		return false
+	}
+	if l.ackedMessages == nil {
+		l.ackedMessages = make(map[linkedingo.URN]time.Time)
+	} else if len(l.ackedMessages) >= 1000 {
+		for urn, ackedAt := range l.ackedMessages {
+			if now.Sub(ackedAt) >= ackedMessageTTL {
+				delete(l.ackedMessages, urn)
+			}
+		}
+	}
+	l.ackedMessages[messageURN] = now
+	return true
+}
+
 func (l *LinkedInClient) acknowledgeDelivery(ctx context.Context, messageURN linkedingo.URN) {
 	err := l.client.AcknowledgeDelivery(ctx, linkedingo.DeliveryMechanismRealtime, messageURN)
 	if err != nil {
 		zerolog.Ctx(ctx).Warn().Err(err).Stringer("message_urn", messageURN).Msg("Failed to acknowledge message delivery")
+		l.ackedMessagesLock.Lock()
+		delete(l.ackedMessages, messageURN)
+		l.ackedMessagesLock.Unlock()
 	}
 }
 
