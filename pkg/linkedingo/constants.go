@@ -27,6 +27,7 @@ const (
 	linkedInVoyagerCommonMeURL                       = "https://www.linkedin.com/voyager/api/me"
 	linkedInVoyagerMediaUploadMetadataURL            = "https://www.linkedin.com/voyager/api/voyagerVideoDashMediaUploadMetadata"
 	linkedInVoyagerMessagingDashMessengerMessagesURL = "https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages"
+	linkedInVoyagerMessagingDeliveryAcksURL          = "https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessageDeliveryAcknowledgements"
 	linkedInVoyagerNotificationsDashPushRegistration = "https://www.linkedin.com/voyager/api/voyagerNotificationsDashPushRegistration"
 )
 
