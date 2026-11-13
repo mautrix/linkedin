@@ -58,6 +58,9 @@ type LinkedInClient struct {
 	blockSyncLock     sync.Mutex
 	blockSyncTime     time.Time
 	blockedUsers      map[networkid.UserID]bool
+
+	ackedMessagesLock sync.Mutex
+	ackedMessages     map[linkedingo.URN]time.Time
 }
 
 var (

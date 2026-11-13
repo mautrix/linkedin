@@ -56,6 +56,7 @@ type PortalMetadata struct {
 
 type MessageMetadata struct {
 	DirectMediaMeta *DirectMediaMeta `json:"direct_media_meta,omitempty"`
+	EditHash        []byte           `json:"edit_hash,omitempty"`
 }
 
 type DirectMediaMeta struct {

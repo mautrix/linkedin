@@ -28,13 +28,17 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"strings"
 	"time"
 
 	"golang.org/x/net/html"
 )
 
-const passwordAuthenticationRequest = "com.linkedin.sdui.requests.login.authenticate"
+const (
+	passwordAuthenticationRequest = "com.linkedin.sdui.requests.login.authenticate"
+	passwordChallengeRouteRequest = "com.linkedin.sdui.requests.challenges.routeToChallengeRequest"
+)
 
 type loginBinding struct {
 	Key       string `json:"key"`
@@ -286,7 +290,7 @@ func marshalLoginAction(action map[string]any, states []any, screenID string) ([
 	args["screenId"] = screenID
 	args["knownTemplateIds"] = []string{}
 	return json.Marshal(map[string]any{
-		"requestId":          passwordAuthenticationRequest,
+		"requestId":          action["requestId"],
 		"serverRequest":      action,
 		"states":             states,
 		"requestedArguments": args,
@@ -294,7 +298,8 @@ func marshalLoginAction(action map[string]any, states []any, screenID string) ([
 }
 
 type passwordLoginResponse struct {
-	InlineCredentialError bool `json:"-"`
+	InlineCredentialError bool           `json:"-"`
+	ChallengeRoute        map[string]any `json:"-"`
 	Response              *struct {
 		Errors           []json.RawMessage `json:"errors"`
 		IsRetryable      bool              `json:"isRetryable"`
@@ -334,6 +339,7 @@ func parsePasswordLoginResponse(body []byte) (*passwordLoginResponse, error) {
 				result.InlineCredentialError = true
 			}
 		}
+		result.ChallengeRoute = findChallengeRoute(data)
 		return &result, nil
 	}
 	return nil, errors.New("login response record was not found")
@@ -347,6 +353,9 @@ func hasInlineCredentialError(value any, feedback bool, depth int) bool {
 	switch value := value.(type) {
 	case map[string]any:
 		feedback = feedback || object(value["viewTrackingSpecs"])["viewName"] == "identifier-password-inline-feedback"
+		if children, _ := object(value["textProps"])["children"].([]any); feedback && slices.ContainsFunc(children, isInlineText) {
+			return true
+		}
 		for _, child := range value {
 			if hasInlineCredentialError(child, feedback, depth+1) {
 				return true
@@ -362,6 +371,32 @@ func hasInlineCredentialError(value any, feedback bool, depth int) bool {
 		return feedback && value == "Wrong email or password."
 	}
 	return false
+}
+
+func isInlineText(value any) bool {
+	text, _ := value.(string)
+	return strings.TrimSpace(text) != "" && !strings.HasPrefix(text, "$")
+}
+
+func findChallengeRoute(data []byte) map[string]any {
+	var raw struct {
+		Response struct {
+			CompletionAction struct {
+				Actions []map[string]any `json:"actions"`
+			} `json:"completionAction"`
+		} `json:"response"`
+	}
+	if json.Unmarshal(data, &raw) != nil {
+		return nil
+	}
+	for _, wrapper := range raw.Response.CompletionAction.Actions {
+		action := object(wrapper["value"])
+		flowData := object(object(object(action["requestedArguments"])["payload"])["flowData"])
+		if wrapper["$type"] == "proto.sdui.actions.core.ServerRequest" && action["requestId"] == passwordChallengeRouteRequest && isInlineText(flowData["challengeId"]) {
+			return action
+		}
+	}
+	return nil
 }
 
 type loginEncryption struct {
