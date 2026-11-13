@@ -126,10 +126,18 @@ type Conversation struct {
 	GroupChat                bool                             `json:"groupChat,omitempty"`
 	ConversationParticipants []MessagingParticipant           `json:"conversationParticipants,omitempty"`
 	Read                     bool                             `json:"read,omitempty"`
+	NotificationStatus       NotificationStatus               `json:"notificationStatus,omitempty"`
 	Messages                 CollectionResponse[any, Message] `json:"messages,omitempty"`
 	Categories               []string                         `json:"categories,omitempty"`
 	DisabledFeatures         []DisabledFeature                `json:"disabledFeatures,omitempty"`
 }
+
+type NotificationStatus string
+
+const (
+	NotificationStatusActive NotificationStatus = "ACTIVE"
+	NotificationStatusMute   NotificationStatus = "MUTE"
+)
 
 type DisabledFeature struct {
 	DisabledFeature ConversationFeature `json:"disabledFeature,omitempty"`
@@ -275,6 +283,21 @@ func (c *Client) RenameConversation(ctx context.Context, conversationURN URN, ti
 		WithXLIHeaders().
 		WithJSONPayload(body)
 	_, err := req.Do(ctx, nil)
+	return err
+}
+
+type NotificationStatusBody struct {
+	NotificationStatus NotificationStatus `json:"notificationStatus"`
+}
+
+func (c *Client) SetNotificationStatus(ctx context.Context, conversationURN URN, status NotificationStatus) error {
+	url := fmt.Sprintf("%s/%s", linkedInMessagingDashMessengerConversationsURL, url.QueryEscape(conversationURN.String()))
+	body := GraphQLPatchBody{Patch: Patch{Set: NotificationStatusBody{NotificationStatus: status}}}
+	_, err := c.newAuthedRequest(http.MethodPost, url).
+		WithCSRF().
+		WithXLIHeaders().
+		WithJSONPayload(body).
+		Do(ctx, nil)
 	return err
 }
 

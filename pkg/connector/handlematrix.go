@@ -44,6 +44,7 @@ var (
 	_ bridgev2.EditHandlingNetworkAPI         = (*LinkedInClient)(nil)
 	_ bridgev2.MarkedUnreadHandlingNetworkAPI = (*LinkedInClient)(nil)
 	_ bridgev2.MembershipHandlingNetworkAPI   = (*LinkedInClient)(nil)
+	_ bridgev2.MuteHandlingNetworkAPI         = (*LinkedInClient)(nil)
 	_ bridgev2.ReactionHandlingNetworkAPI     = (*LinkedInClient)(nil)
 	_ bridgev2.RedactionHandlingNetworkAPI    = (*LinkedInClient)(nil)
 	_ bridgev2.ReadReceiptHandlingNetworkAPI  = (*LinkedInClient)(nil)
@@ -291,6 +292,18 @@ func (l *LinkedInClient) HandleMarkedUnread(ctx context.Context, msg *bridgev2.M
 	} else {
 		_, err = l.client.MarkConversationRead(ctx, conversationURN)
 	}
+	return wrapLinkedInError(err)
+}
+
+func (l *LinkedInClient) HandleMute(ctx context.Context, msg *bridgev2.MatrixMute) error {
+	if !l.IsLoggedIn() {
+		return ErrNotLoggedIn
+	}
+	status := linkedingo.NotificationStatusActive
+	if msg.Content.IsMuted() && msg.Content.GetMutedUntilTime() == event.MutedForever {
+		status = linkedingo.NotificationStatusMute
+	}
+	err := l.client.SetNotificationStatus(ctx, linkedingo.NewURN(msg.Portal.ID), status)
 	return wrapLinkedInError(err)
 }
 
