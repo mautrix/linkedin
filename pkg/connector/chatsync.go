@@ -65,7 +65,8 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			l.deleteConversation(ctx, conv)
 			continue
 		}
-		if !slices.Contains(conv.Categories, "INBOX") {
+		inInbox := slices.Contains(conv.Categories, "INBOX")
+		if !inInbox && (l.main.Config.ArchiveTag == "" || !slices.Contains(conv.Categories, "ARCHIVE")) {
 			continue
 		}
 
@@ -102,9 +103,11 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 				return c.Str("update", "sync")
 			},
 			PortalKey:    portalKey,
-			CreatePortal: l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit,
+			CreatePortal: inInbox && (l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit),
 		}
-		*synced++
+		if inInbox {
+			*synced++
+		}
 
 		var latestMessageTS time.Time
 		var latestMessageID networkid.MessageID

@@ -117,6 +117,13 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 
 	ci.CanBackfill = true
 
+	ci.UserLocal = &bridgev2.UserLocalPortalInfo{}
+	if slices.Contains(conv.Categories, "STARRED") {
+		ci.UserLocal.Tag = ptr.Ptr(l.main.Config.PinnedTag)
+	} else if slices.Contains(conv.Categories, "ARCHIVE") {
+		ci.UserLocal.Tag = ptr.Ptr(l.main.Config.ArchiveTag)
+	}
+
 	if conv.DisabledFeatures != nil {
 		disabledFeatures := make([]linkedingo.ConversationFeature, 0, len(conv.DisabledFeatures))
 		for _, feature := range conv.DisabledFeatures {

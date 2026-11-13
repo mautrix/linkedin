@@ -48,6 +48,7 @@ var (
 	_ bridgev2.RedactionHandlingNetworkAPI    = (*LinkedInClient)(nil)
 	_ bridgev2.ReadReceiptHandlingNetworkAPI  = (*LinkedInClient)(nil)
 	_ bridgev2.RoomNameHandlingNetworkAPI     = (*LinkedInClient)(nil)
+	_ bridgev2.TagHandlingNetworkAPI          = (*LinkedInClient)(nil)
 	_ bridgev2.TypingHandlingNetworkAPI       = (*LinkedInClient)(nil)
 )
 
@@ -290,6 +291,18 @@ func (l *LinkedInClient) HandleMarkedUnread(ctx context.Context, msg *bridgev2.M
 		_, err = l.client.MarkConversationUnread(ctx, conversationURN)
 	} else {
 		_, err = l.client.MarkConversationRead(ctx, conversationURN)
+	}
+	return wrapLinkedInError(err)
+}
+
+func (l *LinkedInClient) HandleRoomTag(ctx context.Context, msg *bridgev2.MatrixRoomTag) error {
+	if !l.IsLoggedIn() {
+		return ErrNotLoggedIn
+	}
+	_, isFavorite := msg.Content.Tags[event.RoomTagFavourite]
+	err := l.client.SetConversationStarred(ctx, linkedingo.NewURN(msg.Portal.ID), isFavorite)
+	if !isFavorite && responseStatusCode(err) == http.StatusInternalServerError {
+		return nil
 	}
 	return wrapLinkedInError(err)
 }
