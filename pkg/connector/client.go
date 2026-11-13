@@ -108,6 +108,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 						Stringer("new_sess_id", conn.SessID).
 						Msg("Session ID changed, resyncing conversations")
 					go client.syncConversations(ctx)
+					go client.syncBlockedUsers(ctx)
 					client.sessID = conn.SessID
 				} else {
 					client.getConversationsBySyncToken(ctx)

@@ -157,6 +157,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 	switch msg.MessageBodyRenderFormat {
 	case linkedingo.MessageBodyRenderFormatDefault:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
+		evt.PreHandleFunc = l.resyncBlockedPortalOnMessage
 	case linkedingo.MessageBodyRenderFormatEdited:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
 	case linkedingo.MessageBodyRenderFormatSystem:
