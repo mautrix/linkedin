@@ -116,6 +116,9 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	}
 
 	ci.CanBackfill = true
+	if conv.State != "" {
+		ci.MessageRequest = ptr.Ptr(conv.State == linkedingo.ConversationStatePending)
+	}
 
 	if conv.DisabledFeatures != nil {
 		disabledFeatures := make([]linkedingo.ConversationFeature, 0, len(conv.DisabledFeatures))

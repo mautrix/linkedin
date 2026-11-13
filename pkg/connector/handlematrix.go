@@ -214,7 +214,11 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if transactionID == "" {
 		transactionID = uuid.NewString()
 	}
-	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent, transactionID)
+	var conversationState linkedingo.ConversationState
+	if msg.Portal.MessageRequest {
+		conversationState = linkedingo.ConversationStateAccepted
+	}
+	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent, transactionID, conversationState)
 	if err != nil {
 		return nil, wrapLinkedInError(err)
 	}

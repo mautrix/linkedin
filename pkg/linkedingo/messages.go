@@ -31,12 +31,13 @@ import (
 )
 
 type sendMessagePayload struct {
-	Message                      SendMessage `json:"message,omitempty"`
-	MailboxURN                   URN         `json:"mailboxUrn,omitempty"`
-	TrackingID                   string      `json:"trackingId,omitempty"`
-	DedupeByClientGeneratedToken bool        `json:"dedupeByClientGeneratedToken"`
-	HostRecipientURNs            []URN       `json:"hostRecipientUrns,omitempty"`
-	ConversationTitle            string      `json:"conversationTitle,omitempty"`
+	Message                      SendMessage       `json:"message,omitempty"`
+	MailboxURN                   URN               `json:"mailboxUrn,omitempty"`
+	TrackingID                   string            `json:"trackingId,omitempty"`
+	DedupeByClientGeneratedToken bool              `json:"dedupeByClientGeneratedToken"`
+	HostRecipientURNs            []URN             `json:"hostRecipientUrns,omitempty"`
+	ConversationTitle            string            `json:"conversationTitle,omitempty"`
+	ConversationState            ConversationState `json:"conversationState,omitempty"`
 }
 
 type SendMessage struct {
@@ -182,7 +183,7 @@ type RepliedMessage struct {
 	OriginalMessage Message `json:"originalMessage,omitempty"`
 }
 
-func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body SendMessageBody, renderContent []SendRenderContent, transactionID string) (*MessageSentResponse, error) {
+func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body SendMessageBody, renderContent []SendRenderContent, transactionID string, conversationState ConversationState) (*MessageSentResponse, error) {
 	if c == nil {
 		return nil, ErrClientIsNil
 	}
@@ -193,8 +194,9 @@ func (c *Client) SendMessage(ctx context.Context, conversationURN URN, body Send
 			ConversationURN:     &conversationURN,
 			OriginToken:         transactionID,
 		},
-		MailboxURN: c.userEntityURN.WithPrefix("urn", "li", "fsd_profile"),
-		TrackingID: random.String(16),
+		MailboxURN:        c.userEntityURN.WithPrefix("urn", "li", "fsd_profile"),
+		TrackingID:        random.String(16),
+		ConversationState: conversationState,
 	}
 
 	var messageSentResponse MessageSentResponse
