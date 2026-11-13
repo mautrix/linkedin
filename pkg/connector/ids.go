@@ -38,6 +38,29 @@ func (l *LinkedInClient) makePortalKey(conv linkedingo.Conversation) (key networ
 	return key
 }
 
+const pendingDMPortalIDPrefix = "pending_dm:"
+
+func (l *LinkedInClient) makePendingDMPortalKey(userID networkid.UserID) networkid.PortalKey {
+	return networkid.PortalKey{
+		ID:       networkid.PortalID(pendingDMPortalIDPrefix + string(userID)),
+		Receiver: l.userLogin.ID,
+	}
+}
+
+func parsePendingDMPortalID(portalID networkid.PortalID) (networkid.UserID, bool) {
+	userID, ok := strings.CutPrefix(string(portalID), pendingDMPortalIDPrefix)
+	return networkid.UserID(userID), ok
+}
+
+func portalConversationURN(portal *bridgev2.Portal) (linkedingo.URN, bool) {
+	if _, isPendingDM := parsePendingDMPortalID(portal.ID); !isPendingDM {
+		return linkedingo.NewURN(portal.ID), true
+	} else if urn := portal.Metadata.(*PortalMetadata).ConversationURN; urn != "" {
+		return linkedingo.NewURN(urn), true
+	}
+	return linkedingo.URN{}, false
+}
+
 func (l *LinkedInClient) makeSender(participant linkedingo.MessagingParticipant) (sender bridgev2.EventSender) {
 	id := participant.EntityURN.ID()
 	sender.IsFromMe = id == string(l.userID)

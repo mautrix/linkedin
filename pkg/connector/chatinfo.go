@@ -133,6 +133,18 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 		}
 	}
 
+	if !conv.GroupChat && !conv.EntityURN.IsEmpty() {
+		conversationURN := conv.EntityURN.String()
+		ci.ExtraUpdates = bridgev2.MergeExtraUpdaters(ci.ExtraUpdates, func(ctx context.Context, portal *bridgev2.Portal) bool {
+			meta := portal.Metadata.(*PortalMetadata)
+			if _, isPendingDM := parsePendingDMPortalID(portal.ID); !isPendingDM || meta.ConversationURN == conversationURN {
+				return false
+			}
+			meta.ConversationURN = conversationURN
+			return true
+		})
+	}
+
 	ci.Members = &bridgev2.ChatMemberList{
 		IsFull:           true,
 		TotalMemberCount: len(conv.ConversationParticipants),

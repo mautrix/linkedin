@@ -214,15 +214,29 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if transactionID == "" {
 		transactionID = uuid.NewString()
 	}
-	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent, transactionID)
+	body := matrixfmt.Parse(ctx, l.matrixParser, msg.Content)
+	var resp *linkedingo.MessageSentResponse
+	var err error
+	otherUserID, isPendingDM := parsePendingDMPortalID(msg.Portal.ID)
+	if isPendingDM {
+		resp, err = l.client.NewChat(ctx, "", []linkedingo.URN{linkedingo.NewURN(otherUserID).AsFsdProfile()}, body, renderContent, transactionID)
+	} else {
+		resp, err = l.client.SendMessage(ctx, conversationURN, body, renderContent, transactionID)
+	}
 	if err != nil {
 		return nil, wrapLinkedInError(err)
+	}
+	room := msg.Portal.PortalKey
+	if isPendingDM && !resp.Data.ConversationURN.IsEmpty() {
+		if newKey, ok := l.reIDPendingDM(ctx, otherUserID, resp.Data.ConversationURN); ok {
+			room = newKey
+		}
 	}
 	return &bridgev2.MatrixMessageResponse{
 		DB: &database.Message{
 			ID:        resp.Data.MessageID(),
 			MXID:      msg.Event.ID,
-			Room:      msg.Portal.PortalKey,
+			Room:      room,
 			SenderID:  l.userID,
 			Timestamp: resp.Data.DeliveredAt.Time,
 		},
@@ -276,7 +290,11 @@ func (l *LinkedInClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridg
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
 	}
-	_, err := l.client.MarkConversationRead(ctx, linkedingo.NewURN(msg.Portal.ID))
+	conversationURN, ok := portalConversationURN(msg.Portal)
+	if !ok {
+		return nil
+	}
+	_, err := l.client.MarkConversationRead(ctx, conversationURN)
 	return wrapLinkedInError(err)
 }
 
@@ -298,13 +316,16 @@ func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.M
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
 	}
-	if msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
-		return wrapLinkedInError(l.client.StartTyping(ctx, linkedingo.NewURN(msg.Portal.ID)))
+	if conversationURN, ok := portalConversationURN(msg.Portal); ok && msg.IsTyping && msg.Type == bridgev2.TypingTypeText {
+		return wrapLinkedInError(l.client.StartTyping(ctx, conversationURN))
 	}
 	return nil
 }
 
 func (l *LinkedInClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
+	if _, isPendingDM := parsePendingDMPortalID(chat.Portal.ID); isPendingDM {
+		return nil
+	}
 	err := l.client.DeleteConversation(ctx, linkedingo.NewURN(chat.Portal.ID))
 	if responseStatusCode(err) == http.StatusNotFound {
 		zerolog.Ctx(ctx).Debug().Msg("Conversation not found on LinkedIn, deleting portal anyway")
