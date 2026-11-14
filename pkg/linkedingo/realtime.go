@@ -42,6 +42,8 @@ const (
 	realtimeStableUptime = time.Minute
 )
 
+var errHeartbeatRejected = errors.New("heartbeat rejected")
+
 //go:embed x-li-recipe-map.json
 var realtimeRecipeMapJSON []byte
 
@@ -119,7 +121,7 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context, stopStream context.Cance
 	for {
 		log.Debug().Stringer("realtime_session_id", c.realtimeSessionID).Msg("Sending heartbeat")
 
-		_, err := c.newAuthedRequest(http.MethodPost, linkedInRealtimeHeartbeatURL).
+		resp, err := c.newAuthedRequest(http.MethodPost, linkedInRealtimeHeartbeatURL).
 			WithQueryParam("action", "sendHeartbeat").
 			WithHeader("accept", "*/*").
 			WithContentType(contentTypePlaintextUTF8).
@@ -137,6 +139,7 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context, stopStream context.Cance
 				"actorUrn":          userURN,
 				"contextUrns":       []string{userURN},
 			}).
+			WithoutSessionCheck().
 			DoRaw(ctx)
 		if errors.Is(err, context.Canceled) {
 			log.Info().Msg("Heartbeats loop canceled")
@@ -144,6 +147,12 @@ func (c *Client) runHeartbeatsLoop(ctx context.Context, stopStream context.Cance
 		} else if err != nil {
 			log.Err(err).Msg("Failed to send heartbeat")
 			stopStream(fmt.Errorf("failed to send heartbeat: %w", err))
+			return
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode == http.StatusUnauthorized {
+			log.Warn().Msg("Heartbeat rejected, reconnecting to recheck the session")
+			stopStream(fmt.Errorf("%w: %w", errHeartbeatRejected, &ResponseError{StatusCode: resp.StatusCode}))
 			return
 		}
 
@@ -163,6 +172,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 	defer log.Info().Msg("Exited realtime connection loop")
 
 	backoff := realtimeMinBackoff
+	var heartbeatRejected bool
 
 	// Continually reconnect to the realtime connection endpoint until the context is done
 	for {
@@ -174,6 +184,14 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 		if stable {
 			backoff = realtimeMinBackoff
 		}
+		if errors.Is(err, errHeartbeatRejected) {
+			if heartbeatRejected && !stable {
+				c.onAuthRejected(ctx, err)
+				return
+			}
+			c.realtimeSessionID = uuid.New()
+		}
+		heartbeatRejected = errors.Is(err, errHeartbeatRejected)
 		if stable && errors.Is(err, io.EOF) {
 			log.Info().
 				Stringer("realtime_session_id", c.realtimeSessionID).
