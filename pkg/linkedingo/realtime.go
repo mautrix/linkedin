@@ -40,6 +40,8 @@ const (
 	realtimeMinBackoff   = 2 * time.Second
 	realtimeMaxBackoff   = 5 * time.Minute
 	realtimeStableUptime = time.Minute
+
+	realtimeHeartbeatRejectionWindow = 5 * time.Minute
 )
 
 var errHeartbeatRejected = errors.New("heartbeat rejected")
@@ -172,7 +174,7 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 	defer log.Info().Msg("Exited realtime connection loop")
 
 	backoff := realtimeMinBackoff
-	var heartbeatRejected bool
+	var lastHeartbeatRejection time.Time
 
 	// Continually reconnect to the realtime connection endpoint until the context is done
 	for {
@@ -185,13 +187,13 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			backoff = realtimeMinBackoff
 		}
 		if errors.Is(err, errHeartbeatRejected) {
-			if heartbeatRejected && !stable {
+			if !lastHeartbeatRejection.IsZero() && time.Since(lastHeartbeatRejection) < realtimeHeartbeatRejectionWindow {
 				c.onAuthRejected(ctx, err)
 				return
 			}
+			lastHeartbeatRejection = time.Now()
 			c.realtimeSessionID = uuid.New()
 		}
-		heartbeatRejected = errors.Is(err, errHeartbeatRejected)
 		if stable && errors.Is(err, io.EOF) {
 			log.Info().
 				Stringer("realtime_session_id", c.realtimeSessionID).
