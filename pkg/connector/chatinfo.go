@@ -117,7 +117,18 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 
 	ci.CanBackfill = true
 	if conv.State != "" {
-		ci.MessageRequest = ptr.Ptr(conv.State == linkedingo.ConversationStatePending)
+		pending := conv.State == linkedingo.ConversationStatePending
+		if connected, known := l.connectionStatus(conv.ConversationParticipants); !pending || known {
+			ci.MessageRequest = ptr.Ptr(pending && !connected)
+		}
+		ci.ExtraUpdates = bridgev2.MergeExtraUpdaters(ci.ExtraUpdates, func(ctx context.Context, portal *bridgev2.Portal) bool {
+			meta := portal.Metadata.(*PortalMetadata)
+			if meta.Pending == pending {
+				return false
+			}
+			meta.Pending = pending
+			return true
+		})
 	}
 
 	if conv.DisabledFeatures != nil {
@@ -126,14 +137,14 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 			disabledFeatures = append(disabledFeatures, feature.DisabledFeature)
 		}
 		slices.Sort(disabledFeatures)
-		ci.ExtraUpdates = func(ctx context.Context, portal *bridgev2.Portal) bool {
+		ci.ExtraUpdates = bridgev2.MergeExtraUpdaters(ci.ExtraUpdates, func(ctx context.Context, portal *bridgev2.Portal) bool {
 			meta := portal.Metadata.(*PortalMetadata)
 			if slices.Equal(meta.DisabledFeatures, disabledFeatures) {
 				return false
 			}
 			meta.DisabledFeatures = disabledFeatures
 			return true
-		}
+		})
 	}
 
 	ci.Members = &bridgev2.ChatMemberList{
@@ -162,4 +173,24 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	}
 
 	return
+}
+
+func (l *LinkedInClient) connectionStatus(participants []linkedingo.MessagingParticipant) (connected, known bool) {
+	for _, participant := range participants {
+		member := participant.ParticipantType.Member
+		if networkid.UserID(participant.EntityURN.ID()) == l.userID {
+			continue
+		} else if member == nil {
+			return false, true
+		}
+		switch member.Distance {
+		case "":
+			return false, false
+		case linkedingo.MemberDistanceFirst:
+			connected = true
+		default:
+			return false, true
+		}
+	}
+	return connected, connected
 }

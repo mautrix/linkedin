@@ -215,7 +215,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 		transactionID = uuid.NewString()
 	}
 	var conversationState linkedingo.ConversationState
-	if msg.Portal.MessageRequest {
+	if msg.Portal.MessageRequest || msg.Portal.Metadata.(*PortalMetadata).Pending {
 		conversationState = linkedingo.ConversationStateAccepted
 	}
 	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent, transactionID, conversationState)
