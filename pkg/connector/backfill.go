@@ -32,10 +32,6 @@ var (
 )
 
 func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
-	convURN, ok := portalConversationURN(fetchParams.Portal)
-	if !ok {
-		return &bridgev2.FetchMessagesResponse{HasMore: false, Forward: fetchParams.Forward}, nil
-	}
 	log := zerolog.Ctx(ctx).With().Str("method", "fetch_messages").Logger()
 	ctx = log.WithContext(ctx)
 
@@ -49,6 +45,7 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		MarkRead: true,
 	}
 
+	convURN := linkedingo.NewURN(fetchParams.Portal.ID)
 	var messages []linkedingo.Message
 	if fetchParams.Cursor != "" {
 		msgs, err := l.client.GetMessagesWithPrevCursor(ctx, convURN, string(fetchParams.Cursor), fetchParams.Count)

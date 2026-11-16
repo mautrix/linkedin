@@ -52,27 +52,28 @@ func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier strin
 			chat = &bridgev2.CreateChatResponse{
 				PortalKey: portal.PortalKey,
 			}
-		} else {
-			memberMap := make(bridgev2.ChatMemberMap, 2)
-			for _, userID := range []networkid.UserID{l.userID, id} {
-				memberMap.Set(bridgev2.ChatMember{
-					EventSender: l.makeSender(linkedingo.MessagingParticipant{
-						EntityURN: linkedingo.NewURN(userID).AsFsdProfile(),
-					}),
-					Membership: event.MembershipJoin,
-				})
-			}
+		} else if convs, err := l.client.GetConversationsByRecipient(ctx, linkedingo.NewURN(id).AsFsdProfile()); err != nil {
+			return nil, wrapLinkedInRespError(fmt.Errorf("failed to look up existing dm chat: %w", err))
+		} else if len(convs) > 0 && !convs[0].GroupChat {
+			chatInfo, _ := l.conversationToChatInfo(convs[0])
 			chat = &bridgev2.CreateChatResponse{
-				PortalKey: l.makePendingDMPortalKey(id),
-				PortalInfo: &bridgev2.ChatInfo{
-					Type: ptr.Ptr(database.RoomTypeDM),
-					Members: &bridgev2.ChatMemberList{
-						IsFull:           true,
-						TotalMemberCount: 2,
-						OtherUserID:      id,
-						MemberMap:        memberMap,
-					},
+				PortalKey:  l.makePortalKey(convs[0]),
+				PortalInfo: &chatInfo,
+			}
+		} else {
+			chatInfo := &bridgev2.ChatInfo{
+				Type: ptr.Ptr(database.RoomTypeDM),
+				Members: &bridgev2.ChatMemberList{
+					MemberMap: map[networkid.UserID]bridgev2.ChatMember{},
 				},
+			}
+			participants := []networkid.UserID{
+				networkid.UserID(identifier),
+			}
+			var err error
+			chat, err = l.createChat(ctx, chatInfo, participants)
+			if err != nil {
+				return nil, wrapLinkedInRespError(fmt.Errorf("failed to create dm chat: %w", err))
 			}
 		}
 	}
@@ -120,7 +121,7 @@ func (l *LinkedInClient) createChat(ctx context.Context, chatInfo *bridgev2.Chat
 			Membership:  event.MembershipJoin,
 		}
 	}
-	resp, err := l.client.NewChat(ctx, ptr.Val(chatInfo.Name), participants, linkedingo.SendMessageBody{Text: "New chat"}, nil, "")
+	resp, err := l.client.NewChat(ctx, ptr.Val(chatInfo.Name), participants)
 
 	if err != nil {
 		return nil, err
@@ -134,52 +135,6 @@ func (l *LinkedInClient) createChat(ctx context.Context, chatInfo *bridgev2.Chat
 		PortalKey:  portalKey,
 		PortalInfo: chatInfo,
 	}, nil
-}
-
-func (l *LinkedInClient) makeEventPortalKey(ctx context.Context, conv linkedingo.Conversation) (networkid.PortalKey, bool) {
-	key := l.makePortalKey(conv)
-	if conv.GroupChat {
-		return key, false
-	}
-	var otherUserID networkid.UserID
-	for _, participant := range conv.ConversationParticipants {
-		if userID := networkid.UserID(participant.EntityURN.ID()); userID != l.userID {
-			otherUserID = userID
-			break
-		}
-	}
-	if otherUserID == "" {
-		return key, false
-	}
-	log := zerolog.Ctx(ctx)
-	pendingKey := l.makePendingDMPortalKey(otherUserID)
-	if pending, err := l.main.Bridge.GetExistingPortalByKey(ctx, pendingKey); err != nil {
-		log.Err(err).Msg("Failed to get pending DM portal")
-		return key, false
-	} else if pending == nil || pending.MXID == "" {
-		return key, false
-	} else if existing, err := l.main.Bridge.GetExistingPortalByKey(ctx, key); err != nil {
-		log.Err(err).Msg("Failed to get portal for conversation")
-		return key, false
-	} else if existing != nil && existing.MXID != "" {
-		return key, false
-	}
-	return pendingKey, true
-}
-
-func (l *LinkedInClient) reIDPendingDM(ctx context.Context, otherUserID networkid.UserID, conversationURN linkedingo.URN) (networkid.PortalKey, bool) {
-	target := networkid.PortalKey{
-		ID:       networkid.PortalID(conversationURN.String()),
-		Receiver: l.userLogin.ID,
-	}
-	result, portal, err := l.main.Bridge.ReIDPortal(ctx, l.makePendingDMPortalKey(otherUserID), target)
-	if err != nil {
-		zerolog.Ctx(ctx).Err(err).Stringer("conversation_urn", conversationURN).Msg("Failed to move pending DM to LinkedIn conversation")
-		return networkid.PortalKey{}, false
-	} else if result == bridgev2.ReIDResultSourceReIDd || result == bridgev2.ReIDResultTargetDeletedAndSourceReIDd {
-		portal.UpdateBridgeInfo(ctx)
-	}
-	return target, true
 }
 
 func (l *LinkedInClient) SearchUsers(ctx context.Context, query string) (resp []*bridgev2.ResolveIdentifierResponse, err error) {
