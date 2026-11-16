@@ -118,8 +118,9 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	ci.CanBackfill = true
 	if conv.State != "" {
 		pending := conv.State == linkedingo.ConversationStatePending
-		if connected, known := l.connectionStatus(conv.ConversationParticipants); !pending || known {
-			ci.MessageRequest = ptr.Ptr(pending && !connected)
+		ownMessage := slices.ContainsFunc(conv.Messages.Elements, l.isOwnMessage)
+		if connected, known := l.connectionStatus(conv.ConversationParticipants); !pending || known || ownMessage {
+			ci.MessageRequest = ptr.Ptr(pending && !connected && !ownMessage)
 		}
 		ci.ExtraUpdates = bridgev2.MergeExtraUpdaters(ci.ExtraUpdates, func(ctx context.Context, portal *bridgev2.Portal) bool {
 			meta := portal.Metadata.(*PortalMetadata)
@@ -193,4 +194,8 @@ func (l *LinkedInClient) connectionStatus(participants []linkedingo.MessagingPar
 		}
 	}
 	return connected, connected
+}
+
+func (l *LinkedInClient) isOwnMessage(msg linkedingo.Message) bool {
+	return networkid.UserID(msg.Sender.EntityURN.ID()) == l.userID
 }
