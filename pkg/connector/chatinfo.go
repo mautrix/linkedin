@@ -116,6 +116,10 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	}
 
 	ci.CanBackfill = true
+	if conv.State != "" {
+		pending := conv.State == linkedingo.ConversationStatePending
+		ci.MessageRequest = ptr.Ptr(pending && !slices.ContainsFunc(conv.Messages.Elements, l.isOwnMessage))
+	}
 
 	if conv.DisabledFeatures != nil {
 		disabledFeatures := make([]linkedingo.ConversationFeature, 0, len(conv.DisabledFeatures))
@@ -171,4 +175,8 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	}
 
 	return
+}
+
+func (l *LinkedInClient) isOwnMessage(msg linkedingo.Message) bool {
+	return networkid.UserID(msg.Sender.EntityURN.ID()) == l.userID
 }

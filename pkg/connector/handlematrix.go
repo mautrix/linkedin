@@ -214,6 +214,10 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if transactionID == "" {
 		transactionID = uuid.NewString()
 	}
+	var conversationState linkedingo.ConversationState
+	if msg.Portal.MessageRequest {
+		conversationState = linkedingo.ConversationStateAccepted
+	}
 	body := matrixfmt.Parse(ctx, l.matrixParser, msg.Content)
 	var resp *linkedingo.MessageSentResponse
 	var err error
@@ -221,7 +225,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if isPendingDM {
 		resp, err = l.client.NewChat(ctx, "", []linkedingo.URN{linkedingo.NewURN(otherUserID).AsFsdProfile()}, body, renderContent, transactionID)
 	} else {
-		resp, err = l.client.SendMessage(ctx, conversationURN, body, renderContent, transactionID)
+		resp, err = l.client.SendMessage(ctx, conversationURN, body, renderContent, transactionID, conversationState)
 	}
 	if err != nil {
 		return nil, wrapLinkedInError(err)
