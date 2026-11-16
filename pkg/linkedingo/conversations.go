@@ -128,8 +128,16 @@ type Conversation struct {
 	Read                     bool                             `json:"read,omitempty"`
 	Messages                 CollectionResponse[any, Message] `json:"messages,omitempty"`
 	Categories               []string                         `json:"categories,omitempty"`
+	State                    ConversationState                `json:"state,omitempty"`
 	DisabledFeatures         []DisabledFeature                `json:"disabledFeatures,omitempty"`
 }
+
+type ConversationState string
+
+const (
+	ConversationStatePending  ConversationState = "PENDING"
+	ConversationStateAccepted ConversationState = "ACCEPTED"
+)
 
 type DisabledFeature struct {
 	DisabledFeature ConversationFeature `json:"disabledFeature,omitempty"`
