@@ -306,7 +306,10 @@ func (l *LinkedInClient) HandleMarkedUnread(ctx context.Context, msg *bridgev2.M
 	if !l.IsLoggedIn() {
 		return ErrNotLoggedIn
 	}
-	conversationURN := linkedingo.NewURN(msg.Portal.ID)
+	conversationURN, ok := portalConversationURN(msg.Portal)
+	if !ok {
+		return nil
+	}
 	var err error
 	if msg.Content.Unread {
 		_, err = l.client.MarkConversationUnread(ctx, conversationURN)
@@ -327,10 +330,11 @@ func (l *LinkedInClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.M
 }
 
 func (l *LinkedInClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
-	if _, isPendingDM := parsePendingDMPortalID(chat.Portal.ID); isPendingDM {
+	conversationURN, ok := portalConversationURN(chat.Portal)
+	if !ok {
 		return nil
 	}
-	err := l.client.DeleteConversation(ctx, linkedingo.NewURN(chat.Portal.ID))
+	err := l.client.DeleteConversation(ctx, conversationURN)
 	if responseStatusCode(err) == http.StatusNotFound {
 		zerolog.Ctx(ctx).Debug().Msg("Conversation not found on LinkedIn, deleting portal anyway")
 		return nil
