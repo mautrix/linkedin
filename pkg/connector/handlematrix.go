@@ -116,6 +116,8 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 					return err
 				}
 				defer f.Close()
+				msg.Content.Info.MimeType = "audio/mp4"
+				filename += ".m4a"
 			}
 
 			fileInfo, err := f.Stat()
