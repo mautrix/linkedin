@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -116,6 +118,8 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 					return err
 				}
 				defer f.Close()
+				msg.Content.Info.MimeType = "audio/mp4"
+				filename = strings.TrimSuffix(filename, filepath.Ext(filename)) + ".m4a"
 			}
 
 			fileInfo, err := f.Stat()
