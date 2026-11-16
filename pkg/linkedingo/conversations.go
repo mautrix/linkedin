@@ -129,6 +129,7 @@ type Conversation struct {
 	NotificationStatus       NotificationStatus               `json:"notificationStatus,omitempty"`
 	Messages                 CollectionResponse[any, Message] `json:"messages,omitempty"`
 	Categories               []string                         `json:"categories,omitempty"`
+	State                    ConversationState                `json:"state,omitempty"`
 	DisabledFeatures         []DisabledFeature                `json:"disabledFeatures,omitempty"`
 }
 
@@ -137,6 +138,13 @@ type NotificationStatus string
 const (
 	NotificationStatusActive NotificationStatus = "ACTIVE"
 	NotificationStatusMute   NotificationStatus = "MUTE"
+)
+
+type ConversationState string
+
+const (
+	ConversationStatePending  ConversationState = "PENDING"
+	ConversationStateAccepted ConversationState = "ACCEPTED"
 )
 
 type DisabledFeature struct {
