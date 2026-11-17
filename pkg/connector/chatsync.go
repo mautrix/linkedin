@@ -180,6 +180,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 	syncStart := time.Now()
 	oldestActivity := syncStart
 	var cursor string
+	seenCursors := map[string]struct{}{}
 	var synced int
 	for {
 		if ctx.Err() != nil {
@@ -212,11 +213,19 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 		} else if oldestActivity.Before(meta.ConversationsSyncedUpTo.Time) {
 			log.Info().Msg("reached conversations synced previously")
 			break
-		} else if len(conversations.Elements) == 0 || conversations.Metadata.NextCursor == "" || conversations.Metadata.NextCursor == cursor {
-			log.Info().Int("page_size", len(conversations.Elements)).Msg("no more conversations found")
+		} else if conversations.Metadata.NextCursor == "" {
+			log.Info().Msg("no more conversations found")
 			break
 		}
+		if _, seen := seenCursors[conversations.Metadata.NextCursor]; seen || len(conversations.Elements) == 0 {
+			log.Warn().Int("page_size", len(conversations.Elements)).Msg("conversation paging stopped advancing")
+			return
+		}
 		cursor = conversations.Metadata.NextCursor
+		seenCursors[cursor] = struct{}{}
+	}
+	if ctx.Err() != nil {
+		return
 	}
 	meta.ConversationsSyncedUpTo = jsontime.UM(syncStart)
 	if err := l.userLogin.Save(ctx); err != nil {
