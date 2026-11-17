@@ -162,7 +162,14 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 	case linkedingo.MessageBodyRenderFormatDefault:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
 	case linkedingo.MessageBodyRenderFormatEdited:
-		evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
+		if l.isUnbridgedLatestMessage(ctx, meta.PortalKey, msg) {
+			log.Debug().
+				Stringer("message_urn", msg.EntityURN).
+				Msg("Edited message was never bridged, bridging it as a new message")
+			evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
+		} else {
+			evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
+		}
 	case linkedingo.MessageBodyRenderFormatSystem:
 		log.Info().Msg("Ignoring system message")
 		return
@@ -170,6 +177,23 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 		log.Warn().Str("message_body_render_format", string(msg.MessageBodyRenderFormat)).Msg("Unknown render format")
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
+}
+
+func (l *LinkedInClient) isUnbridgedLatestMessage(ctx context.Context, portalKey networkid.PortalKey, msg linkedingo.Message) bool {
+	log := zerolog.Ctx(ctx)
+	existing, err := l.main.Bridge.DB.Message.GetFirstPartByID(ctx, l.userLogin.ID, msg.MessageID())
+	if err != nil {
+		log.Err(err).Msg("Failed to get edit target message")
+		return false
+	} else if existing != nil {
+		return false
+	}
+	newer, err := l.main.Bridge.DB.Message.GetFirstNonFakePartAfterTime(ctx, portalKey, msg.DeliveredAt.Time)
+	if err != nil {
+		log.Err(err).Msg("Failed to get messages after edit target")
+		return false
+	}
+	return newer == nil
 }
 
 const ackedMessageTTL = time.Hour
