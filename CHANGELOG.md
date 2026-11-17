@@ -1,3 +1,23 @@
+# v26.11
+
+* Added native username+password login flow.
+* Added support for blocking users.
+  * Unblocking is not possible, as LinkedIn requires your password for that.
+* Added read receipt bridging during chat list sync.
+* Added InMail subject to messages bridged to Matrix.
+* Added support for bridging group leaves from Matrix.
+* Added support for new participant types in LinkedIn groups.
+* Changed direct media URI format to be shorter, to avoid too long IDs on long
+  server names.
+* Fixed mime type of converted voice messages sent to LinkedIn.
+* Fixed message receiving not being acked to LinkedIn.
+* Fixed direct media not refreshing URLs properly.
+* Fixed timestamps of messages in the database migrated from the legacy bridge
+  causing backfill issues.
+* Fixed handling messages with out-of-bounds formatting attributes.
+* Fixed handling messages forwarded from organizations.
+* Fixed removing reactions.
+
 # v26.09
 
 * Bumped minimum Go version to 1.26.
