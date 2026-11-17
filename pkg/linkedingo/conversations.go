@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
-	"time"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/jsontime"
@@ -203,20 +201,20 @@ type AgentParticipantInfo struct {
 	ProfilePicture *VectorImage   `json:"profilePicture,omitempty"`
 }
 
-func (c *Client) GetConversationsUpdatedBefore(ctx context.Context, updatedBefore time.Time) (*CollectionResponse[ConversationCursorMetadata, Conversation], error) {
+func (c *Client) GetConversationsPage(ctx context.Context, nextCursor string) (*CollectionResponse[ConversationCursorMetadata, Conversation], error) {
 	if c == nil {
 		return nil, ErrClientIsNil
 	}
 	zerolog.Ctx(ctx).Info().
-		Time("updated_before", updatedBefore).
-		Msg("Getting conversations updated before")
+		Bool("has_cursor", nextCursor != "").
+		Msg("Getting conversations page")
 	var response GraphQlResponse
 	_, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
 		WithGraphQLQuery(graphQLQueryIDMessengerConversationsWithCursor, map[string]string{
-			"mailboxUrn":        url.QueryEscape(c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String()),
-			"lastUpdatedBefore": strconv.Itoa(int(updatedBefore.UnixMilli())),
-			"count":             "20",
-			"query":             "(predicateUnions:List((conversationCategoryPredicate:(category:PRIMARY_INBOX))))",
+			"mailboxUrn": url.QueryEscape(c.userEntityURN.WithPrefix("urn", "li", "fsd_profile").String()),
+			"nextCursor": url.QueryEscape(nextCursor),
+			"count":      "20",
+			"query":      "(predicateUnions:List((conversationCategoryPredicate:(category:PRIMARY_INBOX))))",
 		}).
 		Do(ctx, &response)
 	if err != nil {
