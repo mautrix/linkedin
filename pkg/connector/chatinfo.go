@@ -183,19 +183,23 @@ func updateMessageRequest(pending bool) bridgev2.ExtraUpdater[*bridgev2.Portal] 
 }
 
 func markSentMessage(ctx context.Context, portal *bridgev2.Portal) bool {
-	if !portal.MessageRequest {
+	meta := portal.Metadata.(*PortalMetadata)
+	if meta.SentMessage && !portal.MessageRequest {
 		return false
 	}
+	meta.SentMessage = true
 	portal.MessageRequest = false
-	portal.Metadata.(*PortalMetadata).SentMessage = true
 	return true
 }
 
 func saveSentMessage(ctx context.Context, portal *bridgev2.Portal) {
+	wasMessageRequest := portal.MessageRequest
 	if !markSentMessage(ctx, portal) {
 		return
 	}
-	portal.UpdateBridgeInfo(ctx)
+	if wasMessageRequest {
+		portal.UpdateBridgeInfo(ctx)
+	}
 	if err := portal.Save(ctx); err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to save portal after clearing message request")
 	}
