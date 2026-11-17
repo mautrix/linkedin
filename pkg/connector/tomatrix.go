@@ -153,15 +153,15 @@ func (l *LinkedInClient) convertToMatrix(ctx context.Context, portal *bridgev2.P
 }
 
 func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message, msg linkedingo.Message) (*bridgev2.ConvertedEdit, error) {
-	if len(existing) != 1 {
-		return nil, fmt.Errorf("editing a message that was bridged as multiple parts is not supported")
-	}
 	editHash, err := getEditHash(msg)
 	if err != nil {
 		return nil, err
 	}
 	if existingMeta, ok := existing[0].Metadata.(*MessageMetadata); ok && bytes.Equal(existingMeta.EditHash, editHash) {
 		return nil, fmt.Errorf("%w: edit body is unchanged", bridgev2.ErrIgnoringRemoteEvent)
+	}
+	if len(existing) != 1 {
+		return nil, fmt.Errorf("editing a message that was bridged as multiple parts is not supported")
 	}
 	converted, err := l.convertToMatrix(ctx, portal, intent, msg)
 	if err != nil {
