@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 	"maunium.net/go/mautrix/bridgev2/status"
@@ -162,7 +163,13 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 	case linkedingo.MessageBodyRenderFormatDefault:
 		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessage)
 	case linkedingo.MessageBodyRenderFormatEdited:
-		evt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
+		editEvt := evt
+		editEvt.EventMeta = meta.WithType(bridgev2.RemoteEventEdit)
+		evt.EventMeta = meta.WithType(bridgev2.RemoteEventMessageUpsert)
+		evt.ConvertMessageFunc = l.convertUnbridgedEditToMatrix
+		evt.HandleExistingFunc = func(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message, msg linkedingo.Message) (bridgev2.UpsertResult, error) {
+			return bridgev2.UpsertResult{SubEvents: []bridgev2.RemoteEvent{&editEvt}}, nil
+		}
 	case linkedingo.MessageBodyRenderFormatSystem:
 		log.Info().Msg("Ignoring system message")
 		return
