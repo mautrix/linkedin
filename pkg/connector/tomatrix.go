@@ -156,12 +156,11 @@ func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridge
 	if len(existing) != 1 {
 		return nil, fmt.Errorf("editing a message that was bridged as multiple parts is not supported")
 	}
-	bodyJSON, err := json.Marshal(msg.Body)
+	editHash, err := getEditHash(msg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal edit body: %w", err)
+		return nil, err
 	}
-	editHash := sha256.Sum256(bodyJSON)
-	if existingMeta, ok := existing[0].Metadata.(*MessageMetadata); ok && bytes.Equal(existingMeta.EditHash, editHash[:]) {
+	if existingMeta, ok := existing[0].Metadata.(*MessageMetadata); ok && bytes.Equal(existingMeta.EditHash, editHash) {
 		return nil, fmt.Errorf("%w: edit body is unchanged", bridgev2.ErrIgnoringRemoteEvent)
 	}
 	converted, err := l.convertToMatrix(ctx, portal, intent, msg)
@@ -178,10 +177,46 @@ func (l *LinkedInClient) convertEditToMatrix(ctx context.Context, portal *bridge
 		meta = &MessageMetadata{}
 		editPart.Part.Metadata = meta
 	}
-	meta.EditHash = editHash[:]
+	meta.EditHash = editHash
 	return &bridgev2.ConvertedEdit{
 		ModifiedParts: []*bridgev2.ConvertedEditPart{editPart},
 	}, nil
+}
+
+func (l *LinkedInClient) convertUnbridgedEditToMatrix(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg linkedingo.Message) (*bridgev2.ConvertedMessage, error) {
+	newer, err := l.main.Bridge.DB.Message.GetFirstNonFakePartAfterTime(ctx, portal.PortalKey, msg.DeliveredAt.Time)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for messages after edit target: %w", err)
+	} else if newer != nil {
+		return nil, fmt.Errorf("%w: edit target not found and newer messages are already bridged", bridgev2.ErrIgnoringRemoteEvent)
+	}
+	editHash, err := getEditHash(msg)
+	if err != nil {
+		return nil, err
+	}
+	converted, err := l.convertToMatrix(ctx, portal, intent, msg)
+	if err != nil {
+		return nil, err
+	}
+	for _, part := range converted.Parts {
+		meta, ok := part.DBMetadata.(*MessageMetadata)
+		if !ok || meta == nil {
+			meta = &MessageMetadata{}
+			part.DBMetadata = meta
+		}
+		meta.EditHash = editHash
+	}
+	zerolog.Ctx(ctx).Debug().Msg("Edit target was never bridged, bridging edited message as a new message")
+	return converted, nil
+}
+
+func getEditHash(msg linkedingo.Message) ([]byte, error) {
+	bodyJSON, err := json.Marshal(msg.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal edit body: %w", err)
+	}
+	editHash := sha256.Sum256(bodyJSON)
+	return editHash[:], nil
 }
 
 func (l *LinkedInClient) convertToDirectMedia(ctx context.Context, portal *bridgev2.Portal, content *event.MessageEventContent, url string, expiresAt jsontime.UnixMilli) (*bridgev2.ConvertedMessagePart, error) {
