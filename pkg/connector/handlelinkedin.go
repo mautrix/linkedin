@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
@@ -144,7 +143,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 
 	chatInfo, _ := l.conversationToChatInfo(msg.Conversation)
 	if l.isOwnMessage(msg) {
-		chatInfo.MessageRequest = ptr.Ptr(false)
+		chatInfo.ExtraUpdates = bridgev2.MergeExtraUpdaters(chatInfo.ExtraUpdates, markSentMessage)
 	}
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 		EventMeta: meta.WithType(bridgev2.RemoteEventChatResync),

@@ -117,8 +117,10 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 
 	ci.CanBackfill = true
 	if conv.State != "" {
-		pending := conv.State == linkedingo.ConversationStatePending
-		ci.MessageRequest = ptr.Ptr(pending && !slices.ContainsFunc(conv.Messages.Elements, l.isOwnMessage))
+		ci.ExtraUpdates = updateMessageRequest(conv.State == linkedingo.ConversationStatePending)
+		if slices.ContainsFunc(conv.Messages.Elements, l.isOwnMessage) {
+			ci.ExtraUpdates = bridgev2.MergeExtraUpdaters(ci.ExtraUpdates, markSentMessage)
+		}
 	}
 
 	if conv.DisabledFeatures != nil {
@@ -127,14 +129,14 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 			disabledFeatures = append(disabledFeatures, feature.DisabledFeature)
 		}
 		slices.Sort(disabledFeatures)
-		ci.ExtraUpdates = func(ctx context.Context, portal *bridgev2.Portal) bool {
+		ci.ExtraUpdates = bridgev2.MergeExtraUpdaters(ci.ExtraUpdates, func(ctx context.Context, portal *bridgev2.Portal) bool {
 			meta := portal.Metadata.(*PortalMetadata)
 			if slices.Equal(meta.DisabledFeatures, disabledFeatures) {
 				return false
 			}
 			meta.DisabledFeatures = disabledFeatures
 			return true
-		}
+		})
 	}
 
 	ci.Members = &bridgev2.ChatMemberList{
@@ -167,4 +169,34 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 
 func (l *LinkedInClient) isOwnMessage(msg linkedingo.Message) bool {
 	return networkid.UserID(msg.Sender.EntityURN.ID()) == l.userID
+}
+
+func updateMessageRequest(pending bool) bridgev2.ExtraUpdater[*bridgev2.Portal] {
+	return func(ctx context.Context, portal *bridgev2.Portal) bool {
+		messageRequest := pending && !portal.Metadata.(*PortalMetadata).SentMessage
+		if portal.MessageRequest == messageRequest {
+			return false
+		}
+		portal.MessageRequest = messageRequest
+		return true
+	}
+}
+
+func markSentMessage(ctx context.Context, portal *bridgev2.Portal) bool {
+	if !portal.MessageRequest {
+		return false
+	}
+	portal.MessageRequest = false
+	portal.Metadata.(*PortalMetadata).SentMessage = true
+	return true
+}
+
+func saveSentMessage(ctx context.Context, portal *bridgev2.Portal) {
+	if !markSentMessage(ctx, portal) {
+		return
+	}
+	portal.UpdateBridgeInfo(ctx)
+	if err := portal.Save(ctx); err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Failed to save portal after clearing message request")
+	}
 }

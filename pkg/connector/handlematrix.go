@@ -224,6 +224,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if err != nil {
 		return nil, wrapLinkedInError(err)
 	}
+	saveSentMessage(ctx, msg.Portal)
 	return &bridgev2.MatrixMessageResponse{
 		DB: &database.Message{
 			ID:        resp.Data.MessageID(),
