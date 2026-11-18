@@ -119,12 +119,16 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	if conv.State != "" {
 		pending := conv.State == linkedingo.ConversationStatePending
 		sentMessage := slices.ContainsFunc(conv.Messages.Elements, l.isOwnMessage)
-		connected := l.isConnected(conv.ConversationParticipants)
+		connected, known := l.connectionStatus(conv.ConversationParticipants)
 		ci.ExtraUpdates = func(ctx context.Context, portal *bridgev2.Portal) bool {
 			meta := portal.Metadata.(*PortalMetadata)
+			wasPending := meta.Pending
 			changed := meta.Pending != pending || sentMessage && !meta.SentMessage
 			meta.Pending = pending
 			meta.SentMessage = meta.SentMessage || sentMessage
+			if !known && wasPending && needsAccept(portal) {
+				return changed
+			}
 			if messageRequest := needsAccept(portal) && !connected; portal.MessageRequest != messageRequest {
 				portal.MessageRequest = messageRequest
 				changed = true
@@ -177,16 +181,24 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	return
 }
 
-func (l *LinkedInClient) isConnected(participants []linkedingo.MessagingParticipant) (connected bool) {
+func (l *LinkedInClient) connectionStatus(participants []linkedingo.MessagingParticipant) (connected, known bool) {
 	for _, participant := range participants {
+		member := participant.ParticipantType.Member
 		if networkid.UserID(participant.EntityURN.ID()) == l.userID {
 			continue
-		} else if member := participant.ParticipantType.Member; member == nil || member.Distance != linkedingo.MemberDistanceFirst {
-			return false
+		} else if member == nil {
+			return false, true
 		}
-		connected = true
+		switch member.Distance {
+		case "":
+			return false, false
+		case linkedingo.MemberDistanceFirst:
+			connected = true
+		default:
+			return false, true
+		}
 	}
-	return
+	return connected, connected
 }
 
 func (l *LinkedInClient) isOwnMessage(msg linkedingo.Message) bool {
