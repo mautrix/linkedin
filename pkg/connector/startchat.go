@@ -52,7 +52,16 @@ func (l *LinkedInClient) ResolveIdentifier(ctx context.Context, identifier strin
 			chat = &bridgev2.CreateChatResponse{
 				PortalKey: portal.PortalKey,
 			}
+		} else if convs, err := l.client.GetConversationsByRecipient(ctx, linkedingo.NewURN(id).AsFsdProfile()); err == nil && len(convs) > 0 && !convs[0].GroupChat {
+			chatInfo, _ := l.conversationToChatInfo(convs[0])
+			chat = &bridgev2.CreateChatResponse{
+				PortalKey:  l.makePortalKey(convs[0]),
+				PortalInfo: &chatInfo,
+			}
 		} else {
+			if err != nil {
+				zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to look up existing DM conversation, creating a new one")
+			}
 			chatInfo := &bridgev2.ChatInfo{
 				Type: ptr.Ptr(database.RoomTypeDM),
 				Members: &bridgev2.ChatMemberList{
