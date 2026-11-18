@@ -66,6 +66,7 @@ const (
 	graphQLQueryIDMessengerConversations              = "messengerConversations.0d5e6781bbee71c3e51c8843c6519f48"
 	graphQLQueryIDMessengerConversationsWithSyncToken = "messengerConversations.74c17e85611b60b7ba2700481151a316"
 	graphQLQueryIDMessengerConversationsWithCursor    = "messengerConversations.9501074288a12f3ae9e3c7ea243bccbf"
+	graphQLQueryIDMessengerConversationsByRecipients  = "messengerConversations.63990ee9d2202d495e1dbbbbbc7b330c"
 	graphQLQueryIDMessengerMessagesByAnchorTimestamp  = "messengerMessages.d8ea76885a52fd5dc5c317078ab7c977"
 	graphQLQueryIDMessengerMessagesByPrevCursor       = "messengerMessages.34c9888be71c8010fecfb575cb38308f"
 	graphQLQueryIDVoyagerFeedDashUpdates              = "voyagerFeedDashUpdates.c2a318e55b634e20689c80e3dd11952e"
