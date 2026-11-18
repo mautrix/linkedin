@@ -34,6 +34,7 @@ type GraphQlResponse struct {
 type GraphQLData struct {
 	MessengerConversationsByCategoryQuery           *CollectionResponse[ConversationCursorMetadata, Conversation] `json:"messengerConversationsByCategoryQuery,omitempty"`
 	MessengerConversationsBySyncToken               *CollectionResponse[ConversationSyncMetadata, Conversation]   `json:"messengerConversationsBySyncToken,omitempty"`
+	MessengerConversationsByRecipients              *CollectionResponse[any, Conversation]                        `json:"messengerConversationsByRecipients,omitempty"`
 	MessengerMessagesByAnchorTimestamp              *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByAnchorTimestamp,omitempty"`
 	MessengerMessagesByConversation                 *CollectionResponse[MessageMetadata, Message]                 `json:"messengerMessagesByConversation,omitempty"`
 	MessengerMessagingParticipantsByMessageAndEmoji *CollectionResponse[any, MessagingParticipant]                `json:"messengerMessagingParticipantsByMessageAndEmoji,omitempty"`
@@ -253,6 +254,25 @@ func (c *Client) GetConversationsBySyncToken(ctx context.Context) (*CollectionRe
 	c.conversationsSyncToken = newToken
 	c.handlers.onConversationsSyncToken(ctx, newToken)
 	return response.Data.MessengerConversationsBySyncToken, nil
+}
+
+func (c *Client) GetConversationsByRecipient(ctx context.Context, recipient URN) ([]Conversation, error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
+	var response GraphQlResponse
+	_, err := c.newAuthedRequest(http.MethodGet, linkedInVoyagerMessagingGraphQLURL).
+		WithGraphQLQuery(graphQLQueryIDMessengerConversationsByRecipients, map[string]string{
+			"mailboxUrn": url.QueryEscape(c.userEntityURN.AsFsdProfile().String()),
+			"recipients": "List(" + url.QueryEscape(recipient.String()) + ")",
+		}).
+		Do(ctx, &response)
+	if err != nil {
+		return nil, err
+	} else if response.Data.MessengerConversationsByRecipients == nil {
+		return nil, ErrMissingGraphQLData
+	}
+	return response.Data.MessengerConversationsByRecipients.Elements, nil
 }
 
 func (c *Client) DeleteConversation(ctx context.Context, conversationURN URN) error {
