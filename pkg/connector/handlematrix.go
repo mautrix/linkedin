@@ -217,13 +217,14 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 		transactionID = uuid.NewString()
 	}
 	var conversationState linkedingo.ConversationState
-	if msg.Portal.MessageRequest || msg.Portal.Metadata.(*PortalMetadata).Pending {
+	if msg.Portal.MessageRequest || needsAccept(msg.Portal) {
 		conversationState = linkedingo.ConversationStateAccepted
 	}
 	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent, transactionID, conversationState)
 	if err != nil {
 		return nil, wrapLinkedInError(err)
 	}
+	saveSentMessage(ctx, msg.Portal)
 	return &bridgev2.MatrixMessageResponse{
 		DB: &database.Message{
 			ID:        resp.Data.MessageID(),
