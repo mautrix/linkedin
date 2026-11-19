@@ -69,9 +69,12 @@ func (l *LinkedInClient) getBlockedUsers(ctx context.Context, notBefore time.Tim
 	fetchStart := time.Now()
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	users, err := l.client.GetBlockedUsers(ctx)
+	users, complete, err := l.client.GetBlockedUsers(ctx)
 	if err != nil {
 		l.userLogin.Log.Warn().Err(err).Msg("Failed to fetch blocked users")
+		return nil
+	} else if !complete {
+		l.userLogin.Log.Warn().Int("count", len(users)).Msg("LinkedIn returned a partial block list")
 		return nil
 	}
 	blocked := make(map[networkid.UserID]bool, len(users))
