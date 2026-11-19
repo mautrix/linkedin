@@ -3,7 +3,6 @@ package connector
 import (
 	"context"
 	"errors"
-	"maps"
 	"time"
 
 	"maunium.net/go/mautrix/bridgev2"
@@ -34,7 +33,7 @@ func (l *LinkedInClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev
 	}
 	l.blockSyncLock.Lock()
 	defer l.blockSyncLock.Unlock()
-	l.blockedUsers = nil
+	l.blockedUsers.Store(nil)
 	l.blockSyncTime = time.Time{}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -50,47 +49,49 @@ func withoutNotice(err error) error {
 }
 
 func (l *LinkedInClient) HandleMatrixViewingChat(ctx context.Context, chat *bridgev2.MatrixViewingChat) error {
-	l.resyncUserBlock(ctx, chat.Portal, time.Hour)
+	l.resyncUserBlock(ctx, chat.Portal, time.Now().Add(-time.Hour))
 	return nil
 }
 
-func (l *LinkedInClient) resyncUserBlock(ctx context.Context, portal *bridgev2.Portal, maxAge time.Duration) {
+func (l *LinkedInClient) resyncUserBlock(ctx context.Context, portal *bridgev2.Portal, notBefore time.Time) {
 	if portal == nil || portal.RoomType != database.RoomTypeDM || portal.Receiver == "" || portal.Receiver != l.userLogin.ID || portal.OtherUserID == "" || portal.OtherUserID == l.userID || !l.IsLoggedIn() {
 		return
 	}
-	go l.syncUserBlock(context.WithoutCancel(ctx), portal, maxAge)
+	go l.syncUserBlock(context.WithoutCancel(ctx), portal, notBefore)
 }
 
-func (l *LinkedInClient) getBlockedUsers(ctx context.Context, maxAge time.Duration) map[networkid.UserID]bool {
+func (l *LinkedInClient) getBlockedUsers(ctx context.Context, notBefore time.Time) map[networkid.UserID]bool {
 	l.blockSyncLock.Lock()
 	defer l.blockSyncLock.Unlock()
-	if time.Since(l.blockSyncTime) >= maxAge {
-		l.blockSyncTime = time.Now()
-		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-		users, err := l.client.GetBlockedUsers(ctx)
-		if err != nil {
-			l.blockedUsers = nil
-			l.userLogin.Log.Warn().Err(err).Msg("Failed to fetch blocked users")
-			return nil
-		}
-		l.blockedUsers = make(map[networkid.UserID]bool, len(users))
-		for _, user := range users {
-			l.blockedUsers[networkid.UserID(user.ID())] = true
-		}
+	if blocked := l.blockedUsers.Load(); blocked != nil && !l.blockSyncTime.Before(notBefore) {
+		return *blocked
 	}
-	return maps.Clone(l.blockedUsers)
+	fetchStart := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	users, err := l.client.GetBlockedUsers(ctx)
+	if err != nil {
+		l.userLogin.Log.Warn().Err(err).Msg("Failed to fetch blocked users")
+		return nil
+	}
+	blocked := make(map[networkid.UserID]bool, len(users))
+	for _, user := range users {
+		blocked[networkid.UserID(user.ID())] = true
+	}
+	l.blockedUsers.Store(&blocked)
+	l.blockSyncTime = fetchStart
+	return blocked
 }
 
-func (l *LinkedInClient) syncUserBlock(ctx context.Context, portal *bridgev2.Portal, maxAge time.Duration) {
-	if l.getBlockedUsers(ctx, maxAge) == nil {
+func (l *LinkedInClient) syncUserBlock(ctx context.Context, portal *bridgev2.Portal, notBefore time.Time) {
+	if l.getBlockedUsers(ctx, notBefore) == nil {
 		return
 	}
 	l.queueBlockInfoChange(portal.PortalKey, portal.OtherUserID)
 }
 
 func (l *LinkedInClient) syncBlockedUsers(ctx context.Context) {
-	blocked := l.getBlockedUsers(ctx, 0)
+	blocked := l.getBlockedUsers(ctx, time.Now())
 	if blocked == nil {
 		return
 	}
@@ -130,7 +131,7 @@ func (l *LinkedInClient) syncBlockedUsers(ctx context.Context) {
 
 func (l *LinkedInClient) resyncBlockedPortalOnMessage(ctx context.Context, portal *bridgev2.Portal) {
 	if portal.UserBlocked {
-		l.resyncUserBlock(ctx, portal, 0)
+		l.resyncUserBlock(ctx, portal, time.Now())
 	}
 }
 
@@ -150,11 +151,10 @@ type blockInfoChange struct {
 }
 
 func (evt *blockInfoChange) GetChatInfoChange(ctx context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfoChange, error) {
-	evt.client.blockSyncLock.Lock()
-	defer evt.client.blockSyncLock.Unlock()
-	if evt.client.blockedUsers == nil {
+	blockedUsers := evt.client.blockedUsers.Load()
+	if blockedUsers == nil {
 		return nil, nil
 	}
-	blocked := evt.client.blockedUsers[evt.userID]
+	blocked := (*blockedUsers)[evt.userID]
 	return &bridgev2.ChatInfoChange{ChatInfo: &bridgev2.ChatInfo{UserBlocked: &blocked}}, nil
 }

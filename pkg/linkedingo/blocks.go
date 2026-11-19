@@ -19,6 +19,9 @@ func (c *Client) GetBlockedUsers(ctx context.Context) ([]URN, error) {
 		Elements []struct {
 			MemberIdentifier string `json:"memberIdentifier"`
 		} `json:"elements"`
+		Paging *struct {
+			Total int `json:"total"`
+		} `json:"paging"`
 	}
 	_, err := c.newAuthedRequest(http.MethodGet, "https://www.linkedin.com/mysettings-api/settingsApiMemberBlocking/").
 		WithQueryParam("q", "currentMember").
@@ -30,6 +33,8 @@ func (c *Client) GetBlockedUsers(ctx context.Context) ([]URN, error) {
 		return nil, err
 	} else if response.Elements == nil {
 		return nil, fmt.Errorf("block list response is missing elements")
+	} else if response.Paging != nil && response.Paging.Total > len(response.Elements) {
+		return nil, fmt.Errorf("block list response only has %d of %d members", len(response.Elements), response.Paging.Total)
 	}
 	users := make([]URN, 0, len(response.Elements))
 	for _, member := range response.Elements {
