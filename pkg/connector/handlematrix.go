@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -224,7 +225,7 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 	if err != nil {
 		return nil, wrapLinkedInError(err)
 	}
-	saveSentMessage(ctx, msg.Portal)
+	msg.Portal.UpdateInfo(ctx, &bridgev2.ChatInfo{ExtraUpdates: markSentMessage}, l.userLogin, nil, time.Time{})
 	return &bridgev2.MatrixMessageResponse{
 		DB: &database.Message{
 			ID:        resp.Data.MessageID(),

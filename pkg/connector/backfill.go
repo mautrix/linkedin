@@ -148,7 +148,7 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 	}
 
 	if fetchParams.Forward && slices.ContainsFunc(messages, l.isOwnMessage) {
-		saveSentMessage(ctx, portal)
+		portal.UpdateInfo(ctx, &bridgev2.ChatInfo{ExtraUpdates: markSentMessage}, l.userLogin, nil, time.Time{})
 	}
 
 	resp.HasMore = len(resp.Messages) > 0 || (skippedRecalled && resp.Cursor != "" && resp.Cursor != fetchParams.Cursor)

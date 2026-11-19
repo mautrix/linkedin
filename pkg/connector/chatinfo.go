@@ -122,11 +122,10 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 		connected, known := l.connectionStatus(conv.ConversationParticipants)
 		ci.ExtraUpdates = func(ctx context.Context, portal *bridgev2.Portal) bool {
 			meta := portal.Metadata.(*PortalMetadata)
-			wasPending := meta.Pending
 			changed := meta.Pending != pending || sentMessage && !meta.SentMessage
 			meta.Pending = pending
 			meta.SentMessage = meta.SentMessage || sentMessage
-			if !known && wasPending && needsAccept(portal) {
+			if !known && portal.MXID != "" && needsAccept(portal) {
 				return changed
 			}
 			if messageRequest := needsAccept(portal) && !connected; portal.MessageRequest != messageRequest {
@@ -202,7 +201,9 @@ func (l *LinkedInClient) connectionStatus(participants []linkedingo.MessagingPar
 }
 
 func (l *LinkedInClient) isOwnMessage(msg linkedingo.Message) bool {
-	return networkid.UserID(msg.Sender.EntityURN.ID()) == l.userID
+	return networkid.UserID(msg.Sender.EntityURN.ID()) == l.userID &&
+		msg.MessageBodyRenderFormat != linkedingo.MessageBodyRenderFormatSystem &&
+		msg.MessageBodyRenderFormat != linkedingo.MessageBodyRenderFormatRecalled
 }
 
 func needsAccept(portal *bridgev2.Portal) bool {
@@ -218,17 +219,4 @@ func markSentMessage(ctx context.Context, portal *bridgev2.Portal) bool {
 	meta.SentMessage = true
 	portal.MessageRequest = false
 	return true
-}
-
-func saveSentMessage(ctx context.Context, portal *bridgev2.Portal) {
-	wasMessageRequest := portal.MessageRequest
-	if !markSentMessage(ctx, portal) {
-		return
-	}
-	if wasMessageRequest {
-		portal.UpdateBridgeInfo(ctx)
-	}
-	if err := portal.Save(ctx); err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("Failed to save portal after user sent a message")
-	}
 }
