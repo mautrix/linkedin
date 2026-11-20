@@ -127,6 +127,11 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	} else if slices.Contains(conv.Categories, "ARCHIVE") {
 		ci.UserLocal.Tag = ptr.Ptr(l.main.Config.ArchiveTag)
 	}
+	if conv.NotificationStatus == linkedingo.NotificationStatusMute {
+		ci.UserLocal.MutedUntil = ptr.Ptr(event.MutedForever)
+	} else if conv.NotificationStatus == linkedingo.NotificationStatusActive {
+		ci.UserLocal.MutedUntil = ptr.Ptr(bridgev2.Unmuted)
+	}
 
 	if conv.DisabledFeatures != nil {
 		disabledFeatures := make([]linkedingo.ConversationFeature, 0, len(conv.DisabledFeatures))
