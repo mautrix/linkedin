@@ -70,8 +70,8 @@ func passwordLoginStep(instructions string) *bridgev2.LoginStep {
 		StepID:       PasswordLoginStepID,
 		Instructions: instructions,
 		UserInputParams: &bridgev2.LoginUserInputParams{Fields: []bridgev2.LoginInputDataField{
-			{Type: bridgev2.LoginInputFieldTypeUsername, ID: "identifier", Name: "Email or phone number"},
-			{Type: bridgev2.LoginInputFieldTypePassword, ID: "password", Name: "Password"},
+			{Type: bridgev2.LoginInputFieldTypeUsername, ID: "identifier", Name: "Email or phone number", AutofillDomain: "linkedin.com"},
+			{Type: bridgev2.LoginInputFieldTypePassword, ID: "password", Name: "Password", AutofillDomain: "linkedin.com"},
 		}},
 	}
 }
@@ -93,23 +93,24 @@ func (p *PasswordLogin) Cancel() {
 }
 
 func passwordCodeStep(kind linkedingo.PasswordCheckpointKind, instructions string) *bridgev2.LoginStep {
-	stepID, name := PasswordLoginEmailCodeStepID, "Email verification code"
+	stepID, name, autofillDomain := PasswordLoginEmailCodeStepID, "Email verification code", ""
 	if kind == linkedingo.PasswordCheckpointSMS {
 		stepID, name = PasswordLoginSMSCodeStepID, "SMS verification code"
 	} else if kind == linkedingo.PasswordCheckpointTOTP {
-		stepID, name = PasswordLoginTOTPCodeStepID, "Authenticator app code"
+		stepID, name, autofillDomain = PasswordLoginTOTPCodeStepID, "Authenticator app code", "linkedin.com"
 	}
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeUserInput,
 		StepID:       stepID,
 		Instructions: instructions,
 		UserInputParams: &bridgev2.LoginUserInputParams{Fields: []bridgev2.LoginInputDataField{{
-			Type:      bridgev2.LoginInputFieldType2FACode,
-			ID:        "code",
-			Name:      name,
-			Pattern:   `^[0-9]{6}$`,
-			MinLength: 6,
-			MaxLength: 6,
+			Type:           bridgev2.LoginInputFieldType2FACode,
+			ID:             "code",
+			Name:           name,
+			Pattern:        `^[0-9]{6}$`,
+			MinLength:      6,
+			MaxLength:      6,
+			AutofillDomain: autofillDomain,
 		}}},
 	}
 }
