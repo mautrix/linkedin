@@ -122,6 +122,11 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	}
 
 	ci.UserLocal = &bridgev2.UserLocalPortalInfo{}
+	if slices.Contains(conv.Categories, "STARRED") {
+		ci.UserLocal.Tag = ptr.Ptr(l.main.Config.PinnedTag)
+	} else if slices.Contains(conv.Categories, "ARCHIVE") {
+		ci.UserLocal.Tag = ptr.Ptr(l.main.Config.ArchiveTag)
+	}
 	if conv.NotificationStatus == linkedingo.NotificationStatusMute {
 		ci.UserLocal.MutedUntil = ptr.Ptr(event.MutedForever)
 	} else if conv.NotificationStatus == linkedingo.NotificationStatusActive {
