@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -57,7 +58,7 @@ type LinkedInClient struct {
 	remoteProfileLock sync.Mutex
 	blockSyncLock     sync.Mutex
 	blockSyncTime     time.Time
-	blockedUsers      map[networkid.UserID]bool
+	blockedUsers      atomic.Pointer[map[networkid.UserID]bool]
 
 	ackedMessagesLock sync.Mutex
 	ackedMessages     map[linkedingo.URN]time.Time
@@ -107,6 +108,7 @@ func NewLinkedInClient(ctx context.Context, lc *LinkedInConnector, login *bridge
 						Stringer("new_sess_id", conn.SessID).
 						Msg("Session ID changed, resyncing conversations")
 					go client.syncConversations(ctx)
+					go client.syncBlockedUsers(ctx)
 					client.sessID = conn.SessID
 				} else {
 					client.getConversationsBySyncToken(ctx)
