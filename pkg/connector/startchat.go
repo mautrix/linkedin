@@ -132,6 +132,7 @@ func (l *LinkedInClient) createChat(ctx context.Context, chatInfo *bridgev2.Chat
 		ID:       networkid.PortalID(resp.Data.ConversationURN.String()),
 		Receiver: l.userLogin.ID,
 	}
+	chatInfo.ExtraUpdates = markSentMessage
 	return &bridgev2.CreateChatResponse{
 		PortalKey:  portalKey,
 		PortalInfo: chatInfo,

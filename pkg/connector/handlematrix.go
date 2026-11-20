@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -218,13 +219,14 @@ func (l *LinkedInClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.
 		transactionID = uuid.NewString()
 	}
 	var conversationState linkedingo.ConversationState
-	if msg.Portal.MessageRequest {
+	if msg.Portal.MessageRequest || needsAccept(msg.Portal) {
 		conversationState = linkedingo.ConversationStateAccepted
 	}
 	resp, err := l.client.SendMessage(ctx, conversationURN, matrixfmt.Parse(ctx, l.matrixParser, msg.Content), renderContent, transactionID, conversationState)
 	if err != nil {
 		return nil, wrapLinkedInError(err)
 	}
+	msg.Portal.UpdateInfo(ctx, &bridgev2.ChatInfo{ExtraUpdates: markSentMessage}, l.userLogin, nil, time.Time{})
 	return &bridgev2.MatrixMessageResponse{
 		DB: &database.Message{
 			ID:        resp.Data.MessageID(),

@@ -118,7 +118,22 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	ci.CanBackfill = true
 	if conv.State != "" {
 		pending := conv.State == linkedingo.ConversationStatePending
-		ci.MessageRequest = ptr.Ptr(pending && !slices.ContainsFunc(conv.Messages.Elements, l.isOwnMessage))
+		sentMessage := slices.ContainsFunc(conv.Messages.Elements, l.isOwnMessage)
+		connected, known := l.connectionStatus(conv.ConversationParticipants)
+		ci.ExtraUpdates = func(ctx context.Context, portal *bridgev2.Portal) bool {
+			meta := portal.Metadata.(*PortalMetadata)
+			changed := meta.Pending != pending || sentMessage && !meta.SentMessage
+			meta.Pending = pending
+			meta.SentMessage = meta.SentMessage || sentMessage
+			if !known && portal.MXID != "" && needsAccept(portal) {
+				return changed
+			}
+			if messageRequest := needsAccept(portal) && !connected; portal.MessageRequest != messageRequest {
+				portal.MessageRequest = messageRequest
+				changed = true
+			}
+			return changed
+		}
 	}
 
 	ci.UserLocal = &bridgev2.UserLocalPortalInfo{}
@@ -134,14 +149,14 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 			disabledFeatures = append(disabledFeatures, feature.DisabledFeature)
 		}
 		slices.Sort(disabledFeatures)
-		ci.ExtraUpdates = func(ctx context.Context, portal *bridgev2.Portal) bool {
+		ci.ExtraUpdates = bridgev2.MergeExtraUpdaters(ci.ExtraUpdates, func(ctx context.Context, portal *bridgev2.Portal) bool {
 			meta := portal.Metadata.(*PortalMetadata)
 			if slices.Equal(meta.DisabledFeatures, disabledFeatures) {
 				return false
 			}
 			meta.DisabledFeatures = disabledFeatures
 			return true
-		}
+		})
 	}
 
 	ci.Members = &bridgev2.ChatMemberList{
@@ -172,6 +187,43 @@ func (l *LinkedInClient) conversationToChatInfo(conv linkedingo.Conversation) (c
 	return
 }
 
+func (l *LinkedInClient) connectionStatus(participants []linkedingo.MessagingParticipant) (connected, known bool) {
+	for _, participant := range participants {
+		member := participant.ParticipantType.Member
+		if networkid.UserID(participant.EntityURN.ID()) == l.userID {
+			continue
+		} else if member == nil {
+			return false, true
+		}
+		switch member.Distance {
+		case "":
+			return false, false
+		case linkedingo.MemberDistanceFirst:
+			connected = true
+		default:
+			return false, true
+		}
+	}
+	return connected, connected
+}
+
 func (l *LinkedInClient) isOwnMessage(msg linkedingo.Message) bool {
-	return networkid.UserID(msg.Sender.EntityURN.ID()) == l.userID
+	return networkid.UserID(msg.Sender.EntityURN.ID()) == l.userID &&
+		msg.MessageBodyRenderFormat != linkedingo.MessageBodyRenderFormatSystem &&
+		msg.MessageBodyRenderFormat != linkedingo.MessageBodyRenderFormatRecalled
+}
+
+func needsAccept(portal *bridgev2.Portal) bool {
+	meta := portal.Metadata.(*PortalMetadata)
+	return meta.Pending && !meta.SentMessage
+}
+
+func markSentMessage(ctx context.Context, portal *bridgev2.Portal) bool {
+	meta := portal.Metadata.(*PortalMetadata)
+	if meta.SentMessage && !portal.MessageRequest {
+		return false
+	}
+	meta.SentMessage = true
+	portal.MessageRequest = false
+	return true
 }

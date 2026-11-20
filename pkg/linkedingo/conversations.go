@@ -188,7 +188,12 @@ type MemberParticipantInfo struct {
 	ProfilePicture *VectorImage   `json:"profilePicture,omitempty"`
 	Pronoun        any            `json:"pronoun,omitempty"`
 	Headline       AttributedText `json:"headline,omitempty"`
+	Distance       MemberDistance `json:"distance,omitempty"`
 }
+
+type MemberDistance string
+
+const MemberDistanceFirst MemberDistance = "DISTANCE_1"
 
 // OrganizationParticipantInfo represents a
 // com.linkedin.messenger.OrganizationParticipantInfo object.
