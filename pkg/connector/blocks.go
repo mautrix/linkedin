@@ -33,7 +33,7 @@ func (l *LinkedInClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev
 	}
 	l.blockSyncLock.Lock()
 	defer l.blockSyncLock.Unlock()
-	l.blockedUsers = nil
+	l.blockedUsers.Store(nil)
 	l.blockSyncTime = time.Time{}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -49,45 +49,101 @@ func withoutNotice(err error) error {
 }
 
 func (l *LinkedInClient) HandleMatrixViewingChat(ctx context.Context, chat *bridgev2.MatrixViewingChat) error {
-	l.resyncUserBlock(ctx, chat.Portal)
+	l.resyncUserBlock(ctx, chat.Portal, time.Now().Add(-time.Hour))
 	return nil
 }
 
-func (l *LinkedInClient) resyncUserBlock(ctx context.Context, portal *bridgev2.Portal) {
+func (l *LinkedInClient) resyncUserBlock(ctx context.Context, portal *bridgev2.Portal, notBefore time.Time) {
 	if portal == nil || portal.RoomType != database.RoomTypeDM || portal.Receiver == "" || portal.Receiver != l.userLogin.ID || portal.OtherUserID == "" || portal.OtherUserID == l.userID || !l.IsLoggedIn() {
 		return
 	}
-	go l.syncUserBlock(context.WithoutCancel(ctx), portal)
+	go l.syncUserBlock(context.WithoutCancel(ctx), portal, notBefore)
 }
 
-func (l *LinkedInClient) syncUserBlock(ctx context.Context, portal *bridgev2.Portal) {
+func (l *LinkedInClient) getBlockedUsers(ctx context.Context, notBefore time.Time) map[networkid.UserID]bool {
 	l.blockSyncLock.Lock()
-	if time.Since(l.blockSyncTime) >= time.Hour {
-		l.blockSyncTime = time.Now()
-		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-		users, err := l.client.GetBlockedUsers(ctx)
-		if err != nil {
-			l.blockedUsers = nil
-			l.blockSyncLock.Unlock()
-			l.userLogin.Log.Warn().Err(err).Msg("Failed to fetch blocked users")
-			return
-		}
-		l.blockedUsers = make(map[networkid.UserID]bool, len(users))
-		for _, user := range users {
-			l.blockedUsers[networkid.UserID(user.ID())] = true
-		}
+	defer l.blockSyncLock.Unlock()
+	if blocked := l.blockedUsers.Load(); blocked != nil && !l.blockSyncTime.Before(notBefore) {
+		return *blocked
 	}
-	if l.blockedUsers == nil {
-		l.blockSyncLock.Unlock()
+	fetchStart := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	users, complete, err := l.client.GetBlockedUsers(ctx)
+	if err != nil {
+		l.userLogin.Log.Warn().Err(err).Msg("Failed to fetch blocked users")
+		return nil
+	} else if !complete {
+		l.userLogin.Log.Warn().Int("count", len(users)).Msg("LinkedIn returned a partial block list")
+		return nil
+	}
+	blocked := make(map[networkid.UserID]bool, len(users))
+	for _, user := range users {
+		blocked[networkid.UserID(user.ID())] = true
+	}
+	l.blockedUsers.Store(&blocked)
+	l.blockSyncTime = fetchStart
+	return blocked
+}
+
+func (l *LinkedInClient) syncUserBlock(ctx context.Context, portal *bridgev2.Portal, notBefore time.Time) {
+	if l.getBlockedUsers(ctx, notBefore) == nil {
 		return
 	}
-	l.blockSyncLock.Unlock()
+	l.queueBlockInfoChange(portal.PortalKey, portal.OtherUserID)
+}
+
+func (l *LinkedInClient) syncBlockedUsers(ctx context.Context) {
+	blocked := l.getBlockedUsers(ctx, time.Now())
+	if blocked == nil {
+		return
+	}
+	log := l.userLogin.Log.With().Str("action", "sync blocked users").Logger()
+	portals := l.main.Bridge.DB.Portal
+	targets := make(map[networkid.PortalKey]networkid.UserID)
+	blockedDMs, err := portals.GetAllBlockedDMsOf(ctx, l.userLogin.ID)
+	if err != nil {
+		log.Err(err).Msg("Failed to get blocked DMs")
+		return
+	}
+	for _, key := range blockedDMs {
+		portal, err := portals.GetByKey(ctx, key)
+		if err != nil {
+			log.Err(err).Msg("Failed to get blocked DM")
+			return
+		} else if portal != nil && portal.OtherUserID != "" && !blocked[portal.OtherUserID] {
+			targets[key] = portal.OtherUserID
+		}
+	}
+	for userID := range blocked {
+		portal, err := portals.GetDM(ctx, l.userLogin.ID, userID)
+		if err != nil {
+			log.Err(err).Msg("Failed to get DM with blocked user")
+			return
+		} else if portal != nil && !portal.UserBlocked {
+			targets[portal.PortalKey] = userID
+		}
+	}
+	if len(targets) > 0 {
+		log.Debug().Int("count", len(targets)).Msg("Updating block state of DMs changed on LinkedIn")
+	}
+	for key, userID := range targets {
+		l.queueBlockInfoChange(key, userID)
+	}
+}
+
+func (l *LinkedInClient) resyncBlockedPortalOnMessage(ctx context.Context, portal *bridgev2.Portal) {
+	if portal.UserBlocked {
+		l.resyncUserBlock(ctx, portal, time.Now())
+	}
+}
+
+func (l *LinkedInClient) queueBlockInfoChange(key networkid.PortalKey, userID networkid.UserID) {
 	l.userLogin.QueueRemoteEvent(&blockInfoChange{
 		EventMeta: simplevent.EventMeta{
-			Type: bridgev2.RemoteEventChatInfoChange, PortalKey: portal.PortalKey, Timestamp: time.Now(),
+			Type: bridgev2.RemoteEventChatInfoChange, PortalKey: key, Timestamp: time.Now(),
 		},
-		client: l, userID: portal.OtherUserID,
+		client: l, userID: userID,
 	})
 }
 
@@ -98,11 +154,10 @@ type blockInfoChange struct {
 }
 
 func (evt *blockInfoChange) GetChatInfoChange(ctx context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfoChange, error) {
-	evt.client.blockSyncLock.Lock()
-	defer evt.client.blockSyncLock.Unlock()
-	if evt.client.blockedUsers == nil {
+	blockedUsers := evt.client.blockedUsers.Load()
+	if blockedUsers == nil {
 		return nil, nil
 	}
-	blocked := evt.client.blockedUsers[evt.userID]
+	blocked := (*blockedUsers)[evt.userID]
 	return &bridgev2.ChatInfoChange{ChatInfo: &bridgev2.ChatInfo{UserBlocked: &blocked}}, nil
 }
