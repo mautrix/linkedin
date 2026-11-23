@@ -14,7 +14,7 @@ require (
 	golang.org/x/exp v0.0.0-20261113113407-e3970619a1a4
 	golang.org/x/net v0.62.0
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.33.0
+	maunium.net/go/mautrix v0.33.1-0.20261120111454-33abe66d85a0
 )
 
 require (

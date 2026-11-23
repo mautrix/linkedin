@@ -155,5 +155,8 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 	if !resp.MarkRead && !lastRead.Time.IsZero() {
 		resp.ReadUpTo = lastRead.Time
 	}
+	if fetchParams.Forward && len(resp.Messages) > 0 {
+		l.resyncBlockedPortalOnMessage(ctx, portal)
+	}
 	return &resp, nil
 }

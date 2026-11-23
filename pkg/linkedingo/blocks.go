@@ -14,31 +14,34 @@ import (
 
 var blockedMemberIdentifierPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
-func (c *Client) GetBlockedUsers(ctx context.Context) ([]URN, error) {
+func (c *Client) GetBlockedUsers(ctx context.Context) (users []URN, complete bool, err error) {
 	var response struct {
 		Elements []struct {
 			MemberIdentifier string `json:"memberIdentifier"`
 		} `json:"elements"`
+		Paging *struct {
+			Total int `json:"total"`
+		} `json:"paging"`
 	}
-	_, err := c.newAuthedRequest(http.MethodGet, "https://www.linkedin.com/mysettings-api/settingsApiMemberBlocking/").
+	_, err = c.newAuthedRequest(http.MethodGet, "https://www.linkedin.com/mysettings-api/settingsApiMemberBlocking/").
 		WithQueryParam("q", "currentMember").
 		WithHeader("Accept", "application/json").
 		WithHeader("X-Restli-Protocol-Version", "2.0.0").
 		WithCSRF().
 		Do(ctx, &response)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	} else if response.Elements == nil {
-		return nil, fmt.Errorf("block list response is missing elements")
+		return nil, false, fmt.Errorf("block list response is missing elements")
 	}
-	users := make([]URN, 0, len(response.Elements))
+	users = make([]URN, 0, len(response.Elements))
 	for _, member := range response.Elements {
 		if !blockedMemberIdentifierPattern.MatchString(member.MemberIdentifier) {
-			return nil, fmt.Errorf("block list response contains an invalid member identifier")
+			return nil, false, fmt.Errorf("block list response contains an invalid member identifier")
 		}
 		users = append(users, NewURN(member.MemberIdentifier).AsFsdProfile())
 	}
-	return users, nil
+	return users, response.Paging == nil || response.Paging.Total <= len(response.Elements), nil
 }
 
 var memberIDPattern = regexp.MustCompile(`^[1-9][0-9]*$`)
@@ -77,7 +80,7 @@ func (c *Client) BlockUser(ctx context.Context, target URN, displayName string) 
 		return fmt.Errorf("invalid block target or account")
 	}
 	target = target.AsFsdProfile()
-	users, err := c.GetBlockedUsers(ctx)
+	users, _, err := c.GetBlockedUsers(ctx)
 	if err != nil {
 		return err
 	} else if slices.Contains(users, target) {
@@ -138,7 +141,7 @@ func (c *Client) BlockUser(ctx context.Context, target URN, displayName string) 
 	if _, err = io.Copy(io.Discard, response.Body); err != nil {
 		return fmt.Errorf("failed to read block response: %w", err)
 	}
-	users, err = c.GetBlockedUsers(ctx)
+	users, _, err = c.GetBlockedUsers(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to verify block: %w", err)
 	} else if !slices.Contains(users, target) {

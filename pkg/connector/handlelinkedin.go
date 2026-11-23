@@ -175,6 +175,7 @@ func (l *LinkedInClient) onRealtimeMessage(ctx context.Context, msg linkedingo.M
 	default:
 		log.Warn().Str("message_body_render_format", string(msg.MessageBodyRenderFormat)).Msg("Unknown render format")
 	}
+	evt.PreHandleFunc = l.resyncBlockedPortalOnMessage
 	l.main.Bridge.QueueRemoteEvent(l.userLogin, &evt)
 }
 
@@ -275,9 +276,10 @@ func (l *LinkedInClient) onRealtimeReactionSummaries(ctx context.Context, summar
 				Stringer("message_id", summary.Message.EntityURN).
 				Stringer("sender", summary.Actor.EntityURN)
 		},
-		PortalKey: messageData.Room,
-		Timestamp: time.Now(),
-		Sender:    l.makeSender(summary.Actor),
+		PortalKey:     messageData.Room,
+		Timestamp:     time.Now(),
+		Sender:        l.makeSender(summary.Actor),
+		PreHandleFunc: l.resyncBlockedPortalOnMessage,
 	}
 	if !summary.ReactionAdded {
 		meta.Type = bridgev2.RemoteEventReactionRemove

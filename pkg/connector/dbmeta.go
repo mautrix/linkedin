@@ -47,7 +47,7 @@ type UserLoginMetadata struct {
 	XLIPageInstance         string                      `json:"x_li_page_instance,omitempty"`
 	BrowserHeaders          http.Header                 `json:"browser_headers,omitempty"`
 	ConversationsSyncToken  string                      `json:"conversations_sync_token,omitempty"`
-	ConversationsSyncedUpTo jsontime.UnixMilli          `json:"conversations_synced_up_to,omitempty"`
+	ConversationsSyncedUpTo jsontime.UnixMilli          `json:"conversations_paged_up_to,omitempty"`
 }
 
 type PortalMetadata struct {

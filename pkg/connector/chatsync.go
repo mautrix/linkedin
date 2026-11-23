@@ -65,7 +65,8 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			l.deleteConversation(ctx, conv)
 			continue
 		}
-		if !slices.Contains(conv.Categories, "INBOX") {
+		inInbox := slices.Contains(conv.Categories, "INBOX")
+		if !inInbox && (l.main.Config.ArchiveTag == "" || !slices.Contains(conv.Categories, "ARCHIVE")) {
 			continue
 		}
 
@@ -102,9 +103,11 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 				return c.Str("update", "sync")
 			},
 			PortalKey:    portalKey,
-			CreatePortal: l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit,
+			CreatePortal: inInbox && (l.main.Config.Sync.CreateLimit == 0 || *synced < l.main.Config.Sync.CreateLimit),
 		}
-		*synced++
+		if inInbox {
+			*synced++
+		}
 
 		var latestMessageTS time.Time
 		var latestMessageID networkid.MessageID
@@ -178,8 +181,9 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 	log.Info().Msg("starting conversation sync")
 
 	syncStart := time.Now()
-	lastUsedUpdatedBefore := time.Time{}
-	updatedBefore := syncStart
+	oldestActivity := syncStart
+	var cursor string
+	seenCursors := map[string]struct{}{}
 	var synced int
 	for {
 		if ctx.Err() != nil {
@@ -188,19 +192,12 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 		}
 
 		log := log.With().
-			Time("updated_before", updatedBefore).
-			Time("last_used_updated_before", lastUsedUpdatedBefore).
+			Time("oldest_activity", oldestActivity).
+			Bool("has_cursor", cursor != "").
 			Logger()
-
-		if lastUsedUpdatedBefore.Equal(updatedBefore) {
-			log.Info().Msg("no more conversations found")
-			break
-		}
-		lastUsedUpdatedBefore = updatedBefore
-
 		log.Info().Msg("fetching conversations")
 
-		conversations, err := l.client.GetConversationsUpdatedBefore(ctx, updatedBefore)
+		conversations, err := l.client.GetConversationsPage(ctx, cursor)
 		if err != nil {
 			log.Err(err).Msg("failed to fetch conversations")
 			return
@@ -210,16 +207,28 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 		}
 
 		for _, conv := range conversations.Elements {
-			if !conv.LastActivityAt.IsZero() && conv.LastActivityAt.Before(updatedBefore) {
-				updatedBefore = conv.LastActivityAt.Time
+			if !conv.LastActivityAt.IsZero() && conv.LastActivityAt.Before(oldestActivity) {
+				oldestActivity = conv.LastActivityAt.Time
 			}
 		}
 		if l.handleConversations(ctx, conversations.Elements, &synced) {
 			break
-		} else if updatedBefore.Before(meta.ConversationsSyncedUpTo.Time) {
+		} else if oldestActivity.Before(meta.ConversationsSyncedUpTo.Time) {
 			log.Info().Msg("reached conversations synced previously")
 			break
+		} else if conversations.Metadata.NextCursor == "" {
+			log.Info().Msg("no more conversations found")
+			break
 		}
+		if _, seen := seenCursors[conversations.Metadata.NextCursor]; seen || len(conversations.Elements) == 0 {
+			log.Warn().Int("page_size", len(conversations.Elements)).Msg("conversation paging stopped advancing")
+			return
+		}
+		cursor = conversations.Metadata.NextCursor
+		seenCursors[cursor] = struct{}{}
+	}
+	if ctx.Err() != nil {
+		return
 	}
 	meta.ConversationsSyncedUpTo = jsontime.UM(syncStart)
 	if err := l.userLogin.Save(ctx); err != nil {
