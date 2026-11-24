@@ -124,7 +124,7 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			continue
 		}
 		var handledCh chan struct{}
-		if handled != nil && meta.CreatePortal {
+		if handled != nil && meta.CreatePortal && l.main.Bridge.Config.PortalCreateFilter.ShouldAllow(l.userLogin.ID, portalKey) {
 			handledCh = make(chan struct{})
 			closeHandled := sync.OnceFunc(func() { close(handledCh) })
 			meta.PostHandleFunc = func(context.Context, *bridgev2.Portal) {
@@ -251,20 +251,31 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 	}
 }
 
-const conversationPageHandleTimeout = 5 * time.Minute
+const (
+	conversationPageHandleTimeout = 5 * time.Minute
+	conversationPageIdleTimeout   = time.Minute
+)
 
 func waitForConversationsHandled(ctx context.Context, log zerolog.Logger, handled []<-chan struct{}) {
 	if len(handled) == 0 {
 		return
 	}
-	timeout := time.NewTimer(conversationPageHandleTimeout)
-	defer timeout.Stop()
+	deadline := time.NewTimer(conversationPageHandleTimeout)
+	defer deadline.Stop()
+	idle := time.NewTimer(conversationPageIdleTimeout)
+	defer idle.Stop()
 	for i, ch := range handled {
 		select {
 		case <-ch:
+			idle.Reset(conversationPageIdleTimeout)
 		case <-ctx.Done():
 			return
-		case <-timeout.C:
+		case <-idle.C:
+			log.Warn().
+				Int("pending", len(handled)-i).
+				Msg("No synced conversation was handled recently, continuing sync")
+			return
+		case <-deadline.C:
 			log.Warn().
 				Int("pending", len(handled)-i).
 				Msg("Timed out waiting for synced conversations to be handled")
