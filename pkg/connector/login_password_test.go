@@ -64,7 +64,7 @@ func TestPasswordLoginChallengeOffersBrowserFallback(t *testing.T) {
 	step, err = p.SubmitUserInput(context.Background(), map[string]string{"action": "Continue in browser"})
 	require.NoError(t, err)
 	assert.Equal(t, bridgev2.LoginStepTypeCookies, step.Type)
-	assert.Equal(t, "https://linkedin.com/login", step.CookiesParams.URL)
+	assert.Equal(t, "https://www.linkedin.com/login", step.CookiesParams.URL)
 }
 
 func TestPasswordLoginRejectedCredentialsRemainRetryable(t *testing.T) {
