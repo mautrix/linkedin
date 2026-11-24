@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"strings"
 
+	"go.mau.fi/util/l10n"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -35,13 +36,13 @@ const FlowIDCookies = "cookies"
 func (lc *LinkedInConnector) GetLoginFlows() []bridgev2.LoginFlow {
 	return []bridgev2.LoginFlow{
 		{
-			Name:        "Cookies",
-			Description: "Log in using cookies from linkedin.com",
+			Name:        msgFlowCookiesName.Message(),
+			Description: msgFlowCookiesDescription.Message(),
 			ID:          FlowIDCookies,
 		},
 		{
-			Name:        "Email and password",
-			Description: "Log in using your email/phone and password",
+			Name:        msgFlowPasswordName.Message(),
+			Description: msgFlowPasswordDescription.Message(),
 			ID:          FlowIDPassword,
 		},
 	}
@@ -90,7 +91,7 @@ func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 	step := &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeCookies,
 		StepID:       CookieLoginStepIDCookies,
-		Instructions: "Enter a JSON object with your cookies, or a cURL command copied from browser devtools. It is recommended that you use a tab opened in Incognito/Private browsing mode and close the browser **before** pasting the cookies.",
+		Instructions: msgStepCookiesInstructions.Message(),
 		CookiesParams: &bridgev2.LoginCookiesParams{
 			URL:       "https://linkedin.com/login",
 			ExtractJS: fmt.Sprintf(`Promise.resolve({%q: navigator.userAgent})`, cookieLoginBrowserHeaderPrefix+"user-agent"),
@@ -215,7 +216,7 @@ func (lc *LinkedInConnector) completeLinkedInLogin(ctx context.Context, user *br
 	return &bridgev2.LoginStep{
 		Type:           bridgev2.LoginStepTypeComplete,
 		StepID:         CookieLoginStepIDComplete,
-		Instructions:   fmt.Sprintf("Successfully logged in as %s", remoteName),
+		Instructions:   msgStepCompleteInstructions.Render(l10n.Params{"name": remoteName}),
 		CompleteParams: &bridgev2.LoginCompleteParams{UserLoginID: ul.ID, UserLogin: ul},
 	}, nil
 }

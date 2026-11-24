@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/l10n"
 	"maunium.net/go/mautrix/bridgev2"
 
 	"go.mau.fi/mautrix-linkedin/pkg/linkedingo"
@@ -64,14 +65,14 @@ func newPasswordLogin(user *bridgev2.User, main *LinkedInConnector) *PasswordLog
 	return &PasswordLogin{user: user, main: main}
 }
 
-func passwordLoginStep(instructions string) *bridgev2.LoginStep {
+func passwordLoginStep(instructions l10n.Message) *bridgev2.LoginStep {
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeUserInput,
 		StepID:       PasswordLoginStepID,
 		Instructions: instructions,
 		UserInputParams: &bridgev2.LoginUserInputParams{Fields: []bridgev2.LoginInputDataField{
-			{Type: bridgev2.LoginInputFieldTypeUsername, ID: "identifier", Name: "Email or phone number", AutofillDomain: "linkedin.com"},
-			{Type: bridgev2.LoginInputFieldTypePassword, ID: "password", Name: "Password", AutofillDomain: "linkedin.com"},
+			{Type: bridgev2.LoginInputFieldTypeUsername, ID: "identifier", Name: msgFieldIdentifierName.Message(), AutofillDomain: "linkedin.com"},
+			{Type: bridgev2.LoginInputFieldTypePassword, ID: "password", Name: msgFieldPasswordName.Message(), AutofillDomain: "linkedin.com"},
 		}},
 	}
 }
@@ -85,19 +86,19 @@ func (p *PasswordLogin) StartWithParams(ctx context.Context, params bridgev2.Log
 		p.clientHTTP = params.HTTP
 	}
 	zerolog.Ctx(ctx).Debug().Bool("client_http", p.clientHTTP != nil).Msg("Starting LinkedIn native login")
-	return passwordLoginStep("Enter your LinkedIn email or phone number and password."), nil
+	return passwordLoginStep(msgStepCredentialsInstructions.Message()), nil
 }
 
 func (p *PasswordLogin) Cancel() {
 	// No-op, there are no persistent connections to cancel.
 }
 
-func passwordCodeStep(kind linkedingo.PasswordCheckpointKind, instructions string) *bridgev2.LoginStep {
-	stepID, name, autofillDomain := PasswordLoginEmailCodeStepID, "Email verification code", ""
+func passwordCodeStep(kind linkedingo.PasswordCheckpointKind, instructions l10n.Message) *bridgev2.LoginStep {
+	stepID, name, autofillDomain := PasswordLoginEmailCodeStepID, msgFieldEmailCodeName.Message(), ""
 	if kind == linkedingo.PasswordCheckpointSMS {
-		stepID, name = PasswordLoginSMSCodeStepID, "SMS verification code"
+		stepID, name = PasswordLoginSMSCodeStepID, msgFieldSMSCodeName.Message()
 	} else if kind == linkedingo.PasswordCheckpointTOTP {
-		stepID, name, autofillDomain = PasswordLoginTOTPCodeStepID, "Authenticator app code", "linkedin.com"
+		stepID, name, autofillDomain = PasswordLoginTOTPCodeStepID, msgFieldTOTPCodeName.Message(), "linkedin.com"
 	}
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeUserInput,
@@ -138,7 +139,7 @@ func (p *PasswordLogin) SubmitUserInput(ctx context.Context, input map[string]st
 			p.checkpoint = nil
 			step, err := p.browser.Start(ctx)
 			if step != nil {
-				step.Instructions = "Finish signing in to LinkedIn in the browser, including any verification it requests."
+				step.Instructions = msgStepBrowserInstructions.Message()
 			}
 			return step, err
 		case "Try email and password again":
@@ -146,12 +147,12 @@ func (p *PasswordLogin) SubmitUserInput(ctx context.Context, input map[string]st
 			p.checkpoint = nil
 			return p.Start(ctx)
 		default:
-			return p.fallbackStep("Choose how to continue signing in."), nil
+			return p.fallbackStep(msgStepFallbackInstructions.Message()), nil
 		}
 	}
 	identifier, password := strings.TrimSpace(input["identifier"]), input["password"]
 	if identifier == "" || password == "" {
-		return passwordLoginStep("Enter both your LinkedIn email or phone number and password."), nil
+		return passwordLoginStep(msgStepCredentialsMissingInstructions.Message()), nil
 	}
 	login := p.login
 	if login == nil {
@@ -170,18 +171,18 @@ func (p *PasswordLogin) SubmitUserInput(ctx context.Context, input map[string]st
 }
 
 func (p *PasswordLogin) appMethodStep() *bridgev2.LoginStep {
-	options := []string{"Approve in LinkedIn app"}
+	options := []bridgev2.LoginInputOption{{Value: "Approve in LinkedIn app", Label: msgOptionApproveInApp.Message()}}
 	if p.checkpoint.CanTryAnotherWay() {
-		options = append(options, "Try another way")
+		options = append(options, bridgev2.LoginInputOption{Value: "Try another way", Label: msgOptionTryAnotherWay.Message()})
 	}
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeUserInput,
 		StepID:       PasswordLoginAppMethodStepID,
-		Instructions: "LinkedIn sent a sign-in request to your LinkedIn app. Approve it there, or choose another verification method.",
+		Instructions: msgStepAppMethodInstructions.Message(),
 		UserInputParams: &bridgev2.LoginUserInputParams{Fields: []bridgev2.LoginInputDataField{{
 			Type:    bridgev2.LoginInputFieldTypeSelect,
 			ID:      "action",
-			Name:    "Verification method",
+			Name:    msgFieldVerificationMethodName.Message(),
 			Options: options,
 		}}},
 	}
@@ -191,7 +192,7 @@ func (p *PasswordLogin) appApprovalStep() *bridgev2.LoginStep {
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeDisplayAndWait,
 		StepID:       PasswordLoginAppApprovalStepID,
-		Instructions: "Open the LinkedIn app on your phone and approve this sign-in. To use another verification method, go back.",
+		Instructions: msgStepAppApprovalInstructions.Message(),
 		DisplayAndWaitParams: &bridgev2.LoginDisplayAndWaitParams{
 			Type:      bridgev2.LoginDisplayTypeNothing,
 			CanCancel: true,
@@ -256,20 +257,20 @@ func (p *PasswordLogin) handleLoginError(ctx context.Context, err error) (*bridg
 	case linkedingo.PasswordLoginRejected:
 		switch loginErr.Stage {
 		case "email_code":
-			return passwordCodeStep(linkedingo.PasswordCheckpointEmail, "LinkedIn did not accept that code. Check the latest verification email and try again."), nil
+			return passwordCodeStep(linkedingo.PasswordCheckpointEmail, msgStepEmailCodeRejectedInstructions.Message()), nil
 		case "sms_code":
-			return passwordCodeStep(linkedingo.PasswordCheckpointSMS, "LinkedIn did not accept that code. Check the latest text message and try again."), nil
+			return passwordCodeStep(linkedingo.PasswordCheckpointSMS, msgStepSMSCodeRejectedInstructions.Message()), nil
 		case "totp_code":
-			return passwordCodeStep(linkedingo.PasswordCheckpointTOTP, "LinkedIn did not accept that code. Enter the current six-digit code from your authenticator app and try again."), nil
+			return passwordCodeStep(linkedingo.PasswordCheckpointTOTP, msgStepTOTPCodeRejectedInstructions.Message()), nil
 		case "app_approval_expired":
-			return p.fallbackStep("The LinkedIn app approval request expired. Try signing in again or continue through the browser."), nil
+			return p.fallbackStep(msgStepFallbackAppExpiredInstructions.Message()), nil
 		case "authenticate", "input":
 			p.checkpoint = nil
-			return passwordLoginStep("LinkedIn rejected the sign-in. Check your details and try again, or choose the Cookies login method to sign in through a browser."), nil
+			return passwordLoginStep(msgStepCredentialsRejectedInstructions.Message()), nil
 		case "checkpoint_complete":
-			return p.fallbackStep("LinkedIn verified your sign-in but could not finish logging in. Continue through the browser."), nil
+			return p.fallbackStep(msgStepFallbackVerifiedInstructions.Message()), nil
 		default:
-			return p.fallbackStep("LinkedIn could not complete this sign-in directly. You can finish signing in through the browser."), nil
+			return p.fallbackStep(msgStepFallbackFailedInstructions.Message()), nil
 		}
 	case linkedingo.PasswordLoginChallenge:
 		// Avoid assigning a typed nil to the checkpoint interface.
@@ -278,18 +279,18 @@ func (p *PasswordLogin) handleLoginError(ctx context.Context, err error) (*bridg
 			p.checkpoint = checkpoint
 			switch checkpoint.Kind() {
 			case linkedingo.PasswordCheckpointEmail:
-				return passwordCodeStep(checkpoint.Kind(), "LinkedIn sent a verification code to your email address. Enter the six-digit code to finish signing in."), nil
+				return passwordCodeStep(checkpoint.Kind(), msgStepEmailCodeInstructions.Message()), nil
 			case linkedingo.PasswordCheckpointSMS:
-				return passwordCodeStep(checkpoint.Kind(), "LinkedIn sent a text message to your phone. Enter the six-digit code to finish signing in."), nil
+				return passwordCodeStep(checkpoint.Kind(), msgStepSMSCodeInstructions.Message()), nil
 			case linkedingo.PasswordCheckpointTOTP:
-				return passwordCodeStep(checkpoint.Kind(), "Enter the current six-digit LinkedIn code from your authenticator app to finish signing in."), nil
+				return passwordCodeStep(checkpoint.Kind(), msgStepTOTPCodeInstructions.Message()), nil
 			case linkedingo.PasswordCheckpointApp:
 				return p.appMethodStep(), nil
 			}
 		}
-		return p.fallbackStep("LinkedIn requires additional verification. Continue signing in through the browser."), nil
+		return p.fallbackStep(msgStepFallbackChallengeInstructions.Message()), nil
 	default:
-		return p.fallbackStep("LinkedIn could not complete this sign-in directly. You can finish signing in through the browser."), nil
+		return p.fallbackStep(msgStepFallbackFailedInstructions.Message()), nil
 	}
 }
 
@@ -300,17 +301,20 @@ func (p *PasswordLogin) complete(ctx context.Context, session *linkedingo.Passwo
 	return p.main.completeLinkedInLogin(ctx, p.user, session.Cookies, "", "", session.BrowserHeaders)
 }
 
-func (p *PasswordLogin) fallbackStep(instructions string) *bridgev2.LoginStep {
+func (p *PasswordLogin) fallbackStep(instructions l10n.Message) *bridgev2.LoginStep {
 	p.browser = &CookieLogin{user: p.user, main: p.main}
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeUserInput,
 		StepID:       PasswordLoginFallbackStepID,
 		Instructions: instructions,
 		UserInputParams: &bridgev2.LoginUserInputParams{Fields: []bridgev2.LoginInputDataField{{
-			Type:    bridgev2.LoginInputFieldTypeSelect,
-			ID:      "action",
-			Name:    "Sign-in method",
-			Options: []string{"Continue in browser", "Try email and password again"},
+			Type: bridgev2.LoginInputFieldTypeSelect,
+			ID:   "action",
+			Name: msgFieldSignInMethodName.Message(),
+			Options: []bridgev2.LoginInputOption{
+				{Value: "Continue in browser", Label: msgOptionContinueInBrowser.Message()},
+				{Value: "Try email and password again", Label: msgOptionTryPasswordAgain.Message()},
+			},
 		}}},
 	}
 }
