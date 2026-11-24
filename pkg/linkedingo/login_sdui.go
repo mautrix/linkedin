@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -107,7 +108,12 @@ func visitLoginHydration(body []byte, visit func(id string, value any)) error {
 			var chunks []string
 			decoder := json.NewDecoder(strings.NewReader(strings.TrimSpace(text[1:])))
 			if decoder.Decode(&chunks) != nil {
-				return errors.New("unsupported login bootstrap")
+				// LinkedIn also writes the chunks as single-quoted JavaScript string literals, which aren't JSON.
+				var ok bool
+				chunks, ok = parseJSStringArray(strings.TrimSpace(text[1:]))
+				if !ok {
+					return errors.New("unsupported login bootstrap")
+				}
 			}
 			for _, chunk := range chunks {
 				visitFlightRows([]byte(chunk), visit)
@@ -475,4 +481,91 @@ func (e *loginEncryption) encrypt(value string) (string, error) {
 	}
 	token := append([]byte{1, 1}, ciphertext...)
 	return base64.RawURLEncoding.EncodeToString(token), nil
+}
+
+// parseJSStringArray parses a JavaScript array literal that only contains string literals,
+// in single or double quotes.
+func parseJSStringArray(src string) ([]string, bool) {
+	src = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(src), ";"))
+	if len(src) < 2 || src[0] != '[' || src[len(src)-1] != ']' {
+		return nil, false
+	}
+	src = src[1 : len(src)-1]
+	var out []string
+	for i := 0; ; {
+		for i < len(src) && strings.IndexByte(" \t\r\n", src[i]) >= 0 {
+			i++
+		}
+		if i == len(src) {
+			// Either an empty array or a trailing comma.
+			return out, true
+		}
+		quote := src[i]
+		if quote != '\'' && quote != '"' {
+			return nil, false
+		}
+		i++
+		var sb strings.Builder
+		for {
+			if i >= len(src) {
+				return nil, false
+			}
+			ch := src[i]
+			i++
+			if ch == quote {
+				break
+			} else if ch != '\\' {
+				sb.WriteByte(ch)
+				continue
+			} else if i >= len(src) {
+				return nil, false
+			}
+			esc := src[i]
+			i++
+			switch esc {
+			case 'n':
+				sb.WriteByte('\n')
+			case 'r':
+				sb.WriteByte('\r')
+			case 't':
+				sb.WriteByte('\t')
+			case 'b':
+				sb.WriteByte('\b')
+			case 'f':
+				sb.WriteByte('\f')
+			case 'v':
+				sb.WriteByte('\v')
+			case '0':
+				sb.WriteByte(0)
+			case 'x', 'u':
+				digits := 2
+				if esc == 'u' {
+					digits = 4
+				}
+				if i+digits > len(src) {
+					return nil, false
+				}
+				code, err := strconv.ParseUint(src[i:i+digits], 16, 32)
+				if err != nil {
+					return nil, false
+				}
+				i += digits
+				sb.WriteRune(rune(code))
+			case '\n':
+				// Line continuation
+			default:
+				sb.WriteByte(esc)
+			}
+		}
+		out = append(out, sb.String())
+		for i < len(src) && strings.IndexByte(" \t\r\n", src[i]) >= 0 {
+			i++
+		}
+		if i == len(src) {
+			return out, true
+		} else if src[i] != ',' {
+			return nil, false
+		}
+		i++
+	}
 }
