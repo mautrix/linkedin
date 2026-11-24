@@ -253,31 +253,44 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 
 const (
 	conversationPageHandleTimeout = 5 * time.Minute
-	conversationPageIdleTimeout   = time.Minute
+	conversationPageIdleTimeout   = 3 * time.Minute
 )
 
 func waitForConversationsHandled(ctx context.Context, log zerolog.Logger, handled []<-chan struct{}) {
 	if len(handled) == 0 {
 		return
 	}
+	stop := make(chan struct{})
+	defer close(stop)
+	done := make(chan struct{}, len(handled))
+	for _, ch := range handled {
+		go func() {
+			select {
+			case <-ch:
+				done <- struct{}{}
+			case <-stop:
+			}
+		}()
+	}
 	deadline := time.NewTimer(conversationPageHandleTimeout)
 	defer deadline.Stop()
 	idle := time.NewTimer(conversationPageIdleTimeout)
 	defer idle.Stop()
-	for i, ch := range handled {
+	for pending := len(handled); pending > 0; {
 		select {
-		case <-ch:
+		case <-done:
+			pending--
 			idle.Reset(conversationPageIdleTimeout)
 		case <-ctx.Done():
 			return
 		case <-idle.C:
 			log.Warn().
-				Int("pending", len(handled)-i).
+				Int("pending", pending).
 				Msg("No synced conversation was handled recently, continuing sync")
 			return
 		case <-deadline.C:
 			log.Warn().
-				Int("pending", len(handled)-i).
+				Int("pending", pending).
 				Msg("Timed out waiting for synced conversations to be handled")
 			return
 		}
