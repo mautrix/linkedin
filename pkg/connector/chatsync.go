@@ -253,7 +253,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 				break
 			}
 		}
-		if pagesHandled && !waitForConversationsHandled(ctx, log, handled) {
+		if !waitForConversationsHandled(ctx, log, handled) {
 			pagesHandled = false
 		}
 		if limitReached {
