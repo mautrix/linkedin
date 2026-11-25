@@ -58,7 +58,7 @@ func (l *LinkedInClient) deleteURN(ctx context.Context, urn linkedingo.URN) {
 	}
 }
 
-func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation, synced *int, handled *[]<-chan struct{}) (limitReached bool) {
+func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation, synced *int, handled *sync.WaitGroup) (limitReached bool) {
 	log := zerolog.Ctx(ctx)
 
 	for _, conv := range convs {
@@ -123,12 +123,13 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			log.Debug().Msg("User not in chat")
 			continue
 		}
-		var handledCh chan struct{}
-		if handled != nil && meta.CreatePortal && l.main.Bridge.Config.PortalCreateFilter.ShouldAllow(l.userLogin.ID, portalKey) {
-			handledCh = make(chan struct{})
-			closeHandled := sync.OnceFunc(func() { close(handledCh) })
+		waitHandled := handled != nil && meta.CreatePortal && l.main.Bridge.Config.PortalCreateFilter.ShouldAllow(l.userLogin.ID, portalKey)
+		var markHandled func()
+		if waitHandled {
+			handled.Add(1)
+			markHandled = sync.OnceFunc(handled.Done)
 			meta.PostHandleFunc = func(context.Context, *bridgev2.Portal) {
-				closeHandled()
+				markHandled()
 			}
 		}
 		res := l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
@@ -142,8 +143,8 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 				return latestMessage.ID != latestMessageID && latestMessageTS.After(latestMessage.Timestamp), nil
 			},
 		})
-		if handledCh != nil && res.Queued {
-			*handled = append(*handled, handledCh)
+		if waitHandled && !res.Queued {
+			markHandled()
 		}
 		if readStatusChanged {
 			sender := bridgev2.EventSender{
@@ -223,9 +224,9 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 				oldestActivity = conv.LastActivityAt.Time
 			}
 		}
-		var handled []<-chan struct{}
+		var handled sync.WaitGroup
 		limitReached := l.handleConversations(ctx, conversations.Elements, &synced, &handled)
-		waitForConversationsHandled(ctx, log, handled)
+		waitForConversationsHandled(ctx, log, &handled)
 		if limitReached {
 			break
 		} else if oldestActivity.Before(meta.ConversationsSyncedUpTo.Time) {
@@ -251,49 +252,19 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 	}
 }
 
-const (
-	conversationPageHandleTimeout = 5 * time.Minute
-	conversationPageIdleTimeout   = 3 * time.Minute
-)
+const conversationPageHandleTimeout = 5 * time.Minute
 
-func waitForConversationsHandled(ctx context.Context, log zerolog.Logger, handled []<-chan struct{}) {
-	if len(handled) == 0 {
-		return
-	}
-	stop := make(chan struct{})
-	defer close(stop)
-	done := make(chan struct{}, len(handled))
-	for _, ch := range handled {
-		go func() {
-			select {
-			case <-ch:
-				done <- struct{}{}
-			case <-stop:
-			}
-		}()
-	}
-	deadline := time.NewTimer(conversationPageHandleTimeout)
-	defer deadline.Stop()
-	idle := time.NewTimer(conversationPageIdleTimeout)
-	defer idle.Stop()
-	for pending := len(handled); pending > 0; {
-		select {
-		case <-done:
-			pending--
-			idle.Reset(conversationPageIdleTimeout)
-		case <-ctx.Done():
-			return
-		case <-idle.C:
-			log.Warn().
-				Int("pending", pending).
-				Msg("No synced conversation was handled recently, continuing sync")
-			return
-		case <-deadline.C:
-			log.Warn().
-				Int("pending", pending).
-				Msg("Timed out waiting for synced conversations to be handled")
-			return
-		}
+func waitForConversationsHandled(ctx context.Context, log zerolog.Logger, handled *sync.WaitGroup) {
+	done := make(chan struct{})
+	go func() {
+		handled.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-ctx.Done():
+	case <-time.After(conversationPageHandleTimeout):
+		log.Warn().Msg("Timed out waiting for synced conversations to be handled")
 	}
 }
 
