@@ -60,7 +60,7 @@ func TestPasswordLoginChallengeOffersBrowserFallback(t *testing.T) {
 	step, err := p.SubmitUserInput(context.Background(), map[string]string{"identifier": " alice@example.invalid ", "password": " password with spaces "})
 	require.NoError(t, err)
 	assert.Equal(t, PasswordLoginFallbackStepID, step.StepID)
-	assert.NotContains(t, step.Instructions, "password with spaces")
+	assert.NotContains(t, step.Instructions.String(), "password with spaces")
 	step, err = p.SubmitUserInput(context.Background(), map[string]string{"action": "Continue in browser"})
 	require.NoError(t, err)
 	assert.Equal(t, bridgev2.LoginStepTypeCookies, step.Type)
