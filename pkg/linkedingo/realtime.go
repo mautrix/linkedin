@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math/rand/v2"
 	"net/http"
 	"runtime/debug"
@@ -44,7 +43,10 @@ const (
 	realtimeHeartbeatRejectionWindow = 5 * time.Minute
 )
 
-var errHeartbeatRejected = errors.New("heartbeat rejected")
+var (
+	errHeartbeatRejected  = errors.New("heartbeat rejected")
+	errRealtimeStreamRead = errors.New("failed to read realtime stream")
+)
 
 //go:embed x-li-recipe-map.json
 var realtimeRecipeMapJSON []byte
@@ -194,8 +196,9 @@ func (c *Client) realtimeConnectLoop(ctx context.Context) {
 			lastHeartbeatRejection = time.Now()
 			c.realtimeSessionID = uuid.New()
 		}
-		if stable && errors.Is(err, io.EOF) {
+		if stable && errors.Is(err, errRealtimeStreamRead) {
 			log.Info().
+				Err(err).
 				Stringer("realtime_session_id", c.realtimeSessionID).
 				Msg("Realtime stream closed")
 		} else {
@@ -257,7 +260,7 @@ func (c *Client) readRealtimeStream(ctx context.Context) (time.Duration, error) 
 		if streamCtx.Err() != nil {
 			return time.Since(connectedAt), context.Cause(streamCtx)
 		} else if err != nil {
-			return time.Since(connectedAt), fmt.Errorf("failed to read realtime stream: %w", err)
+			return time.Since(connectedAt), fmt.Errorf("%w: %w", errRealtimeStreamRead, err)
 		}
 
 		if !bytes.HasPrefix(line, []byte("data:")) {
