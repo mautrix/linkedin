@@ -77,6 +77,48 @@ var _ bridgev2.LoginProcessCookies = (*CookieLogin)(nil)
 
 const cookieLoginBrowserHeaderPrefix = "fi.mau.linkedin.login.header."
 
+// Hides third-party sign-in buttons, which don't work in webviews, and keeps the login screen sized to the viewport.
+const cookieLoginExtractJS = `(() => {
+	if (!window.__mautrixLinkedInLogin) {
+		window.__mautrixLinkedInLogin = true;
+		const hide = el => el.style.setProperty("display", "none", "important");
+		const hideSSO = () => {
+			const starts = [
+				...document.querySelectorAll('iframe[src*="accounts.google.com/gsi"]'),
+				...[...document.querySelectorAll("button")].filter(b => b.textContent.length < 60 && /\b(apple|passkey)\b/i.test(b.textContent)),
+			];
+			for (const start of starts) {
+				let box = start;
+				while (box.parentElement && !box.parentElement.querySelector("input")) box = box.parentElement;
+				if (!box.parentElement || box.style.display === "none") continue;
+				hide(box);
+				const divider = box.nextElementSibling;
+				if (divider && !divider.querySelector("input") && divider.textContent.trim().toLowerCase() === "or") hide(divider);
+			}
+		};
+		const fixHeight = () => {
+			const screen = document.querySelector("[data-sdui-screen]")?.firstElementChild;
+			if (screen && screen.offsetHeight !== innerHeight) screen.style.setProperty("height", innerHeight + "px", "important");
+		};
+		const update = () => {
+			if (!/^\/(login|checkpoint|uas)/.test(location.pathname)) return;
+			hideSSO();
+			fixHeight();
+		};
+		const start = () => {
+			if (!document.head) return setTimeout(start, 50);
+			const style = document.createElement("style");
+			style.textContent = ".alternate-signin-container, #checkpointGoogleOneTapContainerId { display: none !important; }";
+			document.head.appendChild(style);
+			update();
+			new MutationObserver(update).observe(document.documentElement, { childList: true, subtree: true });
+			(window.visualViewport || window).addEventListener("resize", update);
+		};
+		start();
+	}
+	return Promise.resolve({%q: navigator.userAgent});
+})()`
+
 var browserHeaderNames = []string{
 	"User-Agent",
 	"Sec-Ch-Ua",
@@ -93,8 +135,8 @@ func (c *CookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 		StepID:       CookieLoginStepIDCookies,
 		Instructions: msgStepCookiesInstructions.Message(),
 		CookiesParams: &bridgev2.LoginCookiesParams{
-			URL:       "https://linkedin.com/login",
-			ExtractJS: fmt.Sprintf(`Promise.resolve({%q: navigator.userAgent})`, cookieLoginBrowserHeaderPrefix+"user-agent"),
+			URL:       "https://www.linkedin.com/login",
+			ExtractJS: fmt.Sprintf(cookieLoginExtractJS, cookieLoginBrowserHeaderPrefix+"user-agent"),
 			// Keep the webview open until the feed loads so it doesn't close
 			// before the user finishes 2FA.
 			WaitForURLPattern: `^https://www\.linkedin\.com/feed.*$`,
