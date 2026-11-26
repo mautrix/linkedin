@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -30,6 +31,28 @@ import (
 var (
 	_ bridgev2.BackfillingNetworkAPI = (*LinkedInClient)(nil)
 )
+
+const missingMessagesRetries = 2
+
+func retryMissingMessages(ctx context.Context, fetch func() (*linkedingo.CollectionResponse[linkedingo.MessageMetadata, linkedingo.Message], error)) (*linkedingo.CollectionResponse[linkedingo.MessageMetadata, linkedingo.Message], error) {
+	for attempt := 0; ; attempt++ {
+		msgs, err := fetch()
+		if attempt >= missingMessagesRetries || !errors.Is(err, linkedingo.ErrMissingGraphQLData) {
+			return msgs, err
+		}
+		now := time.Now()
+		retryIn := now.Truncate(time.Minute).Add(time.Minute).Sub(now) + time.Second
+		zerolog.Ctx(ctx).Warn().Err(err).
+			Int("attempt", attempt+1).
+			Dur("retry_in", retryIn).
+			Msg("LinkedIn returned no messages, retrying after the per-minute limit resets")
+		select {
+		case <-time.After(retryIn):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+}
 
 func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
 	log := zerolog.Ctx(ctx).With().Str("method", "fetch_messages").Logger()
@@ -48,7 +71,9 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 	convURN := linkedingo.NewURN(fetchParams.Portal.ID)
 	var messages []linkedingo.Message
 	if fetchParams.Cursor != "" {
-		msgs, err := l.client.GetMessagesWithPrevCursor(ctx, convURN, string(fetchParams.Cursor), fetchParams.Count)
+		msgs, err := retryMissingMessages(ctx, func() (*linkedingo.CollectionResponse[linkedingo.MessageMetadata, linkedingo.Message], error) {
+			return l.client.GetMessagesWithPrevCursor(ctx, convURN, string(fetchParams.Cursor), fetchParams.Count)
+		})
 		if err != nil {
 			return nil, err
 		} else if len(msgs.Elements) == 0 {
@@ -61,7 +86,9 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		if !fetchParams.Forward && fetchParams.AnchorMessage != nil {
 			before = fetchParams.AnchorMessage.Timestamp
 		}
-		msgs, err := l.client.GetMessagesBefore(ctx, convURN, before, fetchParams.Count)
+		msgs, err := retryMissingMessages(ctx, func() (*linkedingo.CollectionResponse[linkedingo.MessageMetadata, linkedingo.Message], error) {
+			return l.client.GetMessagesBefore(ctx, convURN, before, fetchParams.Count)
+		})
 		if err != nil {
 			return nil, err
 		} else if len(msgs.Elements) == 0 {
