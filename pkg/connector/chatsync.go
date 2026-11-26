@@ -18,7 +18,9 @@ package connector
 
 import (
 	"context"
+	"net/http"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -57,7 +59,7 @@ func (l *LinkedInClient) deleteURN(ctx context.Context, urn linkedingo.URN) {
 	}
 }
 
-func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation, synced *int) (limitReached bool) {
+func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linkedingo.Conversation, synced *int, handled *[]<-chan struct{}) (limitReached bool) {
 	log := zerolog.Ctx(ctx)
 
 	for _, conv := range convs {
@@ -122,7 +124,22 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 			log.Debug().Msg("User not in chat")
 			continue
 		}
-		l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
+		var handledCh chan struct{}
+		if handled != nil {
+			waitForHandle := meta.CreatePortal && l.main.Bridge.Config.PortalCreateFilter.ShouldAllow(l.userLogin.ID, portalKey)
+			if !waitForHandle {
+				portal, err := l.main.Bridge.GetExistingPortalByKey(ctx, portalKey)
+				waitForHandle = err == nil && portal != nil && portal.MXID != ""
+			}
+			if waitForHandle {
+				handledCh = make(chan struct{})
+				closeHandled := sync.OnceFunc(func() { close(handledCh) })
+				meta.PostHandleFunc = func(context.Context, *bridgev2.Portal) {
+					closeHandled()
+				}
+			}
+		}
+		res := l.main.Bridge.QueueRemoteEvent(l.userLogin, &simplevent.ChatResync{
 			ChatInfo:        &chatInfo,
 			EventMeta:       meta.WithType(bridgev2.RemoteEventChatResync),
 			LatestMessageTS: latestMessageTS,
@@ -133,6 +150,9 @@ func (l *LinkedInClient) handleConversations(ctx context.Context, convs []linked
 				return latestMessage.ID != latestMessageID && latestMessageTS.After(latestMessage.Timestamp), nil
 			},
 		})
+		if handledCh != nil && res.Queued {
+			*handled = append(*handled, handledCh)
+		}
 		if readStatusChanged {
 			sender := bridgev2.EventSender{
 				IsFromMe:    true,
@@ -182,9 +202,12 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 
 	syncStart := time.Now()
 	oldestActivity := syncStart
+	partialStart := meta.PartialSyncStart.Time
+	partialOldest := meta.PartialSyncOldest.Time
 	var cursor string
 	seenCursors := map[string]struct{}{}
 	var synced int
+	pagesHandled := true
 	for {
 		if ctx.Err() != nil {
 			log.Info().Msg("sync canceled")
@@ -197,7 +220,7 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 			Logger()
 		log.Info().Msg("fetching conversations")
 
-		conversations, err := l.client.GetConversationsPage(ctx, cursor)
+		conversations, err := l.getConversationsPage(ctx, log, cursor)
 		if err != nil {
 			log.Err(err).Msg("failed to fetch conversations")
 			return
@@ -211,7 +234,29 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 				oldestActivity = conv.LastActivityAt.Time
 			}
 		}
-		if l.handleConversations(ctx, conversations.Elements, &synced) {
+		limitReached := false
+		var handled []<-chan struct{}
+		for i, conv := range conversations.Elements {
+			covered := !partialStart.IsZero() && !conv.LastActivityAt.IsZero() &&
+				!conv.LastActivityAt.Before(partialOldest) &&
+				conv.LastActivityAt.Before(partialStart)
+			if !covered {
+				limitReached = l.handleConversations(ctx, conversations.Elements[i:i+1], &synced, &handled)
+			} else if slices.Contains(conv.Categories, "INBOX") && !slices.Contains(conv.Categories, "SPAM") &&
+				slices.ContainsFunc(conv.ConversationParticipants, func(p linkedingo.MessagingParticipant) bool {
+					return p.EntityURN.ID() == string(l.userID)
+				}) {
+				synced++
+				limitReached = l.main.Config.Sync.UpdateLimit > 0 && synced >= l.main.Config.Sync.UpdateLimit
+			}
+			if limitReached {
+				break
+			}
+		}
+		if !waitForConversationsHandled(ctx, log, handled) {
+			pagesHandled = false
+		}
+		if limitReached {
 			break
 		} else if oldestActivity.Before(meta.ConversationsSyncedUpTo.Time) {
 			log.Info().Msg("reached conversations synced previously")
@@ -226,15 +271,98 @@ func (l *LinkedInClient) syncConversations(ctx context.Context) {
 		}
 		cursor = conversations.Metadata.NextCursor
 		seenCursors[cursor] = struct{}{}
+
+		if pagesHandled && (partialStart.IsZero() || !oldestActivity.After(partialStart)) {
+			meta.PartialSyncStart = jsontime.UM(syncStart)
+			meta.PartialSyncOldest = jsontime.UM(oldestActivity)
+			if !partialStart.IsZero() && partialOldest.Before(oldestActivity) {
+				meta.PartialSyncOldest = jsontime.UM(partialOldest)
+			}
+			if err := l.userLogin.Save(ctx); err != nil {
+				log.Err(err).Msg("failed to save partial conversation sync progress")
+			}
+		}
 	}
 	if ctx.Err() != nil {
 		return
+	} else if !pagesHandled {
+		log.Warn().Msg("Not saving conversation sync boundary because some synced conversations weren't handled")
+		return
 	}
 	meta.ConversationsSyncedUpTo = jsontime.UM(syncStart)
+	meta.PartialSyncStart = jsontime.UnixMilli{}
+	meta.PartialSyncOldest = jsontime.UnixMilli{}
 	if err := l.userLogin.Save(ctx); err != nil {
 		log.Err(err).Msg("failed to save conversation sync timestamp")
 	}
 }
+
+const (
+	conversationPageHandleTimeout = 5 * time.Minute
+	conversationPageIdleTimeout   = 3 * time.Minute
+)
+
+func waitForConversationsHandled(ctx context.Context, log zerolog.Logger, handled []<-chan struct{}) bool {
+	if len(handled) == 0 {
+		return true
+	}
+	stop := make(chan struct{})
+	defer close(stop)
+	done := make(chan struct{}, len(handled))
+	for _, ch := range handled {
+		go func() {
+			select {
+			case <-ch:
+				done <- struct{}{}
+			case <-stop:
+			}
+		}()
+	}
+	deadline := time.NewTimer(conversationPageHandleTimeout)
+	defer deadline.Stop()
+	idle := time.NewTimer(conversationPageIdleTimeout)
+	defer idle.Stop()
+	for pending := len(handled); pending > 0; {
+		select {
+		case <-done:
+			pending--
+			idle.Reset(conversationPageIdleTimeout)
+		case <-ctx.Done():
+			return false
+		case <-idle.C:
+			log.Warn().
+				Int("pending", pending).
+				Msg("No synced conversation was handled recently, continuing sync")
+			return false
+		case <-deadline.C:
+			log.Warn().
+				Int("pending", pending).
+				Msg("Timed out waiting for synced conversations to be handled")
+			return false
+		}
+	}
+	return true
+}
+
+const conversationPageRateLimitRetries = 5
+
+func (l *LinkedInClient) getConversationsPage(ctx context.Context, log zerolog.Logger, cursor string) (*linkedingo.CollectionResponse[linkedingo.ConversationCursorMetadata, linkedingo.Conversation], error) {
+	retryIn := time.Minute
+	for attempt := 0; ; attempt++ {
+		conversations, err := l.client.GetConversationsPage(ctx, cursor)
+		if err == nil || attempt >= conversationPageRateLimitRetries || responseStatusCode(err) != http.StatusTooManyRequests {
+			return conversations, err
+		}
+		log.Warn().Err(err).Dur("retry_in", retryIn).Msg("rate limited while fetching conversations, retrying")
+		select {
+		case <-time.After(retryIn):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		retryIn *= 2
+	}
+}
+
 func (l *LinkedInClient) getConversationsBySyncToken(ctx context.Context) {
 	convs, err := l.client.GetConversationsBySyncToken(ctx)
 	if err != nil {
@@ -244,7 +372,7 @@ func (l *LinkedInClient) getConversationsBySyncToken(ctx context.Context) {
 	if convs == nil {
 		return
 	}
-	l.handleConversations(ctx, convs.Elements, new(int))
+	l.handleConversations(ctx, convs.Elements, new(int), nil)
 	for _, item := range convs.Metadata.DeletedURNs {
 		l.deleteURN(ctx, item.Conversation.EntityURN)
 	}

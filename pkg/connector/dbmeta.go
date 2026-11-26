@@ -48,6 +48,9 @@ type UserLoginMetadata struct {
 	BrowserHeaders          http.Header                 `json:"browser_headers,omitempty"`
 	ConversationsSyncToken  string                      `json:"conversations_sync_token,omitempty"`
 	ConversationsSyncedUpTo jsontime.UnixMilli          `json:"conversations_paged_up_to,omitempty"`
+
+	PartialSyncStart  jsontime.UnixMilli `json:"partial_sync_start,omitempty"`
+	PartialSyncOldest jsontime.UnixMilli `json:"partial_sync_oldest,omitempty"`
 }
 
 type PortalMetadata struct {
