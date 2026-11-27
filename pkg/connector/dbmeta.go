@@ -55,6 +55,8 @@ type UserLoginMetadata struct {
 
 type PortalMetadata struct {
 	DisabledFeatures []linkedingo.ConversationFeature `json:"disabled_features,omitempty"`
+	Pending          bool                             `json:"pending,omitzero"`
+	SentMessage      bool                             `json:"sent_message,omitzero"`
 }
 
 type MessageMetadata struct {

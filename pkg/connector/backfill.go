@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -171,6 +172,10 @@ func (l *LinkedInClient) FetchMessages(ctx context.Context, fetchParams bridgev2
 		if resp.MarkRead && msg.DeliveredAt.After(lastRead.Time) {
 			resp.MarkRead = false
 		}
+	}
+
+	if fetchParams.Forward && slices.ContainsFunc(messages, l.isOwnMessage) {
+		portal.UpdateInfo(ctx, &bridgev2.ChatInfo{ExtraUpdates: markSentMessage}, l.userLogin, nil, time.Time{})
 	}
 
 	resp.HasMore = len(resp.Messages) > 0 || (skippedRecalled && resp.Cursor != "" && resp.Cursor != fetchParams.Cursor)
