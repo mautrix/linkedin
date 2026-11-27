@@ -642,3 +642,33 @@ func TestCapturedCheckpointCompletion(t *testing.T) {
 	_, err = marshalLoginAction(page.Action, []any{}, page.ScreenID)
 	require.NoError(t, err)
 }
+
+func TestPasswordLoginSingleQuotedBootstrap(t *testing.T) {
+	const prefix = "window.__como_rehydration__ = "
+	fixture := passwordBootstrapFixture(t)
+	start := strings.Index(fixture, prefix) + len(prefix)
+	end := strings.Index(fixture, "</script>")
+	var chunks []string
+	require.NoError(t, json.Unmarshal([]byte(fixture[start:end]), &chunks))
+	escaper := strings.NewReplacer(`\`, `\\`, "'", `\'`, "\n", `\n`, "<", `\x3C`)
+	quoted := make([]string, len(chunks))
+	for i, chunk := range chunks {
+		quoted[i] = "'" + escaper.Replace(chunk) + "'"
+	}
+	body := fixture[:start] + "[ " + strings.Join(quoted, ", ") + " ]" + fixture[end:]
+
+	want, err := parsePasswordLoginPage([]byte(fixture))
+	require.NoError(t, err)
+	got, err := parsePasswordLoginPage([]byte(body))
+	require.NoError(t, err)
+	assert.Equal(t, want.Payload, got.Payload)
+	assert.Equal(t, want.Arguments, got.Arguments)
+
+	parsed, ok := parseJSStringArray(`['a\'b\\c\n\x3Cd\u00e9', "e\"f",]`)
+	require.True(t, ok)
+	assert.Equal(t, []string{"a'b\\c\n<d\u00e9", `e"f`}, parsed)
+	for _, invalid := range []string{``, `[`, `['a`, `['a' 'b']`, `[a]`, `['\x4']`} {
+		_, ok = parseJSStringArray(invalid)
+		assert.False(t, ok, invalid)
+	}
+}
